@@ -31,8 +31,14 @@ cd app && npx expo start  # scan the QR code with the Expo Go app on your iPhone
 The phone and Mac must be on the same Wi-Fi. The app finds the server on the same Mac as the
 Expo dev server automatically; you can override the address under **You › Server**.
 
-Server API: `POST /cuts?maxGap=0.3&fillers=1&retakes=1&captions=1` (raw video body) → `{ id }`,
-`GET /cuts/:id` → status and cuts, `GET /cuts/:id/video` → the cut mp4.
+Server API (see the header of `src/server.js`): upload takes with `POST /uploads`, start a cut with
+`POST /cuts?uploads=a,b`, poll `GET /cuts/:id` for progress and the cut list, stream the joined
+source from `GET /cuts/:id/source` for the editor, and export with `POST /cuts/:id/render`
+followed by `GET /cuts/:id/video`.
+
+App screens: sign in → onboarding (name, handle, tour, plan) → Create (camera with takes),
+Review, Cutting (progress), Editor (split / duplicate / delete / restore cuts / captions,
+undo and redo, live preview), Export (saves to Photos), Cuts (drafts and finished), Batch, You.
 
 ## How it decides
 

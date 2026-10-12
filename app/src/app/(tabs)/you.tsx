@@ -1,159 +1,130 @@
-import Slider from '@react-native-community/slider';
-import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { autoServerUrl, checkServer, serverUrl } from '../../lib/api';
+import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { useAuth } from '../../lib/auth';
 import { PLANS } from '../../lib/plans';
-import { updateSettings, useCuts, useSettings } from '../../lib/store';
-import { formatTime, theme } from '../../lib/theme';
+import { clipsDuration, useCuts } from '../../lib/store';
+import { theme } from '../../lib/theme';
+
+const LIMITS: Record<string, number> = { starter: 100, pro: 300, ultimate: Infinity };
 
 export default function YouScreen() {
-  const { account, signOut, updateProfile } = useAuth();
+  const insets = useSafeAreaInsets();
+  const { account, updateProfile } = useAuth();
+  const cuts = useCuts();
   const profile = account?.profile ?? {};
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your studio';
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const plan = PLANS.find((p) => p.id === profile.plan);
-  const settings = useSettings();
-  const cuts = useCuts();
-  const insets = useSafeAreaInsets();
-  const [serverStatus, setServerStatus] = useState<string | null>(null);
-  const saved = cuts.reduce((t, c) => t + c.duration - c.keptDuration, 0);
 
-  async function test() {
-    setServerStatus('Checking…');
-    try {
-      setServerStatus((await checkServer(serverUrl(settings))) ? 'Connected' : 'Server answered with an error');
-    } catch (e) {
-      setServerStatus(e instanceof Error ? e.message : String(e));
-    }
-  }
+  const now = new Date();
+  const thisMonth = cuts.filter((c) => {
+    const d = new Date(c.createdAt);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  const resets = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const limit = LIMITS[profile.plan ?? 'starter'];
+
+  const ready = cuts.filter((c) => c.status === 'ready');
+  const footage = ready.reduce((t, c) => t + c.duration, 0);
+  const kept = ready.reduce((t, c) => t + clipsDuration(c.clips), 0);
+  const trims = ready.reduce((t, c) => t + c.cuts.length, 0);
+  const exported = ready.reduce((t, c) => t + c.exports, 0);
+  // Rough rule of thumb: trimming by hand takes about 3 minutes per minute of raw footage.
+  const savedMinutes = Math.round((footage * 3) / 60);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 40, paddingHorizontal: 18 }}>
-      <Text style={styles.h1}>You</Text>
+    <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }}>
+      <View style={styles.header}>
+        <Text style={styles.h1}>You</Text>
+        <Pressable onPress={() => router.push('/settings')} hitSlop={10} accessibilityLabel="Settings" style={styles.gear}>
+          <SymbolView name="gearshape" tintColor={theme.ink} size={18} />
+        </Pressable>
+      </View>
 
-      <View style={[styles.group, styles.profile]}>
-        <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>
+      <View style={styles.profile}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>{initials}</Text>
+        </View>
         <View style={{ flex: 1 }}>
           <Text style={styles.name}>{name}</Text>
           <Text style={styles.sub}>
-            {[profile.handle && `@${profile.handle}`, account && `Since ${new Date(account.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`].filter(Boolean).join(' · ')}
+            {[profile.handle && `@${profile.handle}`, account && `Since ${new Date(account.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`]
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
         </View>
       </View>
 
-      <View style={[styles.group, { marginTop: 10 }]}>
-        <View style={styles.item}>
-          <Text style={styles.text}>{plan?.name ?? 'No plan yet'}</Text>
-          <Text style={styles.value}>{plan ? plan.edits : ''}</Text>
-        </View>
-        <Pressable style={[styles.item, styles.last]} onPress={() => updateProfile({ onboarded: false })}>
-          <Text style={[styles.text, { color: theme.accent }]}>Change plan</Text>
-        </Pressable>
-      </View>
-      <Text style={styles.foot}>Payments aren’t connected yet, so nothing is charged.</Text>
-
-      <Text style={styles.label}>Recording</Text>
-      <View style={styles.group}>
-        <View style={[styles.item, styles.last]}>
-          <Text style={styles.text}>I record in</Text>
-          <Pressable onPress={() => updateProfile({ language: profile.language === 'es' ? 'en' : 'es' })} hitSlop={8}>
-            <Text style={[styles.value, { color: theme.accent }]}>{profile.language === 'es' ? 'Español' : 'English'}</Text>
+      <View style={styles.card}>
+        <View style={styles.between}>
+          <Text style={styles.planName}>{plan?.name ?? 'No plan'}</Text>
+          <Pressable onPress={() => updateProfile({ onboarded: false })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Text style={styles.link}>Manage</Text>
+            <SymbolView name="chevron.right" tintColor={theme.accent} size={11} />
           </Pressable>
         </View>
-      </View>
-
-      <Text style={styles.label}>Cutting</Text>
-      <View style={styles.group}>
-        <View style={[styles.item, { flexDirection: 'column', alignItems: 'stretch', gap: 6 }]}>
-          <View style={styles.between}>
-            <Text style={styles.text}>Longest pause to keep</Text>
-            <Text style={styles.value}>{settings.maxGap.toFixed(2)}s</Text>
+        <Text style={styles.small}>Payments aren’t connected yet, so nothing is charged.</Text>
+        <View style={styles.divider} />
+        <View style={styles.between}>
+          <Text style={styles.text}>
+            {thisMonth} of {limit === Infinity ? 'unlimited' : limit} edits used
+          </Text>
+          <Text style={styles.small}>Resets {resets}</Text>
+        </View>
+        {limit !== Infinity && (
+          <View style={styles.meter}>
+            <View style={[styles.meterFill, { width: `${Math.min(100, (thisMonth / limit) * 100)}%` }]} />
           </View>
-          <Slider
-            minimumValue={0.15}
-            maximumValue={0.8}
-            step={0.05}
-            value={settings.maxGap}
-            onSlidingComplete={(v) => updateSettings({ maxGap: Math.round(v * 100) / 100 })}
-            minimumTrackTintColor={theme.accent}
-          />
+        )}
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.cardLabel}>Your stats</Text>
+        <Text style={styles.big}>{savedMinutes} min</Text>
+        <Text style={styles.small}>saved vs cutting it yourself (estimate)</Text>
+        <Text style={styles.small}>
+          {Math.round(footage)} sec of footage · {Math.round(footage - kept)} sec trimmed · {trims} cuts
+        </Text>
+        <View style={styles.divider} />
+        <View style={styles.statsRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.statValue}>{exported || 'None yet'}</Text>
+            <Text style={styles.small}>Videos exported</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.statValue}>{ready.length}</Text>
+            <Text style={styles.small}>Cuts made</Text>
+          </View>
         </View>
-        <Row label="Remove ums and uhs" value={settings.removeFillers} onChange={(v) => updateSettings({ removeFillers: v })} />
-        <Row label="Remove retakes" value={settings.removeRetakes} onChange={(v) => updateSettings({ removeRetakes: v })} last />
-      </View>
-      <Text style={styles.foot}>Lower pause = snappier edit. With retakes on, when you say a line again Autocut keeps your last take. Applies to new cuts.</Text>
-
-      <Text style={styles.label}>Captions</Text>
-      <View style={styles.group}>
-        <Row label="Burn captions into the video" value={settings.captions} onChange={(v) => updateSettings({ captions: v })} last />
-      </View>
-
-      <Text style={styles.label}>Stats</Text>
-      <View style={styles.group}>
-        <View style={styles.item}><Text style={styles.text}>Cuts made</Text><Text style={styles.value}>{cuts.length}</Text></View>
-        <View style={[styles.item, styles.last]}><Text style={styles.text}>Time saved</Text><Text style={styles.value}>{formatTime(saved)}</Text></View>
-      </View>
-
-      <Text style={styles.label}>Server</Text>
-      <View style={styles.group}>
-        <View style={[styles.item, styles.last, { flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
-          <TextInput
-            style={styles.input}
-            value={settings.serverUrl}
-            onChangeText={(serverUrl) => updateSettings({ serverUrl })}
-            placeholder={autoServerUrl()}
-            placeholderTextColor={theme.faint}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="url"
-          />
-          <Pressable onPress={test} style={({ pressed }) => [styles.testBtn, pressed && { opacity: 0.7 }]}>
-            <Text style={styles.testText}>Test connection</Text>
-          </Pressable>
-          {serverStatus && <Text style={styles.status}>{serverStatus}</Text>}
-        </View>
-      </View>
-      <Text style={styles.foot}>Leave empty to use the Mac running Expo. Your takes are cut there and saved back to this phone.</Text>
-
-      <View style={[styles.group, { marginTop: 24 }]}>
-        <Pressable style={[styles.item, styles.last]} onPress={signOut}>
-          <Text style={[styles.text, { color: '#D93B3B' }]}>Sign out</Text>
-          <Text style={styles.value}>{account?.email ?? 'dev mode'}</Text>
-        </Pressable>
       </View>
     </ScrollView>
   );
 }
 
-function Row({ label, value, onChange, last }: { label: string; value: boolean; onChange: (v: boolean) => void; last?: boolean }) {
-  return (
-    <View style={[styles.item, last && styles.last]}>
-      <Text style={styles.text}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  h1: { fontSize: 32, fontWeight: '800', color: theme.ink, marginBottom: 4 },
-  label: { fontSize: 12, color: theme.faint, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 20, marginBottom: 6, marginLeft: 6 },
-  group: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' },
-  item: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.line, gap: 12 },
-  last: { borderBottomWidth: 0 },
-  between: { flexDirection: 'row', justifyContent: 'space-between' },
-  text: { fontSize: 15, color: theme.ink, flexShrink: 1 },
-  value: { fontSize: 15, color: theme.faint, fontVariant: ['tabular-nums'] },
-  foot: { fontSize: 12, color: theme.faint, marginTop: 6, marginHorizontal: 6, lineHeight: 17 },
-  input: { fontSize: 15, color: theme.ink, backgroundColor: theme.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  testBtn: { alignSelf: 'flex-start' },
-  testText: { color: theme.accent, fontSize: 15, fontWeight: '600' },
-  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginTop: 12 },
-  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(61,133,245,0.14)', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 18, fontWeight: '700', color: theme.accent },
-  name: { fontSize: 19, fontWeight: '700', color: theme.ink },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  h1: { fontSize: 32, fontWeight: '800', color: theme.ink },
+  gear: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginVertical: 18 },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(61,133,245,0.14)', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 19, fontWeight: '700', color: theme.accent },
+  name: { fontSize: 22, fontWeight: '800', color: theme.ink },
   sub: { fontSize: 13, color: theme.muted, marginTop: 2 },
-  status: { fontSize: 13, color: theme.muted, lineHeight: 18 },
+  card: { backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 4, marginBottom: 12 },
+  between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  planName: { fontSize: 18, fontWeight: '700', color: theme.ink },
+  link: { fontSize: 14, fontWeight: '600', color: theme.accent },
+  divider: { height: 1, backgroundColor: theme.line, marginVertical: 10 },
+  text: { fontSize: 14, color: theme.ink, fontVariant: ['tabular-nums'] },
+  small: { fontSize: 12, color: theme.muted, fontVariant: ['tabular-nums'] },
+  meter: { height: 6, borderRadius: 3, backgroundColor: theme.line, overflow: 'hidden', marginTop: 8 },
+  meterFill: { height: 6, backgroundColor: theme.accent },
+  cardLabel: { fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 6 },
+  big: { fontSize: 34, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
+  statsRow: { flexDirection: 'row' },
+  statValue: { fontSize: 17, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
 });

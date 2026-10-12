@@ -45,7 +45,14 @@
       "expo-font",
       "expo-sqlite",
       "expo-web-browser",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Record a take so Autocut can cut it.",
+          "microphonePermission": "Record your voice along with your take."
+        }
+      ]
     ],
     "scheme": "autocut"
   }

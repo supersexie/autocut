@@ -34,7 +34,10 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="review" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="cut/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="edit/[id]" options={{ animation: 'fade' }} />
+        <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack.Protected>
     </Stack>
   );
