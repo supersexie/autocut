@@ -1,0 +1,420 @@
+<title>Autocut Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: notes column beside a live phone; on phones the device fills the screen. */
+:root {
+  --page: #eef2f8;
+  --ink: #18202e;
+  --muted: #5d6879;
+  --line: #d6deea;
+  --accent: #3d85f5;
+  --cut: #f95b5b;
+  --app-bg: #f2f6fd;
+  --card: #ffffff;
+  --frame: #11151c;
+  --display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --body: "Figtree", -apple-system, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #0e131b; --ink: #e8edf5; --muted: #98a3b5; --line: #263041; --frame: #000; color-scheme: dark;
+} }
+:root[data-theme="dark"] { --page: #0e131b; --ink: #e8edf5; --muted: #98a3b5; --line: #263041; --frame: #000; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { background: var(--page); color: var(--ink); font-family: var(--body); padding-inline: 16px; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 40px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 56px; align-items: center; min-height: 100%; }
+.notes { min-width: 0; max-width: 440px; }
+.notes h1 { font-family: var(--display); font-size: 44px; line-height: 1.02; letter-spacing: -0.02em; margin: 0 0 14px; text-wrap: balance; }
+.notes p { color: var(--muted); font-size: 16px; line-height: 1.55; margin: 0 0 22px; }
+.tag { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; }
+.steps { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 10px; }
+.steps li { display: grid; grid-template-columns: 26px 1fr; gap: 10px; font-size: 15px; line-height: 1.45; }
+.steps b { font-weight: 600; }
+.steps span.n { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--line); display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.fine { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; line-height: 1.5; }
+.restart { font: inherit; font-weight: 600; font-size: 14px; color: var(--accent); background: none; border: 1.5px solid var(--accent); border-radius: 999px; padding: 8px 16px; cursor: pointer; margin-bottom: 22px; }
+
+/* ---------- Phone ---------- */
+.phone { width: 360px; height: 760px; border-radius: 54px; background: var(--frame); padding: 11px; box-shadow: 0 30px 80px rgba(20, 40, 80, .25); position: relative; }
+.screen { width: 100%; height: 100%; border-radius: 44px; overflow: hidden; position: relative; background: var(--app-bg); color: #18202e; font-family: -apple-system, "SF Pro Text", var(--body); }
+.island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 110px; height: 32px; background: #000; border-radius: 20px; z-index: 50; }
+.status { position: absolute; top: 0; left: 0; right: 0; height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 6px 30px 0; font-size: 14px; font-weight: 600; z-index: 40; }
+.status.light { color: #fff; }
+.view { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.view[hidden] { display: none !important; }
+
+/* tab bar */
+.tabs { position: absolute; left: 14px; right: 14px; bottom: 16px; height: 62px; border-radius: 31px; background: rgba(255,255,255,.82); backdrop-filter: blur(20px); box-shadow: 0 6px 24px rgba(30,60,120,.12); display: grid; grid-template-columns: repeat(3, 1fr); z-index: 30; }
+.tabs button { background: none; border: 0; font: inherit; font-size: 10px; font-weight: 600; color: #8a94a6; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; border-radius: 26px; margin: 5px; }
+.tabs button.on { color: var(--accent); background: rgba(61,133,245,.1); }
+.tabs svg { width: 22px; height: 22px; }
+
+/* create */
+.create { align-items: center; justify-content: center; gap: 22px; padding: 0 22px 90px; background: linear-gradient(#e9f1ff, #f6f9ff); }
+.logo { width: 62px; height: 62px; border-radius: 18px; background: #fff; display: grid; place-items: center; box-shadow: 0 8px 22px rgba(61,133,245,.18); color: var(--accent); }
+.appname { font-weight: 800; font-size: 22px; margin-top: -10px; }
+.card { background: #fff; border-radius: 24px; padding: 22px 20px; box-shadow: 0 10px 30px rgba(20,40,80,.07); display: flex; flex-direction: column; gap: 12px; text-align: center; width: 100%; }
+.card h2 { margin: 0; font-size: 17px; }
+.card p { margin: 0; font-size: 14px; line-height: 1.4; color: #6a7486; }
+.btn { font: inherit; font-size: 16px; font-weight: 600; border-radius: 14px; padding: 13px; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.secondary { background: rgba(61,133,245,.12); color: var(--accent); }
+.btn:focus-visible, .tabs button:focus-visible, .icon:focus-visible { outline: 3px solid rgba(61,133,245,.5); outline-offset: 2px; }
+.card small { font-size: 12px; color: #8a94a6; }
+.last { font-size: 13px; color: #6a7486; font-variant-numeric: tabular-nums; }
+
+/* video stage (processing + result) */
+.stage { background: #000; color: #fff; }
+.video { position: absolute; inset: 0; overflow: hidden; }
+.video canvas { width: 100%; height: 100%; display: block; }
+.topbar { position: absolute; top: 54px; left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: center; z-index: 5; }
+.icon { width: 40px; height: 40px; border-radius: 50%; border: 0; background: rgba(255,255,255,.18); backdrop-filter: blur(14px); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.toast { background: rgba(30,30,30,.6); backdrop-filter: blur(14px); padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; opacity: 0; transform: translateY(-8px); transition: .25s; }
+.toast.show { opacity: 1; transform: none; }
+.panel { position: absolute; left: 14px; right: 14px; bottom: 22px; background: rgba(40,44,52,.55); backdrop-filter: blur(22px); border-radius: 22px; padding: 16px; display: flex; flex-direction: column; gap: 12px; z-index: 5; }
+.row { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 600; }
+.row .grow { flex: 1; }
+.spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.count, .meta { font-size: 13px; font-weight: 500; color: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
+.meta { display: flex; justify-content: space-between; font-size: 12px; }
+.timeline { position: relative; height: 20px; }
+.track { position: absolute; left: 0; right: 0; top: 6px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.22); overflow: hidden; }
+.track.raw { background: rgba(61,133,245,.85); }
+.seg { position: absolute; top: 0; bottom: 0; background: var(--accent); border-radius: 3px; }
+.cutmark { position: absolute; top: 0; bottom: 0; background: var(--cut); opacity: .9; animation: pop .35s cubic-bezier(.3,1.6,.5,1); }
+.track:not(.raw) .cutmark { opacity: .5; }
+@keyframes pop { from { transform: scaleX(.1); opacity: 0; } }
+.playhead { position: absolute; top: 1px; width: 3px; height: 18px; background: #fff; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,.5); transform: translateX(-1.5px); }
+.times { font-variant-numeric: tabular-nums; display: flex; gap: 6px; align-items: center; background: none; border: 0; color: inherit; font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; padding: 0; }
+.times s { color: rgba(255,255,255,.55); }
+.times em { font-style: normal; color: #7fb0ff; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.actions .btn { padding: 12px; font-size: 15px; }
+.btn.ghost { background: rgba(255,255,255,.14); color: #fff; }
+.caption { position: absolute; left: 7%; right: 7%; top: 61%; text-align: center; font-weight: 900; font-size: 27px; line-height: 1.1; color: #fff; text-shadow: 1.5px 1.5px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 0 0 10px rgba(0,0,0,.5); z-index: 4; pointer-events: none; transition: transform .12s, opacity .12s; }
+.caption.swap { transform: scale(.92); opacity: 0; }
+.bigplay { position: absolute; inset: 0; display: grid; place-items: center; z-index: 3; pointer-events: none; }
+.bigplay svg { width: 60px; opacity: .9; }
+.sample { position: absolute; top: 104px; left: 0; right: 0; text-align: center; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.6); z-index: 4; }
+
+/* sheet */
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; height: 62%; background: #fff; color: #18202e; border-radius: 26px 26px 0 0; z-index: 20; transform: translateY(100%); transition: transform .3s cubic-bezier(.2,.9,.3,1); display: flex; flex-direction: column; }
+.sheet.open { transform: none; }
+.sheet header { display: flex; justify-content: space-between; align-items: center; padding: 18px 20px 10px; font-weight: 700; }
+.sheet header button { background: none; border: 0; color: var(--accent); font: inherit; font-weight: 600; cursor: pointer; }
+.cutlist { overflow-y: auto; padding: 0 20px 20px; display: grid; gap: 0; }
+.cutlist div { padding: 11px 0; border-bottom: 1px solid #eef1f5; display: grid; gap: 3px; }
+.cutlist .why { display: flex; justify-content: space-between; font-size: 14px; font-weight: 600; color: var(--cut); }
+.cutlist .why span { color: #8a94a6; font-weight: 500; font-size: 12px; font-variant-numeric: tabular-nums; }
+.cutlist q { font-size: 14px; color: #6a7486; }
+
+/* lists */
+.page { padding: 64px 18px 100px; overflow-y: auto; }
+.page h1 { font-size: 32px; font-weight: 800; margin: 0 0 16px; letter-spacing: -.01em; }
+.group { background: #fff; border-radius: 16px; overflow: hidden; margin-bottom: 8px; }
+.item { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #eef1f5; cursor: pointer; background: none; border-left: 0; border-right: 0; border-top: 0; width: 100%; text-align: left; font: inherit; color: inherit; }
+.item:last-child { border-bottom: 0; }
+.thumb { width: 50px; height: 74px; border-radius: 9px; flex: none; background: linear-gradient(160deg, #c7d6ee, #8ea7cf); }
+.item b { font-size: 15px; display: block; margin-bottom: 3px; }
+.item small { font-size: 12px; color: #8a94a6; font-variant-numeric: tabular-nums; display: block; }
+.ex { font-size: 10px; font-weight: 700; color: var(--accent); letter-spacing: .06em; text-transform: uppercase; }
+.label { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: #8a94a6; margin: 18px 6px 6px; }
+.foot { font-size: 12px; color: #8a94a6; margin: 6px 6px 0; line-height: 1.4; }
+.setting { display: flex; justify-content: space-between; align-items: center; padding: 13px 14px; border-bottom: 1px solid #eef1f5; font-size: 15px; gap: 12px; }
+.setting:last-child { border-bottom: 0; }
+.setting.col { flex-direction: column; align-items: stretch; gap: 8px; }
+.setting .v { color: #8a94a6; font-variant-numeric: tabular-nums; }
+.switch { appearance: none; width: 50px; height: 30px; border-radius: 15px; background: #e2e6ec; position: relative; cursor: pointer; transition: .2s; flex: none; margin: 0; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,.2); transition: .2s; }
+.switch:checked { background: #34c759; }
+.switch:checked::after { left: 22px; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+
+@media (max-width: 860px) {
+  .wrap { grid-template-columns: minmax(0, 1fr); gap: 28px; padding-block: 24px; justify-items: center; }
+  .notes { max-width: 520px; }
+  .notes h1 { font-size: 34px; }
+}
+@media (max-width: 420px) {
+  .phone { width: 100%; height: 720px; padding: 8px; border-radius: 46px; }
+  .screen { border-radius: 38px; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <section class="notes">
+    <span class="tag">Clickable prototype · v0.1</span>
+    <h1>Autocut, the raw take in, the tight edit out.</h1>
+    <p>A preview of the iPhone app's screens and flow. The real app runs on the phone with your own video; this page plays a made-up sample take so you can click through every screen.</p>
+    <ol class="steps">
+      <li><span class="n">1</span><span><b>Create</b>: tap <b>Import a video</b> or <b>Record now</b>.</span></li>
+      <li><span class="n">2</span><span><b>Processing</b>: cuts land on the timeline in red as dead air, ums and retakes are found.</span></li>
+      <li><span class="n">3</span><span><b>Cut ready</b>: the edit plays with captions. Tap <b>1:10 → 0:17</b> to see every cut and why.</span></li>
+      <li><span class="n">4</span><span><b>Cuts</b> and <b>You</b> tabs: past cuts and cutting settings.</span></li>
+    </ol>
+    <button class="restart" id="restart">Restart the demo</button>
+    <p class="fine">The video area is a placeholder animation and the transcript is sample text. In the app, the same screens show your actual footage, cut on your iPhone.</p>
+  </section>
+
+  <div class="phone" aria-label="Autocut app preview">
+    <div class="screen" id="screen">
+      <div class="island"></div>
+      <div class="status" id="status"><span>9:41</span><span>●●● ▮</span></div>
+
+      <!-- Create -->
+      <div class="view create" id="v-create">
+        <div class="logo" aria-hidden="true">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></svg>
+        </div>
+        <div class="appname">Autocut</div>
+        <div class="card">
+          <h2>Make your first cut</h2>
+          <p>Film a take or pick one from your camera roll. Autocut trims the dead air, ums and retakes for you.</p>
+          <button class="btn primary" data-start>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4" fill="currentColor"/></svg>
+            Record now</button>
+          <button class="btn secondary" data-start>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg>
+            Import a video</button>
+          <small>Everything runs on your iPhone. Nothing is uploaded.</small>
+        </div>
+        <div class="last" id="last" hidden>Last cut: 1:10 → 0:17</div>
+      </div>
+
+      <!-- Processing + Result share one stage -->
+      <div class="view stage" id="v-stage" hidden>
+        <div class="video"><canvas id="cv" width="340" height="740"></canvas></div>
+        <div class="sample">Sample take</div>
+        <div class="caption" id="caption"></div>
+        <div class="bigplay" id="bigplay" hidden><svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4.5v15l13-7.5z"/></svg></div>
+        <div class="topbar">
+          <button class="icon" id="mute" aria-label="Mute">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+          </button>
+          <span class="toast" id="toast"></span>
+          <button class="icon" id="close" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div class="panel" id="panel"></div>
+        <div class="sheet" id="sheet" role="dialog" aria-label="Cuts">
+          <header><span id="sheetTitle">Cuts</span><button id="sheetClose">Done</button></header>
+          <div class="cutlist" id="cutlist"></div>
+        </div>
+      </div>
+
+      <!-- Cuts tab -->
+      <div class="view page" id="v-cuts" hidden>
+        <h1>Cuts</h1>
+        <div class="group" id="cutsGroup"></div>
+        <p class="foot" id="cutsFoot">Example entries. Your own cuts appear here.</p>
+      </div>
+
+      <!-- You tab -->
+      <div class="view page" id="v-you" hidden>
+        <h1>You</h1>
+        <div class="label">Cutting</div>
+        <div class="group">
+          <div class="setting col">
+            <div style="display:flex;justify-content:space-between"><span>Longest pause to keep</span><span class="v" id="gapV">0.30s</span></div>
+            <input type="range" id="gap" min="0.15" max="0.8" step="0.05" value="0.3" aria-label="Longest pause to keep">
+          </div>
+          <label class="setting">Remove ums and uhs <input type="checkbox" class="switch" id="s-fill" checked></label>
+          <label class="setting">Remove retakes <input type="checkbox" class="switch" id="s-retake" checked></label>
+        </div>
+        <p class="foot">Lower pause = snappier edit. With retakes on, when you say a line again Autocut keeps your last take.</p>
+        <div class="label">Captions</div>
+        <div class="group"><label class="setting">Burn captions into exports <input type="checkbox" class="switch" id="s-cap" checked></label></div>
+        <div class="label">Stats</div>
+        <div class="group">
+          <div class="setting">Cuts made <span class="v">2</span></div>
+          <div class="setting">Time saved <span class="v">1:21</span></div>
+        </div>
+        <p class="foot">Everything is processed on this iPhone. Nothing is uploaded.</p>
+      </div>
+
+      <nav class="tabs" id="tabs">
+        <button class="on" data-tab="create"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 4 7.5 6H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.5L15 4z"/><circle cx="12" cy="13" r="3.6" fill="#fff"/></svg>Create</button>
+        <button data-tab="cuts"><svg viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="7" width="18" height="13" rx="2.5"/><rect x="5" y="4" width="14" height="2" rx="1"/></svg>Cuts</button>
+        <button data-tab="you"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7z"/></svg>You</button>
+      </nav>
+    </div>
+  </div>
+</div>
+
+<script>
+// Sample take: 70 s raw, made-up script. Times are seconds on the raw timeline.
+const RAW = 70;
+const SEGMENTS = [
+  { s: 9.4, e: 12.6, words: "These joggers are actually so soft." },
+  { s: 21.0, e: 23.9, words: "They don't pill after you wash them," },
+  { s: 25.1, e: 27.6, words: "and the pockets are super deep." },
+  { s: 38.2, e: 41.0, words: "I'm five ten, wearing a medium." },
+  { s: 52.3, e: 55.4, words: "They come in six colors, I got three." },
+  { s: 61.8, e: 63.8, words: "Link's down below." },
+];
+const CUTS = [
+  { s: 0, e: 9.4, why: "Retake", text: "These joggers are, wait. These joggers are actually so…" },
+  { s: 12.6, e: 21.0, why: "Dead air", text: "" },
+  { s: 23.9, e: 25.1, why: "Filler", text: "um" },
+  { s: 27.6, e: 38.2, why: "Retake", text: "I'm five ten and I'm wearing a, sorry" },
+  { s: 41.0, e: 52.3, why: "Dead air", text: "" },
+  { s: 55.4, e: 61.8, why: "Stutter", text: "the the" },
+  { s: 63.8, e: 70, why: "Dead air", text: "" },
+];
+const KEPT = SEGMENTS.reduce((t, x) => t + x.e - x.s, 0);
+
+// Caption lines on the edited timeline, 4 words max, like the app.
+const LINES = [];
+{
+  let off = 0;
+  for (const seg of SEGMENTS) {
+    const w = seg.words.split(" "), d = seg.e - seg.s, per = d / w.length;
+    for (let i = 0; i < w.length; i += 4) {
+      const chunk = w.slice(i, i + 4);
+      LINES.push({ t: off + i * per, end: off + Math.min(d, (i + chunk.length) * per), text: chunk.join(" ") });
+    }
+    off += d;
+  }
+}
+
+const $ = (id) => document.getElementById(id);
+const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.round(t % 60)).padStart(2, "0")}`;
+const pct = (t) => (t / RAW) * 100 + "%";
+let mode = "create", playing = true, outT = 0, last = performance.now(), timers = [], done = false, muted = false;
+
+function show(view) {
+  for (const v of ["create", "stage", "cuts", "you"]) $("v-" + v).hidden = v !== view;
+  $("tabs").hidden = view === "stage";
+  $("status").classList.toggle("light", view === "stage");
+  document.querySelectorAll("[data-tab]").forEach((b) => b.classList.toggle("on", b.dataset.tab === view));
+}
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+function startProcessing() {
+  clearTimers();
+  mode = "processing"; playing = true; outT = 0;
+  $("caption").textContent = ""; $("bigplay").hidden = true; $("sheet").classList.remove("open");
+  show("stage");
+  const stages = ["Reading the take", "Listening for every word", "Finding dead air and retakes"];
+  $("panel").innerHTML = `
+    <div class="row"><div class="spin"></div><span class="grow" id="stageLabel">${stages[0]}</span><span class="count" id="count"></span></div>
+    <div class="timeline"><div class="track raw" id="track"></div><div class="playhead" id="ph"></div></div>
+    <div class="meta"><span id="reason">&nbsp;</span><span>${fmt(RAW)}</span></div>`;
+  timers.push(setTimeout(() => $("stageLabel").textContent = stages[1], 900));
+  timers.push(setTimeout(() => $("stageLabel").textContent = stages[2], 2000));
+  CUTS.forEach((c, i) => timers.push(setTimeout(() => {
+    const m = document.createElement("div");
+    m.className = "cutmark"; m.style.left = pct(c.s); m.style.width = pct(c.e - c.s);
+    $("track").appendChild(m);
+    $("count").textContent = `${i + 1} cuts`;
+    $("reason").textContent = c.why;
+  }, 2300 + i * 260)));
+  timers.push(setTimeout(showResult, 2300 + CUTS.length * 260 + 600));
+}
+
+function showResult() {
+  mode = "result"; outT = 0; playing = true; done = true;
+  const segs = SEGMENTS.map((x) => `<div class="seg" style="left:${pct(x.s)};width:${pct(x.e - x.s)}"></div>`).join("");
+  const cuts = CUTS.map((c) => `<div class="cutmark" style="left:${pct(c.s)};width:${pct(c.e - c.s)};animation:none"></div>`).join("");
+  $("panel").innerHTML = `
+    <div class="row"><svg width="18" height="18" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#34c759"/><path d="m7.5 12.5 3 3 6-6.5" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg>
+      <span class="grow">Cut ready</span>
+      <button class="times" id="times" aria-label="See all cuts"><s>${fmt(RAW)}</s>→<em>${fmt(KEPT)}</em></button></div>
+    <div class="timeline"><div class="track">${segs}${cuts}</div><div class="playhead" id="ph"></div></div>
+    <div class="actions">
+      <button class="btn primary" id="save">Save</button>
+      <button class="btn ghost" id="share">Share</button>
+    </div>`;
+  $("times").onclick = () => $("sheet").classList.add("open");
+  $("save").onclick = () => toast("Saved to Photos");
+  $("share").onclick = () => toast("Share sheet opens here");
+  $("sheetTitle").textContent = `${CUTS.length} cuts`;
+  $("cutlist").innerHTML = CUTS.map((c) => `<div><span class="why">${c.why}<span>${c.s.toFixed(1)}s · ${(c.e - c.s).toFixed(1)}s</span></span>${c.text ? `<q>${c.text}</q>` : ""}</div>`).join("");
+  $("last").hidden = false;
+  renderCuts();
+}
+
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function srcTime(t) {
+  let off = 0;
+  for (const s of SEGMENTS) { const d = s.e - s.s; if (t < off + d) return s.s + (t - off); off += d; }
+  return SEGMENTS.at(-1).e;
+}
+
+// Placeholder "footage": soft moving light behind a person-shaped silhouette.
+const cv = $("cv"), ctx = cv.getContext("2d");
+function drawVideo(t) {
+  const w = cv.width, h = cv.height;
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, "#c9b8a6"); g.addColorStop(1, "#7d8a9e");
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  for (let i = 0; i < 3; i++) {
+    const x = w * (0.3 + 0.4 * Math.sin(t * 0.3 + i * 2)), y = h * (0.25 + 0.15 * Math.cos(t * 0.25 + i));
+    const r = ctx.createRadialGradient(x, y, 0, x, y, w * 0.7);
+    r.addColorStop(0, `rgba(255,${230 - i * 30},${200 + i * 20},.35)`); r.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = r; ctx.fillRect(0, 0, w, h);
+  }
+  const sway = Math.sin(t * 1.6) * 4;
+  ctx.fillStyle = "rgba(35,32,40,.55)";
+  ctx.beginPath(); ctx.ellipse(w / 2 + sway, h * 0.36, w * 0.13, w * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(w * 0.12 + sway, h); ctx.quadraticCurveTo(w * 0.18 + sway, h * 0.5, w / 2 + sway, h * 0.5);
+  ctx.quadraticCurveTo(w * 0.82 + sway, h * 0.5, w * 0.88 + sway, h); ctx.fill();
+  const v = ctx.createLinearGradient(0, h * 0.55, 0, h); v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.45)");
+  ctx.fillStyle = v; ctx.fillRect(0, 0, w, h);
+}
+
+let lastLine = null;
+function tick(now) {
+  const dt = Math.min(0.1, (now - last) / 1000); last = now;
+  if (!$("v-stage").hidden) {
+    if (playing) outT += dt;
+    let raw;
+    if (mode === "processing") raw = (outT * 6) % RAW;
+    else { outT %= KEPT; raw = srcTime(outT); }
+    drawVideo(mode === "processing" ? outT * 2 : outT);
+    if ($("ph")) $("ph").style.left = pct(raw);
+    if (mode === "result") {
+      const line = LINES.find((l) => outT >= l.t && outT < l.end + 0.15);
+      const text = line && $("s-cap").checked ? line.text : "";
+      if (text !== lastLine) {
+        const c = $("caption"); c.classList.add("swap");
+        setTimeout(() => { c.textContent = text; c.classList.remove("swap"); }, 90);
+        lastLine = text;
+      }
+    }
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+function renderCuts() {
+  const rows = [];
+  if (done) rows.push({ title: "These joggers are actually so soft.", meta: `${fmt(RAW)} → ${fmt(KEPT)} · ${CUTS.length} cuts`, when: "just now", open: true });
+  rows.push({ title: "Morning skincare routine, part 2", meta: "0:48 → 0:19 · 9 cuts", when: "2 days ago" });
+  rows.push({ title: "Unboxing the new headphones", meta: "1:32 → 0:33 · 14 cuts", when: "last week" });
+  $("cutsGroup").innerHTML = rows.map((r, i) => `<button class="item" data-open="${r.open ? 1 : 0}"><div class="thumb" style="filter:hue-rotate(${i * 50}deg)"></div><div><span class="ex">${r.open ? "Sample take" : "Example"}</span><b>${r.title}</b><small>${r.meta}</small><small>${r.when}</small></div></button>`).join("");
+  $("cutsGroup").querySelectorAll("[data-open='1']").forEach((b) => b.onclick = () => { show("stage"); showResult(); });
+}
+renderCuts();
+
+document.querySelectorAll("[data-start]").forEach((b) => b.onclick = startProcessing);
+$("close").onclick = () => { clearTimers(); $("sheet").classList.remove("open"); show("create"); mode = "create"; };
+$("sheetClose").onclick = () => $("sheet").classList.remove("open");
+$("v-stage").addEventListener("click", (e) => {
+  if (mode !== "result" || e.target.closest(".panel,.topbar,.sheet")) return;
+  playing = !playing; $("bigplay").hidden = playing;
+});
+$("mute").onclick = () => { muted = !muted; $("mute").style.opacity = muted ? 0.5 : 1; toast(muted ? "Muted" : "Sound on"); };
+document.querySelectorAll("[data-tab]").forEach((b) => b.onclick = () => show(b.dataset.tab));
+$("gap").oninput = (e) => $("gapV").textContent = Number(e.target.value).toFixed(2) + "s";
+$("restart").onclick = () => { clearTimers(); show("create"); mode = "create"; };
+</script>
