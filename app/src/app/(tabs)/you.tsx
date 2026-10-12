@@ -3,10 +3,17 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { autoServerUrl, checkServer, serverUrl } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
+import { PLANS } from '../../lib/plans';
 import { updateSettings, useCuts, useSettings } from '../../lib/store';
 import { formatTime, theme } from '../../lib/theme';
 
 export default function YouScreen() {
+  const { account, signOut, updateProfile } = useAuth();
+  const profile = account?.profile ?? {};
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your studio';
+  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const plan = PLANS.find((p) => p.id === profile.plan);
   const settings = useSettings();
   const cuts = useCuts();
   const insets = useSafeAreaInsets();
@@ -25,6 +32,37 @@ export default function YouScreen() {
   return (
     <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: 40, paddingHorizontal: 18 }}>
       <Text style={styles.h1}>You</Text>
+
+      <View style={[styles.group, styles.profile]}>
+        <View style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.name}>{name}</Text>
+          <Text style={styles.sub}>
+            {[profile.handle && `@${profile.handle}`, account && `Since ${new Date(account.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`].filter(Boolean).join(' · ')}
+          </Text>
+        </View>
+      </View>
+
+      <View style={[styles.group, { marginTop: 10 }]}>
+        <View style={styles.item}>
+          <Text style={styles.text}>{plan?.name ?? 'No plan yet'}</Text>
+          <Text style={styles.value}>{plan ? plan.edits : ''}</Text>
+        </View>
+        <Pressable style={[styles.item, styles.last]} onPress={() => updateProfile({ onboarded: false })}>
+          <Text style={[styles.text, { color: theme.accent }]}>Change plan</Text>
+        </Pressable>
+      </View>
+      <Text style={styles.foot}>Payments aren’t connected yet, so nothing is charged.</Text>
+
+      <Text style={styles.label}>Recording</Text>
+      <View style={styles.group}>
+        <View style={[styles.item, styles.last]}>
+          <Text style={styles.text}>I record in</Text>
+          <Pressable onPress={() => updateProfile({ language: profile.language === 'es' ? 'en' : 'es' })} hitSlop={8}>
+            <Text style={[styles.value, { color: theme.accent }]}>{profile.language === 'es' ? 'Español' : 'English'}</Text>
+          </Pressable>
+        </View>
+      </View>
 
       <Text style={styles.label}>Cutting</Text>
       <View style={styles.group}>
@@ -78,6 +116,13 @@ export default function YouScreen() {
         </View>
       </View>
       <Text style={styles.foot}>Leave empty to use the Mac running Expo. Your takes are cut there and saved back to this phone.</Text>
+
+      <View style={[styles.group, { marginTop: 24 }]}>
+        <Pressable style={[styles.item, styles.last]} onPress={signOut}>
+          <Text style={[styles.text, { color: '#D93B3B' }]}>Sign out</Text>
+          <Text style={styles.value}>{account?.email ?? 'dev mode'}</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -105,5 +150,10 @@ const styles = StyleSheet.create({
   input: { fontSize: 15, color: theme.ink, backgroundColor: theme.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
   testBtn: { alignSelf: 'flex-start' },
   testText: { color: theme.accent, fontSize: 15, fontWeight: '600' },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, marginTop: 12 },
+  avatar: { width: 52, height: 52, borderRadius: 26, backgroundColor: 'rgba(61,133,245,0.14)', alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 18, fontWeight: '700', color: theme.accent },
+  name: { fontSize: 19, fontWeight: '700', color: theme.ink },
+  sub: { fontSize: 13, color: theme.muted, marginTop: 2 },
   status: { fontSize: 13, color: theme.muted, lineHeight: 18 },
 });

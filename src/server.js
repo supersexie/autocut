@@ -67,6 +67,7 @@ async function createCut(req, res, url) {
   const q = url.searchParams;
   const options = {
     captions: q.get('captions') === '1',
+    language: q.get('lang') === 'es' ? 'spanish' : 'english',
     plan: {
       ...(q.has('maxGap') && { maxGap: Math.min(1.5, Math.max(0.1, Number(q.get('maxGap')) || 0.3)) }),
       removeFillers: q.get('fillers') !== '0',

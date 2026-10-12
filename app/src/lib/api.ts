@@ -42,13 +42,14 @@ export async function checkServer(base: string) {
   return res.ok;
 }
 
-export async function uploadTake(uri: string, mime: string, settings: Settings, onProgress: (fraction: number) => void) {
+export async function uploadTake(uri: string, mime: string, settings: Settings, language: string, onProgress: (fraction: number) => void) {
   const base = serverUrl(settings);
   const query = [
     `maxGap=${settings.maxGap}`,
     `fillers=${settings.removeFillers ? 1 : 0}`,
     `retakes=${settings.removeRetakes ? 1 : 0}`,
     `captions=${settings.captions ? 1 : 0}`,
+    `lang=${language}`,
   ].join('&');
   let result;
   try {

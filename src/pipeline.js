@@ -5,13 +5,13 @@ import { planCuts, noiseFloor } from './plan.js';
 import { remapWords, toSrt } from './captions.js';
 
 // Raw take in, cut video out. `onStage` reports progress for the CLI and the app.
-export async function autocut(input, output, { captions = false, plan: planOpts = {}, model, onStage = () => {} } = {}) {
+export async function autocut(input, output, { captions = false, plan: planOpts = {}, model, language, onStage = () => {} } = {}) {
   onStage('reading');
   const samples = await decodeAudio(input);
   const duration = samples.length / SAMPLE_RATE;
 
   onStage('listening');
-  const words = await transcribe(samples, model ? { model } : {});
+  const words = await transcribe(samples, { ...(model && { model }), ...(language && { language }) });
 
   onStage('cutting');
   const level = loudness(samples);

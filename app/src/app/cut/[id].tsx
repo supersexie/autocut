@@ -8,6 +8,7 @@ import { ActivityIndicator, Animated, FlatList, Modal, Pressable, StyleSheet, Te
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Timeline } from '../../components/Timeline';
 import { downloadCut, getJob, serverUrl, uploadTake, type Stage } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
 import { addCut, cutFile, getSettings, useCuts, type Cut, type CutRecord, type Segment } from '../../lib/store';
 import { formatTime, sleep, theme } from '../../lib/theme';
 
@@ -43,6 +44,7 @@ function NewCut({ uri, mime, initialDuration, onClose }: { uri: string; mime: st
   const [revealed, setRevealed] = useState(0);
   const [record, setRecord] = useState<CutRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const language = useAuth().account?.profile.language ?? 'en';
 
   useEffect(() => {
     let cancelled = false;
@@ -50,7 +52,7 @@ function NewCut({ uri, mime, initialDuration, onClose }: { uri: string; mime: st
       try {
         const settings = getSettings();
         const base = serverUrl(settings);
-        const jobId = await uploadTake(uri, mime, settings, setProgress);
+        const jobId = await uploadTake(uri, mime, settings, language, setProgress);
         let job = await getJob(base, jobId);
         while (!cancelled) {
           setStage(job.stage);
@@ -83,7 +85,7 @@ function NewCut({ uri, mime, initialDuration, onClose }: { uri: string; mime: st
     return () => {
       cancelled = true;
     };
-  }, [uri, mime]);
+  }, [uri, mime, language]);
 
   // Reveal cuts one at a time so the timeline fills in like a live edit.
   useEffect(() => {
