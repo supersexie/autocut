@@ -16,7 +16,23 @@ Outputs next to the input:
 - `raw.cut.json` – every word, kept segment and cut with its reason (for tuning / a future editor UI)
 
 Options: `-o out.mp4`, `--captions`, `--max-gap 0.3` (longest pause kept), `--keep-fillers`,
-`--plan-only` (skip rendering), `--model <hf whisper model>`.
+`--keep-retakes`, `--model <hf whisper model>`.
+
+## Mobile app (`app/`, React Native + Expo)
+
+The app records or imports a take, uploads it to the Autocut server, shows the cuts landing on
+the timeline, then downloads the finished video to play, save to Photos or share.
+
+```bash
+npm run server            # on your Mac: http://<your-mac-ip>:8787
+cd app && npx expo start  # scan the QR code with the Expo Go app on your iPhone
+```
+
+The phone and Mac must be on the same Wi-Fi. The app finds the server on the same Mac as the
+Expo dev server automatically; you can override the address under **You › Server**.
+
+Server API: `POST /cuts?maxGap=0.3&fillers=1&retakes=1&captions=1` (raw video body) → `{ id }`,
+`GET /cuts/:id` → status and cuts, `GET /cuts/:id/video` → the cut mp4.
 
 ## How it decides
 
@@ -28,7 +44,7 @@ Options: `-o out.mp4`, `--captions`, `--max-gap 0.3` (longest pause kept), `--ke
 
 Logic lives in `src/plan.js` (pure, unit tested in `tests/`).
 
-## iPhone app (`ios/`)
+## Native SwiftUI app (`ios/`, superseded by `app/`)
 
 SwiftUI app that does the whole thing on the phone: record or import a take, watch the cuts
 land on the timeline, preview the edit with captions, then save to Photos or share. Nothing is

@@ -10,6 +10,7 @@ export const DEFAULTS = {
   retakeSimilarity: 0.6,
   minSegment: 0.25,
   removeFillers: true,
+  removeRetakes: true,
 };
 
 const FILLERS = new Set(['um', 'umm', 'uh', 'uhh', 'uhm', 'erm', 'er', 'hmm', 'mm', 'ah', 'ahh']);
@@ -67,7 +68,7 @@ export function planCuts(words, opts = {}, level = null) {
   }
 
   // Retakes: when a phrase is said again shortly after, keep the last delivery.
-  const phrases = splitPhrases(words, o.phraseGap);
+  const phrases = o.removeRetakes ? splitPhrases(words, o.phraseGap) : [];
   const tokens = phrases.map((p) => p.filter((i) => !drop.has(i)).map((i) => norm(words[i].text)));
   for (let p = 0; p < phrases.length; p++) {
     for (let q = p + 1; q <= Math.min(phrases.length - 1, p + o.retakeLookahead); q++) {

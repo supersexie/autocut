@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "name": "Autocut",
+    "slug": "autocut",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.rishavvashisht.autocut"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rishavvashisht.autocut"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-video",
+      "expo-sharing",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Pick a take from your camera roll to cut.",
+          "cameraPermission": "Record a take so Autocut can cut it.",
+          "microphonePermission": "Record your voice along with your take."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "savePhotosPermission": "Save your finished cuts to Photos.",
+          "isAccessMediaLocationEnabled": false
+        }
+      ],
+      "expo-font"
+    ],
+    "scheme": "autocut"
+  }
+}
