@@ -48,9 +48,9 @@ function lcs(a, b) {
 export function retakeScore(earlier, later) {
   const a = earlier.filter(Boolean);
   const b = later.filter(Boolean);
-  if (!a.length || !b.length) return 0;
-  const head = b.slice(0, a.length + 1);
-  return lcs(a, head) / Math.max(a.length, Math.min(head.length, a.length));
+  // A single word ("So.", "And") repeating is normal speech, not a retake.
+  if (a.length < 2 || !b.length) return 0;
+  return lcs(a, b.slice(0, a.length + 1)) / a.length;
 }
 
 export function planCuts(words, opts = {}, level = null) {

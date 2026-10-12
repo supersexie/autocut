@@ -27,3 +27,21 @@ Options: `-o out.mp4`, `--captions`, `--max-gap 0.3` (longest pause kept), `--ke
 5. **Render** – trim + concat with 12 ms audio fades so cuts don't click.
 
 Logic lives in `src/plan.js` (pure, unit tested in `tests/`).
+
+## iPhone app (`ios/`)
+
+SwiftUI app that does the whole thing on the phone: record or import a take, watch the cuts
+land on the timeline, preview the edit with captions, then save to Photos or share. Nothing is
+uploaded — Apple's on-device speech recognition gives the word timings, `CutPlanner.swift`
+(a port of `src/plan.js`) decides the cuts, and AVFoundation builds and exports the edit.
+
+Open `ios/Autocut.xcodeproj` in Xcode 26, pick an iPhone simulator or your phone, and press Run.
+For a real iPhone, set your team under Signing & Capabilities first.
+
+| Tab | What it does |
+|---|---|
+| Create | Record now / Import a video → processing screen → finished cut |
+| Cuts | Every cut you've made, tap to rewatch, save or share |
+| You | Pause length, remove ums, remove retakes, burn-in captions |
+
+`ios/scripts/check-planner.sh` compiles the cutting logic with the Mac toolchain and runs its checks (no Xcode needed).
