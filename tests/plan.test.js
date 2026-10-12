@@ -1,7 +1,16 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { planCuts, retakeScore } from '../src/plan.js';
+
 import { remapWords, toSrt } from '../src/captions.js';
+
+// Fake loudness: loud (-20 dB) inside the given [start, end] ranges, silent (-50 dB) elsewhere.
+const level = (seconds, loudRanges) => {
+  const frameSec = 0.01;
+  const db = Float32Array.from({ length: Math.round(seconds / frameSec) }, (_, f) =>
+    loudRanges.some(([a, b]) => f * frameSec >= a && f * frameSec < b) ? -20 : -50);
+  return { db, frameSec, floor: -38 };
+};
 
 // Build words from "text@start" pairs, each word lasting 0.3s.
 const W = (...items) => items.map((s) => {
@@ -40,4 +49,25 @@ test('captions are remapped onto the output timeline', () => {
   const words = remapWords(plan.segments);
   assert.ok(words[1].start < 1.5);
   assert.match(toSrt(words), /^1\n00:00:00,/);
+});
+
+test('cuts a silence that Whisper hid inside a stretched word', () => {
+  // "and" is timed 1.0–4.0 s, but the audio is only loud 1.0–1.3 s, then again from 3.8 s.
+  const words = [
+    { text: 'Hi', start: 0.5, end: 0.8 },
+    { text: 'and', start: 1.0, end: 4.0 },
+    { text: 'bye.', start: 4.0, end: 4.4 },
+  ];
+  const plan = planCuts(words, {}, level(5, [[0.5, 1.3], [3.8, 4.4]]));
+  assert.equal(plan.segments.length, 2);
+  assert.ok(plan.segments[0].end < 1.6, `first piece ends at ${plan.segments[0].end}`);
+  assert.ok(plan.segments[1].start > 3.5, `second piece starts at ${plan.segments[1].start}`);
+  assert.ok(plan.cuts.some((c) => c.reason === 'dead air' && c.end - c.start > 2));
+  assert.ok(plan.words[1].end <= plan.segments[0].end, 'the stretched word is clamped to its piece');
+});
+
+test('keeps short natural pauses inside a sentence', () => {
+  const words = [{ text: 'so', start: 0, end: 0.3 }, { text: 'good.', start: 0.5, end: 0.9 }];
+  const plan = planCuts(words, {}, level(1.2, [[0, 0.3], [0.5, 0.9]]));
+  assert.equal(plan.segments.length, 1);
 });

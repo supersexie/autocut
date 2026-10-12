@@ -32,6 +32,7 @@ export async function analyze(input, { plan: planOpts = {}, model, language, onP
   const level = loudness(samples);
   level.floor = noiseFloor(level.db);
   const plan = planCuts(words, planOpts, level);
+  words = plan.words;
   onProgress('cutting', 1);
 
   return {

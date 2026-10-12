@@ -112,8 +112,74 @@ export function planCuts(words, opts = {}, level = null) {
     } else merged.push({ ...s, words: [...s.words] });
   }
 
-  const cuts = describeCuts(words, drop, merged, Math.max(duration, level ? level.db.length * level.frameSec : 0));
-  return { segments: merged, cuts, dropped: drop };
+  // Whisper sometimes stretches a word across a pause ("and" lasting 4 s), which hides the
+  // silence from the word-gap check above. The audio is the truth: cut long quiet runs inside
+  // kept speech too, and trim quiet tails at the edges.
+  const final = level ? splitOnSilence(merged, level, o) : merged;
+
+  const cuts = describeCuts(words, drop, final, Math.max(duration, level ? level.db.length * level.frameSec : 0));
+  return { segments: final, cuts, dropped: drop, words: level ? clampWords(words, final) : words };
+}
+
+// Quiet runs in [start, end): frames at or below the noise floor, ignoring loud blips under
+// 40 ms (clicks, a tap on the mic) so they don't break a pause in two.
+function quietRuns({ db, frameSec, floor }, start, end) {
+  const f0 = Math.max(0, Math.floor(start / frameSec));
+  const f1 = Math.min(db.length, Math.ceil(end / frameSec));
+  const quiet = [];
+  for (let f = f0; f < f1; f++) quiet.push(db[f] <= floor);
+  for (let i = 0; i < quiet.length; ) {
+    if (quiet[i]) { i++; continue; }
+    let j = i;
+    while (j < quiet.length && !quiet[j]) j++;
+    if (j - i < 4 && i > 0 && j < quiet.length) for (let k = i; k < j; k++) quiet[k] = true;
+    i = j;
+  }
+  const runs = [];
+  for (let i = 0; i < quiet.length; ) {
+    if (!quiet[i]) { i++; continue; }
+    let j = i;
+    while (j < quiet.length && quiet[j]) j++;
+    runs.push([(f0 + i) * frameSec, Math.min(end, (f0 + j) * frameSec)]);
+    i = j;
+  }
+  return runs;
+}
+
+export function splitOnSilence(segments, level, o) {
+  const out = [];
+  for (const seg of segments) {
+    const pieces = [];
+    let cursor = seg.start;
+    for (const [a, b] of quietRuns(level, seg.start, seg.end)) {
+      const atStart = a <= seg.start + level.frameSec;
+      const atEnd = b >= seg.end - level.frameSec;
+      if (atStart && atEnd) break; // all quiet: more likely soft speech than silence, keep it
+      if (atStart) {
+        if (b - a > o.padIn) cursor = b - o.padIn;
+      } else if (atEnd) {
+        if (b - a > o.padOut) { pieces.push([cursor, a + o.padOut]); cursor = seg.end; }
+      } else if (b - a > o.maxGap + o.padIn) {
+        pieces.push([cursor, a + o.padOut]);
+        cursor = b - o.padIn;
+      }
+    }
+    if (cursor < seg.end - 0.01) pieces.push([cursor, seg.end]);
+    for (const [start, end] of pieces) {
+      if (end - start < 0.12) continue;
+      out.push({ start, end, words: seg.words.filter((w) => w.end > start && w.start < end) });
+    }
+  }
+  return out;
+}
+
+// Pull word timings inside the pieces they're kept in, so captions don't hang over a cut.
+function clampWords(words, segments) {
+  return words.map((w) => {
+    const seg = segments.find((s) => w.end > s.start && w.start < s.end);
+    if (!seg) return w;
+    return { ...w, start: Math.max(w.start, seg.start), end: Math.min(w.end, seg.end) };
+  });
 }
 
 // Whisper word boundaries are often a little early on the tail. Extend a segment's edges
