@@ -10,7 +10,7 @@ import { Button, Logo } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
 import { useAuth } from '../../lib/auth';
 import type { Take } from '../../lib/jobs';
-import { useCuts } from '../../lib/store';
+import { useCuts, useSettings } from '../../lib/store';
 import { formatTime, theme } from '../../lib/theme';
 
 const LENGTHS = [
@@ -27,6 +27,7 @@ export default function CreateScreen() {
   const navigation = useNavigation();
   const { account } = useAuth();
   const cuts = useCuts();
+  const { mirrorFront } = useSettings();
   const [camPermission, requestCam] = useCameraPermissions();
   const [micPermission, requestMic] = useMicrophonePermissions();
   const camera = useRef<CameraView>(null);
@@ -158,6 +159,8 @@ export default function CreateScreen() {
           facing={facing}
           enableTorch={torch}
           videoQuality="1080p"
+          // iOS saves front-camera video mirrored by default; `mirror` reverses that.
+          mirror={!mirrorFront}
           onCameraReady={() => setReady(true)}
         />
       )}

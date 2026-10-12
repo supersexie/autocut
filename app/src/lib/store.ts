@@ -34,10 +34,12 @@ export type Settings = {
   removeFillers: boolean;
   removeRetakes: boolean;
   captions: boolean;
+  /** Keep iOS's default of flipping front-camera videos like a mirror. */
+  mirrorFront: boolean;
   serverUrl: string; // empty = use the Mac running the dev server
 };
 
-const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, serverUrl: '' };
+const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorFront: true, serverUrl: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
 const indexFile = new File(cutsDir, 'index-v2.json');
