@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planCuts, retakeScore } from '../src/plan.js';
+import { planCuts, retakeScore, findRestarts } from '../src/plan.js';
 
 import { remapWords, toSrt } from '../src/captions.js';
 
@@ -70,4 +70,41 @@ test('keeps short natural pauses inside a sentence', () => {
   const words = [{ text: 'so', start: 0, end: 0.3 }, { text: 'good.', start: 0.5, end: 0.9 }];
   const plan = planCuts(words, {}, level(1.2, [[0, 0.3], [0.5, 0.9]]));
   assert.equal(plan.segments.length, 1);
+});
+
+// Words spoken back to back, 0.3 s each, no punctuation unless given: how Whisper often
+// transcribes a restart with no pause.
+const stream = (text) => text.split(' ').map((t, i) => ({ text: t, start: i * 0.35, end: i * 0.35 + 0.3 }));
+const said = (words, dropped) => words.filter((_, i) => !dropped.includes(i)).map((w) => w.text).join(' ');
+
+test('restart in one run-on line keeps only the redo', () => {
+  const w = stream("it's perfectly stretchy they dry super it's perfectly stretchy they dry super quick.");
+  assert.equal(said(w, findRestarts(w)), "it's perfectly stretchy they dry super quick.");
+});
+
+test('a line said three times keeps the last one', () => {
+  const w = stream('these are so these are so soft these are so soft and comfy.');
+  assert.equal(said(w, findRestarts(w)), 'these are so soft and comfy.');
+});
+
+test('exact repeated sentence keeps one copy', () => {
+  const w = stream('This is the best shirt. This is the best shirt I own.');
+  assert.equal(said(w, findRestarts(w)), 'This is the best shirt I own.');
+});
+
+test('a flubbed word before the redo is dropped with it', () => {
+  const w = stream('they dry super fasht they dry super fast.');
+  assert.equal(said(w, findRestarts(w)), 'they dry super fast.');
+});
+
+test('different sentences that share a phrase are left alone', () => {
+  const w = stream("Check them out. They're nice and soft. Check them out below.");
+  assert.deepEqual(findRestarts(w), []);
+});
+
+test('restarts are removed in the full plan', () => {
+  const w = stream('so these joggers so these joggers are actually so soft.');
+  const plan = planCuts(w);
+  assert.equal(plan.segments.flatMap((s) => s.words.map((x) => x.text)).join(' '), 'so these joggers are actually so soft.');
+  assert.ok(plan.cuts.some((c) => c.reason === 'retake'));
 });

@@ -54,6 +54,46 @@ export function retakeScore(earlier, later) {
   return lcs(a, b.slice(0, a.length + 1)) / a.length;
 }
 
+const RESTART_MIN_MATCH = 3; // words that must repeat for a restart to count
+const RESTART_MAX_FLUB = 3; // extra words allowed in the abandoned attempt ("…they dry super, uh, hm")
+const RESTART_WINDOW = 30; // seconds to look ahead for the redo
+
+/**
+ * Finds abandoned attempts: a run of words that the speaker then starts again from the top.
+ * "they dry super they dry super quick" → drops the first "they dry super". Scanning on from the
+ * redo means a line said three or more times keeps only the last delivery.
+ * Returns the word indexes to drop.
+ */
+export function findRestarts(words, drop = new Map()) {
+  const idx = words.map((_, i) => i).filter((i) => !drop.has(i) && norm(words[i].text));
+  const tok = idx.map((i) => norm(words[i].text));
+  const out = [];
+  let a = 0;
+  while (a < idx.length) {
+    let found = null;
+    for (let b = a + RESTART_MIN_MATCH; b < idx.length; b++) {
+      if (words[idx[b]].start - words[idx[a]].start > RESTART_WINDOW) break;
+      if (tok[b] !== tok[a]) continue;
+      let len = 0;
+      while (a + len < b && b + len < idx.length && tok[a + len] === tok[b + len]) len++;
+      const flub = b - a - len;
+      if (len < RESTART_MIN_MATCH || flub > RESTART_MAX_FLUB) continue;
+      // If the unmatched tail finished a sentence, it was a different line, not a redo
+      // ("Check them out. They're nice. Check them out below.").
+      if (flub > 1 && idx.slice(a + len, b).some((i) => endsSentence(words[i].text))) continue;
+      found = b;
+      break;
+    }
+    if (found === null) {
+      a++;
+      continue;
+    }
+    for (let k = a; k < found; k++) out.push(idx[k]);
+    a = found;
+  }
+  return out;
+}
+
 export function planCuts(words, opts = {}, level = null) {
   const o = { ...DEFAULTS, ...opts };
   const drop = new Map(); // word index -> reason
@@ -66,6 +106,9 @@ export function planCuts(words, opts = {}, level = null) {
     const a = norm(words[i].text);
     if (a && a === norm(words[i + 1].text) && words[i + 1].start - words[i].end < 0.6) drop.set(i, 'stutter');
   }
+
+  // Restarts anywhere in the word stream, even when Whisper ran both attempts into one line.
+  if (o.removeRetakes) for (const i of findRestarts(words, drop)) drop.set(i, 'retake');
 
   // Retakes: when a phrase is said again shortly after, keep the last delivery.
   const phrases = o.removeRetakes ? splitPhrases(words, o.phraseGap) : [];
