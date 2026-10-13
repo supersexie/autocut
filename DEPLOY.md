@@ -17,6 +17,7 @@ The **secret** key never goes in the app. It only goes on the server (step 2).
 
 ## 2. Cutting server (Railway)
 
+✅ Live at https://autocut-production-88f1.up.railway.app (health 200, unauthenticated requests rejected).
 ✅ `Dockerfile`, `railway.json`, sign-in checks, per-user data, retention cleanup, account deletion.
 
 1. Create an account at railway.com and add a payment method (expect roughly $10–30/month to start).
@@ -27,7 +28,9 @@ The **secret** key never goes in the app. It only goes on the server (step 2).
    - optional: `CONCURRENCY` (cuts at once, default 1), `RETENTION_DAYS` (default 7), `MAX_UPLOAD_MB` (default 1024)
 4. **Volumes → New volume**, mount path `/data` (takes and cuts live here).
 5. **Settings → Resources**: at least 2 GB RAM and 2 vCPU. Whisper is CPU-bound, so more CPU = faster cuts.
-6. **Settings → Networking → Generate domain**. Put it in `app/.env.local` as `EXPO_PUBLIC_API_URL=https://…`.
+6. **Settings → Networking → Generate domain**, target port **8080**. Railway sets `PORT` itself and the
+   server listens on it, so the domain's port must match what the deploy log prints
+   (`Autocut server on http://localhost:8080`). Put the domain in `app/.env.local` as `EXPO_PUBLIC_API_URL=https://…`.
 7. Check it: open `https://<your-domain>/health` → `{"ok":true,…}`.
 
 ## 3. App Store basics
