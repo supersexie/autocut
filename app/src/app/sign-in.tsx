@@ -2,7 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Backdrop, Button, ErrorText, Field, Logo } from '../components/ui';
-import { NOT_CONFIGURED, useAuth } from '../lib/auth';
+import { enabledProviders, NOT_CONFIGURED, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
 
 type Mode = 'sign-in' | 'sign-up';
@@ -16,9 +16,13 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const [googleAvailable, setGoogleAvailable] = useState(false);
 
   useEffect(() => {
-    if (Platform.OS === 'ios') AppleAuthentication.isAvailableAsync().then(setAppleAvailable);
+    enabledProviders().then(async ({ google, apple }) => {
+      setGoogleAvailable(google);
+      setAppleAvailable(apple && Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()));
+    });
   }, []);
 
   async function run(kind: 'email' | 'apple' | 'google', action: () => Promise<unknown>) {
@@ -73,21 +77,25 @@ export default function SignIn() {
             onPress={() => !busy && run('apple', auth.signInWithApple)}
           />
         )}
-        <Button
-          kind="outline"
-          title="Continue with Google"
-          icon={<Text style={styles.g}>G</Text>}
-          loading={busy === 'google'}
-          disabled={!!busy && busy !== 'google'}
-          onPress={() => run('google', auth.signInWithGoogle)}
-        />
+        {googleAvailable && (
+          <Button
+            kind="outline"
+            title="Continue with Google"
+            icon={<Text style={styles.g}>G</Text>}
+            loading={busy === 'google'}
+            disabled={!!busy && busy !== 'google'}
+            onPress={() => run('google', auth.signInWithGoogle)}
+          />
+        )}
       </View>
 
-      <View style={styles.divider}>
-        <View style={styles.rule} />
-        <Text style={styles.or}>or with email</Text>
-        <View style={styles.rule} />
-      </View>
+      {(appleAvailable || googleAvailable) && (
+        <View style={styles.divider}>
+          <View style={styles.rule} />
+          <Text style={styles.or}>or with email</Text>
+          <View style={styles.rule} />
+        </View>
+      )}
 
       <View style={styles.stack}>
         <Field

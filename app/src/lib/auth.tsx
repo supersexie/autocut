@@ -104,7 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
 
       async signUpWithEmail(email, password) {
-        const { data, error } = await client().auth.signUp({ email: email.trim(), password });
+        // The confirmation email links back into the app (route: auth-callback), not to a website.
+        const { data, error } = await client().auth.signUp({
+          email: email.trim(),
+          password,
+          options: { emailRedirectTo: Linking.createURL('auth-callback') },
+        });
         check(error);
         return data.session ? 'signed-in' : 'check-email';
       },
@@ -192,6 +197,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loading, account]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+/** Which sign-in providers are switched on in the Supabase project, so we only show those. */
+export async function enabledProviders(): Promise<{ google: boolean; apple: boolean }> {
+  const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+  const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !key) return { google: false, apple: false };
+  try {
+    const res = await fetch(`${url}/auth/v1/settings`, { headers: { apikey: key } });
+    const { external } = await res.json();
+    return { google: !!external?.google, apple: !!external?.apple };
+  } catch {
+    return { google: false, apple: false };
+  }
 }
 
 export function useAuth() {

@@ -26,6 +26,7 @@ function RootNavigator() {
   const onboarded = !!account?.profile.onboarded;
   return (
     <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="auth-callback" />
       <Stack.Protected guard={!signedIn}>
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
