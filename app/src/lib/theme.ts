@@ -1,14 +1,17 @@
+// Monochrome: white surfaces, near-black type and buttons, light grey cards.
 export const theme = {
-  accent: '#3D85F5',
-  cut: '#F95B5B',
-  ok: '#34C759',
-  ink: '#18202E',
-  muted: '#6A7486',
-  faint: '#8A94A6',
-  line: '#EEF1F5',
-  bg: '#F2F6FD',
-  bgTop: '#E9F1FF',
-  card: '#FFFFFF',
+  accent: '#111114', // primary actions and selection
+  ink: '#111114',
+  muted: '#6B6B73',
+  faint: '#A1A1A8',
+  line: '#EDEDF0',
+  bg: '#FFFFFF',
+  card: '#F5F5F7',
+  tint: 'rgba(17,17,20,0.06)', // soft fill behind icons and selected tracks
+  disabled: '#C7C7CC',
+  cut: '#F2545B',
+  ok: '#2FB463',
+  danger: '#D93B3B',
 };
 
 export const formatTime = (t: number) => {

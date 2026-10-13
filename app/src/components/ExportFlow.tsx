@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   rowValue: { fontSize: 15, color: theme.muted, fontVariant: ['tabular-nums'] },
   bigTitle: { fontSize: 20, fontWeight: '700', color: theme.ink, textAlign: 'center' },
   sub: { fontSize: 13, color: theme.muted, textAlign: 'center', lineHeight: 18 },
-  card: { width: 170, height: 300, borderRadius: 20, alignSelf: 'center', marginTop: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: theme.accent, backgroundColor: '#1E2633' },
+  card: { width: 170, height: 300, borderRadius: 20, alignSelf: 'center', marginTop: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: theme.accent, backgroundColor: '#1C1C1F' },
   shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)' },
   percent: { color: '#fff', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
   done: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 20, gap: 14, alignItems: 'center' },

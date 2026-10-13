@@ -82,10 +82,10 @@ export function EditorTimeline({ clips, sourceUri, selected, time, captions, onS
 const styles = StyleSheet.create({
   ruler: { height: 14 },
   rulerText: { position: 'absolute', fontSize: 10, color: theme.faint, fontVariant: ['tabular-nums'] },
-  clip: { position: 'absolute', top: 0, height: 56, borderRadius: 8, overflow: 'hidden', flexDirection: 'row', borderWidth: 2, borderColor: 'transparent', backgroundColor: '#C9D4E5' },
+  clip: { position: 'absolute', top: 0, height: 56, borderRadius: 8, overflow: 'hidden', flexDirection: 'row', borderWidth: 2, borderColor: 'transparent', backgroundColor: '#E4E4E8' },
   clipOn: { borderColor: theme.accent },
   playhead: { position: 'absolute', top: -6, width: 2, height: 68, borderRadius: 1, backgroundColor: theme.ink },
   track: { height: 30, borderRadius: 8, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C3CAD5', justifyContent: 'center', paddingHorizontal: 10 },
-  trackOn: { borderStyle: 'solid', borderColor: theme.accent, backgroundColor: 'rgba(61,133,245,0.08)' },
+  trackOn: { borderStyle: 'solid', borderColor: theme.accent, backgroundColor: theme.tint },
   trackText: { fontSize: 12, fontWeight: '600', color: theme.muted },
 });

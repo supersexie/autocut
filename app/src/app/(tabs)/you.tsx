@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   h1: { fontSize: 32, fontWeight: '800', color: theme.ink },
   gear: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginVertical: 18 },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: 'rgba(61,133,245,0.14)', alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: theme.tint, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 19, fontWeight: '700', color: theme.accent },
   name: { fontSize: 22, fontWeight: '800', color: theme.ink },
   sub: { fontSize: 13, color: theme.muted, marginTop: 2 },

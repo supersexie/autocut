@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, color: theme.muted, textAlign: 'center', marginTop: 4, marginHorizontal: 20, lineHeight: 18 },
   card: {
     width: 170, height: 300, borderRadius: 20, alignSelf: 'center', marginTop: 24, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: theme.accent, backgroundColor: '#1E2633',
+    borderWidth: 3, borderColor: theme.accent, backgroundColor: '#1C1C1F',
   },
   shade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.25)' },
   percent: { color: '#fff', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6 },

@@ -34,4 +34,4 @@ export function Thumb({ uri, seconds, style, children }: { uri?: string; seconds
   );
 }
 
-const styles = StyleSheet.create({ box: { backgroundColor: '#D7E1F0', overflow: 'hidden' } });
+const styles = StyleSheet.create({ box: { backgroundColor: '#ECECEF', overflow: 'hidden' } });

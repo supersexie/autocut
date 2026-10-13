@@ -1,28 +1,31 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
+import { router, useLocalSearchParams } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Backdrop, Button, ErrorText, Field, Logo } from '../components/ui';
+import { Backdrop, Button, ErrorText, Field, StepHeader, Title } from '../components/ui';
 import { enabledProviders, NOT_CONFIGURED, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
 
 type Mode = 'sign-in' | 'sign-up';
 
+/** Email sign-in for returning users, or account creation at the end of setup (mode=sign-up). */
 export default function SignIn() {
   const auth = useAuth();
-  const [mode, setMode] = useState<Mode>('sign-in');
+  const params = useLocalSearchParams<{ mode?: Mode }>();
+  const [mode, setMode] = useState<Mode>(params.mode === 'sign-up' ? 'sign-up' : 'sign-in');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState<'email' | 'apple' | 'google' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [appleAvailable, setAppleAvailable] = useState(false);
-  const [googleAvailable, setGoogleAvailable] = useState(false);
+  const [providers, setProviders] = useState({ apple: false, google: false });
+  const signingUp = mode === 'sign-up';
 
   useEffect(() => {
-    enabledProviders().then(async ({ google, apple }) => {
-      setGoogleAvailable(google);
-      setAppleAvailable(apple && Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()));
-    });
+    enabledProviders().then(async ({ google, apple }) =>
+      setProviders({ google, apple: apple && Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()) })
+    );
   }, []);
 
   async function run(kind: 'email' | 'apple' | 'google', action: () => Promise<unknown>) {
@@ -40,66 +43,50 @@ export default function SignIn() {
 
   const submit = () =>
     run('email', async () => {
-      if (mode === 'sign-in') return auth.signInWithEmail(email, password);
+      if (!signingUp) return auth.signInWithEmail(email, password);
       const result = await auth.signUpWithEmail(email, password);
       if (result === 'check-email') {
-        setNotice(`We sent a confirmation link to ${email.trim()}. Open it, then sign in here.`);
+        setNotice(`We sent a link to ${email.trim()}. Open it on this phone to finish, or confirm it and sign in here.`);
         setMode('sign-in');
       }
     });
 
   const forgot = () =>
     run('email', async () => {
-      if (!email.includes('@')) throw new Error('Enter your email above first, then tap Forgot password.');
+      if (!email.includes('@')) throw new Error('Enter your email first, then tap Forgot password.');
       await auth.resetPassword(email);
       setNotice(`Password reset link sent to ${email.trim()}.`);
     });
 
   const canSubmit = email.includes('@') && password.length >= 6;
-  const signingUp = mode === 'sign-up';
+  const social = !signingUp && (providers.apple || providers.google);
 
   return (
     <Backdrop>
-      <View style={styles.header}>
-        <Logo />
-        <Text style={styles.brand}>Autocut</Text>
-        <Text style={styles.title}>{signingUp ? 'Create your account' : 'Sign in'}</Text>
-        <Text style={styles.subtitle}>Drop a take, get the cut.</Text>
-      </View>
+      <StepHeader />
+      <Title sub={signingUp ? 'Use at least 6 characters for your password.' : 'Welcome back.'}>
+        {signingUp ? 'Create your account' : 'Sign in'}
+      </Title>
 
-      <View style={styles.stack}>
-        {appleAvailable && (
-          <AppleAuthentication.AppleAuthenticationButton
-            buttonType={AppleAuthentication.AppleAuthenticationButtonType.CONTINUE}
-            buttonStyle={AppleAuthentication.AppleAuthenticationButtonStyle.WHITE_OUTLINE}
-            cornerRadius={14}
-            style={{ height: 50, opacity: busy ? 0.5 : 1 }}
-            onPress={() => !busy && run('apple', auth.signInWithApple)}
-          />
-        )}
-        {googleAvailable && (
-          <Button
-            kind="outline"
-            title="Continue with Google"
-            icon={<Text style={styles.g}>G</Text>}
-            loading={busy === 'google'}
-            disabled={!!busy && busy !== 'google'}
-            onPress={() => run('google', auth.signInWithGoogle)}
-          />
-        )}
-      </View>
-
-      {(appleAvailable || googleAvailable) && (
-        <View style={styles.divider}>
-          <View style={styles.rule} />
-          <Text style={styles.or}>or with email</Text>
-          <View style={styles.rule} />
+      {social && (
+        <View style={{ gap: 12, marginBottom: 18 }}>
+          {providers.apple && (
+            <Button title="Sign in with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => run('apple', auth.signInWithApple)} />
+          )}
+          {providers.google && (
+            <Button kind="outline" title="Sign in with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => run('google', auth.signInWithGoogle)} />
+          )}
+          <View style={styles.divider}>
+            <View style={styles.rule} />
+            <Text style={styles.or}>or with email</Text>
+            <View style={styles.rule} />
+          </View>
         </View>
       )}
 
-      <View style={styles.stack}>
+      <View style={{ gap: 12 }}>
         <Field
-          label="Email"
+          placeholder="Email"
           value={email}
           onChangeText={setEmail}
           autoCapitalize="none"
@@ -107,9 +94,10 @@ export default function SignIn() {
           keyboardType="email-address"
           textContentType="emailAddress"
           returnKeyType="next"
+          autoFocus
         />
         <Field
-          label="Password"
+          placeholder="Password"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -125,33 +113,25 @@ export default function SignIn() {
         )}
         <ErrorText>{error}</ErrorText>
         {notice && <Text style={styles.notice}>{notice}</Text>}
-        <Button
-          title={signingUp ? 'Create account' : 'Sign in'}
-          onPress={submit}
-          disabled={!canSubmit || (!!busy && busy !== 'email')}
-          loading={busy === 'email'}
-        />
+        <Button title={signingUp ? 'Create account' : 'Sign in'} onPress={submit} disabled={!canSubmit} loading={busy === 'email'} style={{ marginTop: 6 }} />
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.legal}>
-          By continuing, you agree to our <Text style={styles.legalLink}>Terms of Service</Text> and{' '}
-          <Text style={styles.legalLink}>Privacy Policy</Text>.
-        </Text>
-        <Text style={styles.switch}>
-          {signingUp ? 'Already have an account? ' : "Don't have an account? "}
-          <Text
-            style={styles.link}
-            onPress={() => {
-              setMode(signingUp ? 'sign-in' : 'sign-up');
-              setError(null);
-              setNotice(null);
-            }}
-          >
-            {signingUp ? 'Sign in' : 'Create one'}
+        {signingUp ? (
+          <Text style={styles.switch}>
+            Already have an account?{' '}
+            <Text style={styles.link} onPress={() => setMode('sign-in')}>
+              Sign in
+            </Text>
           </Text>
-        </Text>
-
+        ) : (
+          <Text style={styles.switch}>
+            New to Autocut?{' '}
+            <Text style={styles.link} onPress={() => router.replace('/setup')}>
+              Get started
+            </Text>
+          </Text>
+        )}
         {!auth.configured && (
           <View style={styles.devBox}>
             <Text style={styles.devText}>{NOT_CONFIGURED}</Text>
@@ -164,21 +144,14 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  header: { alignItems: 'center', gap: 6, marginTop: 28, marginBottom: 28 },
-  brand: { fontSize: 20, fontWeight: '800', color: theme.ink, marginTop: 6 },
-  title: { fontSize: 24, fontWeight: '700', color: theme.ink, marginTop: 14 },
-  subtitle: { fontSize: 14, color: theme.muted },
-  stack: { gap: 12 },
   g: { fontSize: 18, fontWeight: '800', color: '#4285F4' },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 20 },
-  rule: { flex: 1, height: 1, backgroundColor: '#D5DBE5' },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
+  rule: { flex: 1, height: 1, backgroundColor: theme.line },
   or: { fontSize: 13, color: theme.faint },
-  link: { fontSize: 14, color: theme.accent, fontWeight: '600' },
-  notice: { fontSize: 14, color: theme.ink, lineHeight: 20, backgroundColor: 'rgba(61,133,245,0.1)', padding: 12, borderRadius: 12 },
+  link: { fontSize: 14, color: theme.ink, fontWeight: '700' },
+  notice: { fontSize: 14, color: theme.ink, lineHeight: 20, backgroundColor: theme.card, padding: 14, borderRadius: 14 },
   footer: { marginTop: 'auto', paddingTop: 28, gap: 14, alignItems: 'center' },
-  legal: { fontSize: 12, color: theme.faint, textAlign: 'center', lineHeight: 18 },
-  legalLink: { textDecorationLine: 'underline', color: theme.muted },
   switch: { fontSize: 14, color: theme.muted },
-  devBox: { alignSelf: 'stretch', borderRadius: 12, borderWidth: 1, borderColor: '#F2C94C', backgroundColor: '#FFF9E6', padding: 12, gap: 4 },
+  devBox: { alignSelf: 'stretch', borderRadius: 14, backgroundColor: '#FFF7E0', padding: 12, gap: 4 },
   devText: { fontSize: 13, color: '#7A5B00', textAlign: 'center' },
 });

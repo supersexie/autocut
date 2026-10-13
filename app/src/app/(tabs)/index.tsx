@@ -205,7 +205,7 @@ export default function CreateScreen() {
                 accessibilityRole="button"
                 accessibilityState={{ selected: limit === l.seconds }}
               >
-                <Text style={[styles.lengthText, limit === l.seconds && { color: '#fff' }]}>{l.label}</Text>
+                <Text style={[styles.lengthText, limit === l.seconds && { color: theme.ink }]}>{l.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -239,7 +239,7 @@ export default function CreateScreen() {
             {mode === 'paused' && <RoundIcon name="xmark" label="Delete last take" onPress={discardLast} />}
             {busy && (
               <Pressable onPress={finish} style={styles.done} accessibilityLabel="Done recording">
-                <SymbolView name="checkmark" tintColor="#fff" size={20} weight="bold" />
+                <SymbolView name="checkmark" tintColor={theme.ink} size={20} weight="bold" />
               </Pressable>
             )}
           </View>
@@ -279,7 +279,7 @@ const styles = StyleSheet.create({
   bottom: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 16 },
   lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: 3 },
   length: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
-  lengthOn: { backgroundColor: theme.accent },
+  lengthOn: { backgroundColor: '#fff' },
   lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '700' },
   progressTrack: { width: '70%', height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' },
   progressFill: { height: 4, backgroundColor: theme.cut },
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   side: { flex: 1 },
   shutter: { width: 82, height: 82, borderRadius: 41, borderWidth: 5, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
-  done: { width: 48, height: 48, borderRadius: 24, backgroundColor: theme.accent, alignItems: 'center', justifyContent: 'center' },
+  done: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   tip: { position: 'absolute', left: 24, right: 24, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, gap: 6 },
   tipText: { fontSize: 14, color: theme.ink, lineHeight: 20 },
   tipDismiss: { fontSize: 14, fontWeight: '700', color: theme.accent, alignSelf: 'flex-end' },

@@ -14,7 +14,7 @@ export default function RootLayout() {
   );
 }
 
-/** Signed out → sign-in. Signed in but new → onboarding. Otherwise the app. */
+/** Signed out → welcome and setup questions. Signed in but no plan yet → paywall. Otherwise the app. */
 function RootNavigator() {
   const { loading, account } = useAuth();
   useEffect(() => {
@@ -25,13 +25,14 @@ function RootNavigator() {
   const signedIn = !!account;
   const onboarded = !!account?.profile.onboarded;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="auth-callback" />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#fff' } }}>
       <Stack.Protected guard={!signedIn}>
+        <Stack.Screen name="welcome" />
+        <Stack.Screen name="setup" />
         <Stack.Screen name="sign-in" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && !onboarded}>
-        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="paywall" />
       </Stack.Protected>
       <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="(tabs)" />
@@ -40,6 +41,7 @@ function RootNavigator() {
         <Stack.Screen name="edit/[id]" options={{ animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack.Protected>
+      <Stack.Screen name="auth-callback" />
     </Stack>
   );
 }

@@ -17,6 +17,11 @@ export type Profile = {
   language?: Language;
   handle?: string;
   tour?: boolean;
+  creates?: string;
+  perWeek?: string;
+  heardFrom?: string;
+  editTime?: string;
+  blockers?: string[];
   plan?: PlanId;
   billing?: Billing;
   onboarded?: boolean;
@@ -49,7 +54,8 @@ export const NOT_CONFIGURED = "Accounts aren't connected yet. Add your Supabase 
 // Profile fields live in the Supabase user's metadata, so no extra tables are needed.
 const KEYS: Record<keyof Profile, string> = {
   firstName: 'first_name', lastName: 'last_name', language: 'language', handle: 'handle',
-  tour: 'tour', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
+  tour: 'tour', creates: 'creates', perWeek: 'per_week', heardFrom: 'heard_from', editTime: 'edit_time',
+  blockers: 'blockers', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
 };
 const toMetadata = (p: Profile) =>
   Object.fromEntries(Object.entries(p).map(([k, v]) => [KEYS[k as keyof Profile], v]));

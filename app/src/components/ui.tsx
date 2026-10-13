@@ -1,7 +1,6 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextInputProps, type ViewStyle,
@@ -9,24 +8,26 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 
-/** Soft blue-to-lilac backdrop used across sign-in and onboarding. */
+export type SymbolName = ComponentProps<typeof SymbolView>['name'];
+
+/** A plain white screen with an optional footer pinned above the home indicator. */
 export function Backdrop({ children, scroll = true, footer }: { children: ReactNode; scroll?: boolean; footer?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: theme.bg }}>
-      <LinearGradient colors={['#E3EDFF', '#F7F9FF', '#EEEAFE']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
       <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         {scroll ? (
           <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 12, paddingHorizontal: 22, paddingBottom: 24 }}
+            contentContainerStyle={{ flexGrow: 1, paddingTop: insets.top + 10, paddingHorizontal: 22, paddingBottom: 24 }}
             keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
           >
             {children}
           </ScrollView>
         ) : (
-          <View style={{ flex: 1, paddingTop: insets.top + 12, paddingHorizontal: 22 }}>{children}</View>
+          <View style={{ flex: 1, paddingTop: insets.top + 10, paddingHorizontal: 22 }}>{children}</View>
         )}
-        {footer && <View style={{ paddingHorizontal: 22, paddingBottom: insets.bottom + 12, gap: 10 }}>{footer}</View>}
+        {footer && <View style={{ paddingHorizontal: 22, paddingBottom: insets.bottom + 10, paddingTop: 8, gap: 10 }}>{footer}</View>}
       </KeyboardAvoidingView>
     </View>
   );
@@ -50,6 +51,7 @@ type ButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+/** Full-width pill. Primary is near-black and greys out until it can be used. */
 export function Button({ title, onPress, kind = 'primary', disabled, loading, icon, style }: ButtonProps) {
   const off = disabled || loading;
   return (
@@ -61,23 +63,48 @@ export function Button({ title, onPress, kind = 'primary', disabled, loading, ic
       style={({ pressed }) => [
         styles.button,
         kind === 'primary' && styles.primary,
-        kind === 'primary' && off && styles.primaryOff,
+        kind === 'primary' && disabled && styles.primaryOff,
         kind === 'outline' && styles.outline,
         kind === 'text' && styles.textButton,
-        pressed && { opacity: 0.75 },
+        pressed && { opacity: 0.8, transform: [{ scale: 0.99 }] },
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={kind === 'primary' ? '#fff' : theme.accent} />
+        <ActivityIndicator color={kind === 'primary' ? '#fff' : theme.ink} />
       ) : (
         <>
           {icon}
-          <Text style={[styles.buttonText, kind === 'primary' ? { color: '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.accent }]}>
+          <Text style={[styles.buttonText, kind === 'primary' ? { color: '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, fontWeight: '500' }]}>
             {title}
           </Text>
         </>
       )}
+    </Pressable>
+  );
+}
+
+/** A tappable grey card with an optional icon and a radio (single choice) or check (multi). */
+export function Option({ label, detail, icon, selected, onPress, multi }: { label: string; detail?: string; icon?: SymbolName; selected: boolean; onPress: () => void; multi?: boolean }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole={multi ? 'checkbox' : 'radio'}
+      accessibilityState={{ checked: selected }}
+      style={({ pressed }) => [styles.option, selected && styles.optionOn, pressed && { opacity: 0.85 }]}
+    >
+      {icon && (
+        <View style={[styles.optionIcon, selected && { backgroundColor: 'rgba(255,255,255,0.14)' }]}>
+          <SymbolView name={icon} tintColor={selected ? '#fff' : theme.ink} size={17} />
+        </View>
+      )}
+      <View style={{ flex: 1 }}>
+        <Text style={[styles.optionLabel, selected && { color: '#fff' }]}>{label}</Text>
+        {detail && <Text style={[styles.optionDetail, selected && { color: 'rgba(255,255,255,0.7)' }]}>{detail}</Text>}
+      </View>
+      <View style={[styles.radio, multi && { borderRadius: 6 }, selected && styles.radioOn]}>
+        {selected && <SymbolView name="checkmark" tintColor={theme.ink} size={11} weight="bold" />}
+      </View>
     </Pressable>
   );
 }
@@ -115,23 +142,27 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
   );
 }
 
-/** Back chevron + thin progress bar across the top of onboarding. */
-export function StepHeader({ step, of, canGoBack = true }: { step: number; of: number; canGoBack?: boolean }) {
+/** Round back button + thin progress line, as used across the setup questions. */
+export function StepHeader({ progress, onBack }: { progress?: number; onBack?: () => void }) {
   return (
     <View style={styles.stepHeader}>
-      <Pressable
-        onPress={() => router.back()}
-        disabled={!canGoBack}
-        hitSlop={12}
-        accessibilityLabel="Back"
-        style={{ width: 28, opacity: canGoBack ? 1 : 0 }}
-      >
-        <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
+      <Pressable onPress={onBack ?? (() => router.back())} hitSlop={10} accessibilityLabel="Back" style={styles.back}>
+        <SymbolView name="arrow.left" tintColor={theme.ink} size={15} weight="semibold" />
       </Pressable>
-      <View style={styles.progress}>
-        <View style={[styles.progressFill, { width: `${(step / of) * 100}%` }]} />
-      </View>
-      <View style={{ width: 28 }} />
+      {progress != null && (
+        <View style={styles.progress}>
+          <View style={[styles.progressFill, { width: `${Math.max(4, Math.min(100, progress * 100))}%` }]} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+export function Title({ children, sub }: { children: ReactNode; sub?: string }) {
+  return (
+    <View style={{ gap: 8, marginBottom: 26 }}>
+      <Text style={styles.title}>{children}</Text>
+      {sub && <Text style={styles.sub}>{sub}</Text>}
     </View>
   );
 }
@@ -142,23 +173,33 @@ export function ErrorText({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   logo: { backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
-  button: { minHeight: 50, borderRadius: 14, flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 18 },
-  primary: { backgroundColor: theme.accent },
-  primaryOff: { backgroundColor: '#A9C8F8' },
-  outline: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D5DBE5' },
-  textButton: { minHeight: 36 },
+  button: { minHeight: 56, borderRadius: 28, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22 },
+  primary: { backgroundColor: theme.ink },
+  primaryOff: { backgroundColor: theme.disabled },
+  outline: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E3E3E8' },
+  textButton: { minHeight: 40 },
   buttonText: { fontSize: 16, fontWeight: '600' },
+  option: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderRadius: 16, paddingHorizontal: 16, paddingVertical: 16 },
+  optionOn: { backgroundColor: theme.ink },
+  optionIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  optionLabel: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  optionDetail: { fontSize: 13, color: theme.muted, marginTop: 2 },
+  radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#D1D1D6', alignItems: 'center', justifyContent: 'center' },
+  radioOn: { backgroundColor: '#fff', borderColor: '#fff' },
   label: { fontSize: 13, color: theme.muted, fontWeight: '500' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderWidth: 1, borderColor: '#D5DBE5', borderRadius: 12, paddingHorizontal: 14 },
-  prefix: { fontSize: 16, color: theme.faint, marginRight: 4 },
-  input: { flex: 1, fontSize: 16, color: theme.ink, paddingVertical: 13 },
-  segmented: { flexDirection: 'row', backgroundColor: 'rgba(118,128,150,0.14)', borderRadius: 12, padding: 3 },
-  segment: { flex: 1, paddingVertical: 9, borderRadius: 10, alignItems: 'center' },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 16 },
+  prefix: { fontSize: 17, color: theme.faint, marginRight: 4 },
+  input: { flex: 1, fontSize: 17, color: theme.ink, paddingVertical: 16 },
+  segmented: { flexDirection: 'row', backgroundColor: theme.card, borderRadius: 999, padding: 4 },
+  segment: { flex: 1, paddingVertical: 9, borderRadius: 999, alignItems: 'center' },
   segmentOn: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
   segmentText: { fontSize: 14, fontWeight: '600', color: theme.muted },
-  segmentBadge: { fontSize: 12, color: theme.accent, fontWeight: '700' },
-  stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 28, height: 32 },
-  progress: { flex: 1, height: 4, borderRadius: 2, backgroundColor: 'rgba(61,133,245,0.18)', overflow: 'hidden' },
-  progressFill: { height: 4, borderRadius: 2, backgroundColor: theme.accent },
-  error: { fontSize: 14, color: '#D93B3B', lineHeight: 20 },
+  segmentBadge: { fontSize: 12, color: theme.ok, fontWeight: '700' },
+  stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24, height: 40 },
+  back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  progress: { flex: 1, height: 4, borderRadius: 2, backgroundColor: theme.line, overflow: 'hidden', marginRight: 8 },
+  progressFill: { height: 4, borderRadius: 2, backgroundColor: theme.ink },
+  title: { fontSize: 30, fontWeight: '700', color: theme.ink, letterSpacing: -0.6, lineHeight: 36 },
+  sub: { fontSize: 15, color: theme.muted, lineHeight: 21 },
+  error: { fontSize: 14, color: theme.danger, lineHeight: 20 },
 });

@@ -40,7 +40,7 @@ export default function AuthCallback() {
   const message = failed ?? linkError ?? (canSignIn ? null : CONFIRMED);
 
   // Signed in (now or already): the root navigator takes it from here.
-  if (account) return <Redirect href={account.profile.onboarded ? '/' : '/onboarding'} />;
+  if (account) return <Redirect href={account.profile.onboarded ? '/' : '/paywall'} />;
 
   return (
     <Backdrop>
