@@ -8,25 +8,49 @@
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
 //   POST /cuts/:id/render              { segments: [[s,e]], captions, height, fps } -> { renderId }
 //   GET  /cuts/:id/video                                                  -> the latest finished render
+//   DELETE /account                                                       -> deletes the user, their takes and cuts
+// Every route but /health needs `Authorization: Bearer <Supabase access token>` (see auth.js).
 import http from 'node:http';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { copyFile, mkdir, readFile, writeFile, stat } from 'node:fs/promises';
-import { pipeline as pump } from 'node:stream/promises';
+import { copyFile, mkdir, readdir, readFile, rm, writeFile, stat } from 'node:fs/promises';
+import { pipeline as streamTo } from 'node:stream/promises';
 import { randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
+import { authEnabled, deleteAuthUser, LOCAL_USER, userIdFrom } from './auth.js';
 import { joinTakes } from './media.js';
 import { analyze, renderCut } from './pipeline.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA = path.resolve(process.env.AUTOCUT_DATA ?? new URL('../data', import.meta.url).pathname);
 const UPLOADS = path.join(DATA, 'uploads');
-const MAX_BYTES = 1024 * 1024 * 1024; // 1 GB per take
+const MAX_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024;
+// Whisper and ffmpeg each use every core, so run few jobs at once and queue the rest.
+const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY ?? 1));
+const RETENTION_DAYS = Number(process.env.RETENTION_DAYS ?? 7);
 const ID = /^[0-9a-f-]{36}$/;
+const USER = /^([0-9a-f-]{36}|local)$/;
 
 const jobs = new Map();
-let queue = Promise.resolve(); // one job at a time: Whisper and ffmpeg each use every core
-const enqueue = (fn) => (queue = queue.then(fn).catch((err) => console.error(err)));
+let running = 0;
+const waiting = [];
+function enqueue(fn) {
+  waiting.push(fn);
+  drain();
+}
+function drain() {
+  while (running < CONCURRENCY && waiting.length) {
+    const fn = waiting.shift();
+    running++;
+    Promise.resolve()
+      .then(fn)
+      .catch((err) => console.error(err))
+      .finally(() => {
+        running--;
+        drain();
+      });
+  }
+}
 
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
@@ -34,13 +58,19 @@ const send = (res, status, body) => {
 };
 
 function publicJob(job) {
-  const { dir, source, ...rest } = job;
+  const { dir, source, userId, ...rest } = job;
   return { ...rest, render: job.render && { ...job.render, output: undefined } };
 }
 
 const saveJob = (job) => writeFile(path.join(job.dir, 'job.json'), JSON.stringify(job, null, 2));
 
-async function loadJob(id) {
+/** A job, only if it belongs to `userId`. */
+async function loadJob(id, userId) {
+  const job = await readJob(id);
+  return job && (job.userId ?? LOCAL_USER) === userId ? job : null;
+}
+
+async function readJob(id) {
   if (jobs.has(id)) return jobs.get(id);
   if (!ID.test(id)) return null;
   try {
@@ -61,15 +91,21 @@ async function readBody(req, file) {
     bytes += c.length;
     if (bytes > MAX_BYTES) req.destroy(new Error('too large'));
   });
-  await pump(req, createWriteStream(file));
+  await streamTo(req, createWriteStream(file));
   return bytes;
 }
 
 const extFor = (type = '') => (type.includes('mp4') ? 'mp4' : 'mov');
 
-async function createUpload(req, res) {
+const uploadsFor = async (userId) => {
+  const dir = path.join(UPLOADS, userId);
+  await mkdir(dir, { recursive: true });
+  return dir;
+};
+
+async function createUpload(req, res, userId) {
   const id = randomUUID();
-  const file = path.join(UPLOADS, `${id}.${extFor(req.headers['content-type'])}`);
+  const file = path.join(await uploadsFor(userId), `${id}.${extFor(req.headers['content-type'])}`);
   try {
     if (!(await readBody(req, file))) return send(res, 400, { error: 'No video in the request body.' });
   } catch {
@@ -78,10 +114,10 @@ async function createUpload(req, res) {
   send(res, 201, { id });
 }
 
-async function findUpload(id) {
+async function findUpload(id, userId) {
   if (!ID.test(id)) return null;
   for (const ext of ['mov', 'mp4']) {
-    const file = path.join(UPLOADS, `${id}.${ext}`);
+    const file = path.join(UPLOADS, userId, `${id}.${ext}`);
     try {
       await stat(file);
       return file;
@@ -90,14 +126,14 @@ async function findUpload(id) {
   return null;
 }
 
-async function createCut(req, res, url) {
+async function createCut(req, res, url, userId) {
   const q = url.searchParams;
   let takes;
   if (q.get('uploads')) {
-    takes = await Promise.all(q.get('uploads').split(',').slice(0, 50).map(findUpload));
+    takes = await Promise.all(q.get('uploads').split(',').slice(0, 50).map((u) => findUpload(u, userId)));
     if (!takes.length || takes.some((t) => !t)) return send(res, 400, { error: 'One of the takes is missing. Record it again.' });
   } else {
-    const file = path.join(UPLOADS, `${randomUUID()}.${extFor(req.headers['content-type'])}`);
+    const file = path.join(await uploadsFor(userId), `${randomUUID()}.${extFor(req.headers['content-type'])}`);
     try {
       if (!(await readBody(req, file))) return send(res, 400, { error: 'No video in the request body.' });
     } catch {
@@ -117,7 +153,7 @@ async function createCut(req, res, url) {
       removeRetakes: q.get('retakes') !== '0',
     },
   };
-  const job = { id, dir, takes: takes.length, stage: 'queued', progress: 0, createdAt: new Date().toISOString() };
+  const job = { id, dir, userId, takes: takes.length, stage: 'queued', progress: 0, createdAt: new Date().toISOString() };
   jobs.set(id, job);
   await saveJob(job);
   send(res, 201, { id });
@@ -229,15 +265,56 @@ async function sendFile(req, res, file, type) {
   createReadStream(file).pipe(res);
 }
 
+async function deleteAccount(res, userId) {
+  for (const id of await readdir(DATA).catch(() => [])) {
+    if (!ID.test(id)) continue;
+    const job = await readJob(id);
+    if (job && (job.userId ?? LOCAL_USER) === userId) {
+      job.stage = 'stopped';
+      jobs.delete(id);
+      await rm(job.dir, { recursive: true, force: true });
+    }
+  }
+  await rm(path.join(UPLOADS, userId), { recursive: true, force: true });
+  await deleteAuthUser(userId);
+  console.log(`[account] deleted ${userId.slice(0, 8)}`);
+  send(res, 200, { ok: true });
+}
+
+// Delete cuts older than RETENTION_DAYS and takes that were uploaded but never cut.
+async function cleanUp() {
+  const now = Date.now();
+  for (const id of await readdir(DATA).catch(() => [])) {
+    if (!ID.test(id)) continue;
+    const job = await readJob(id);
+    if (!job || now - Date.parse(job.createdAt) < RETENTION_DAYS * 864e5) continue;
+    if (['queued', 'joining', 'reading', 'listening', 'cutting'].includes(job.stage) || job.render?.stage === 'rendering') continue;
+    jobs.delete(id);
+    await rm(path.join(DATA, id), { recursive: true, force: true });
+  }
+  for (const user of await readdir(UPLOADS).catch(() => [])) {
+    for (const f of await readdir(path.join(UPLOADS, user)).catch(() => [])) {
+      const file = path.join(UPLOADS, user, f);
+      const info = await stat(file).catch(() => null);
+      if (info && now - info.mtimeMs > 864e5) await rm(file, { force: true });
+    }
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://local');
     const [root, id, action] = url.pathname.split('/').filter(Boolean);
-    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true });
-    if (req.method === 'POST' && root === 'uploads' && !id) return await createUpload(req, res);
-    if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url);
+    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, queued: waiting.length, running });
+
+    const userId = await userIdFrom(req);
+    if (!userId || !USER.test(userId)) return send(res, 401, { error: 'Your session ended. Sign in again.' });
+
+    if (req.method === 'POST' && root === 'uploads' && !id) return await createUpload(req, res, userId);
+    if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url, userId);
+    if (req.method === 'DELETE' && root === 'account' && !id) return await deleteAccount(res, userId);
     if (root === 'cuts' && id) {
-      const job = await loadJob(id);
+      const job = await loadJob(id, userId);
       if (!job) return send(res, 404, { error: 'No cut with that id.' });
       if (req.method === 'GET' && !action) return send(res, 200, publicJob(job));
       if (req.method === 'POST' && action === 'stop') return await stopCut(res, job);
@@ -259,6 +336,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 await mkdir(UPLOADS, { recursive: true });
+setInterval(() => cleanUp().catch((err) => console.error(err)), 3600e3).unref();
+cleanUp().catch((err) => console.error(err));
+if (!authEnabled) console.warn('Auth is off (no SUPABASE_URL): every request runs as one local user. Fine for development only.');
 server.listen(PORT, '0.0.0.0', () => {
   const lan = Object.values(os.networkInterfaces()).flat().find((i) => i?.family === 'IPv4' && !i.internal)?.address;
   console.log(`Autocut server on http://localhost:${PORT}${lan ? `  (phone: http://${lan}:${PORT})` : ''}`);

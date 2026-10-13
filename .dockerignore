@@ -1,0 +1,11 @@
+node_modules
+.models
+data
+samples
+app
+ios
+prototype
+tests
+.git
+*.md
+expo-qr.png

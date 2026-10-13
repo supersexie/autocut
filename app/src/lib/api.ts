@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { File, UploadType } from 'expo-file-system';
 import { cutsDir, getSettings, type Clip, type Cut, type Word } from './store';
+import { supabase } from './supabase';
 
 export type Stage = 'queued' | 'joining' | 'reading' | 'listening' | 'cutting' | 'ready' | 'failed' | 'stopped';
 
@@ -23,11 +24,25 @@ export function autoServerUrl() {
   return `http://${host ?? 'localhost'}:8787`;
 }
 
-export const serverUrl = () => (getSettings().serverUrl.trim() || autoServerUrl()).replace(/\/+$/, '');
+/** Settings override (development) → EXPO_PUBLIC_API_URL (the deployed server) → the Mac running Expo. */
+export const serverUrl = () =>
+  (getSettings().serverUrl.trim() || process.env.EXPO_PUBLIC_API_URL || autoServerUrl()).replace(/\/+$/, '');
+
+/** The signed-in user's access token, which the server checks on every request. */
+async function authHeaders(): Promise<Record<string, string>> {
+  if (!supabase) return {};
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export class ServerUnreachable extends Error {
   constructor(base: string) {
-    super(`Can't reach the Autocut server at ${base}. Start it on your Mac with "npm run server", and keep your phone on the same Wi-Fi.`);
+    super(
+      __DEV__
+        ? `Can't reach the Autocut server at ${base}. Start it on your Mac with "npm run server", and keep your phone on the same Wi-Fi.`
+        : "Can't reach Autocut right now. Check your internet connection and try again."
+    );
   }
 }
 
@@ -35,7 +50,7 @@ async function call(path: string, init?: RequestInit) {
   const base = serverUrl();
   let res: Response;
   try {
-    res = await fetch(base + path, init);
+    res = await fetch(base + path, { ...init, headers: { ...(init?.headers as Record<string, string>), ...(await authHeaders()) } });
   } catch {
     throw new ServerUnreachable(base);
   }
@@ -53,7 +68,7 @@ export async function uploadTake(uri: string, mime: string, onProgress: (fractio
     result = await new File(uri).upload(`${base}/uploads`, {
       httpMethod: 'POST',
       uploadType: UploadType.BINARY_CONTENT,
-      headers: { 'content-type': mime },
+      headers: { 'content-type': mime, ...(await authHeaders()) },
       onProgress: ({ bytesSent, totalBytes }) => onProgress(totalBytes ? bytesSent / totalBytes : 0),
     });
   } catch {
@@ -79,6 +94,8 @@ export async function createCut(uploadIds: string[], language: string): Promise<
   return (await call(`/cuts?${query}`, { method: 'POST' })).id;
 }
 
+export const deleteAccountOnServer = () => call('/account', { method: 'DELETE' });
+
 export const getJob = (id: string): Promise<Job> => call(`/cuts/${id}`);
 export const stopJob = (id: string): Promise<Job> => call(`/cuts/${id}/stop`, { method: 'POST' });
 
@@ -96,6 +113,7 @@ export async function download(path: string, name: string, onProgress?: (fractio
   if (file.exists) file.delete();
   try {
     await File.downloadFileAsync(serverUrl() + path, file, {
+      headers: await authHeaders(),
       onProgress: onProgress && (({ bytesWritten, totalBytes }) => onProgress(totalBytes ? bytesWritten / totalBytes : 0)),
     });
   } catch {

@@ -1,7 +1,7 @@
 import Slider from '@react-native-community/slider';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { autoServerUrl, checkServer } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -10,10 +10,26 @@ import { theme } from '../lib/theme';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { account, signOut, updateProfile } = useAuth();
+  const { account, signOut, updateProfile, deleteAccount } = useAuth();
   const profile = account?.profile ?? {};
   const settings = useSettings();
   const [serverStatus, setServerStatus] = useState<string | null>(null);
+
+  function confirmDelete() {
+    Alert.alert(
+      'Delete your account?',
+      'This permanently deletes your account, your takes and your cuts, on our server and on this phone. Videos you already saved to Photos stay there.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete account',
+          style: 'destructive',
+          onPress: () =>
+            deleteAccount().catch((e) => Alert.alert('Couldn’t delete your account', e instanceof Error ? e.message : String(e))),
+        },
+      ]
+    );
+  }
 
   async function test() {
     setServerStatus('Checking…');
@@ -66,32 +82,39 @@ export default function SettingsScreen() {
 
         <Text style={styles.foot}>Off: selfie videos save the way others see you, so text on your shirt reads the right way round.</Text>
 
-        <Text style={styles.label}>Server</Text>
-        <View style={styles.group}>
-          <View style={[styles.item, styles.last, { flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
-            <TextInput
-              style={styles.input}
-              value={settings.serverUrl}
-              onChangeText={(serverUrl) => updateSettings({ serverUrl })}
-              placeholder={autoServerUrl()}
-              placeholderTextColor={theme.faint}
-              autoCapitalize="none"
-              autoCorrect={false}
-              keyboardType="url"
-              accessibilityLabel="Server address"
-            />
-            <Pressable onPress={test} style={{ alignSelf: 'flex-start' }} hitSlop={6}>
-              <Text style={styles.link}>Test connection</Text>
-            </Pressable>
-            {serverStatus && <Text style={styles.status}>{serverStatus}</Text>}
-          </View>
-        </View>
-        <Text style={styles.foot}>Leave empty to use the Mac running Expo. Your takes are cut there and come back to this phone.</Text>
+        {__DEV__ && (
+          <>
+            <Text style={styles.label}>Server (development)</Text>
+            <View style={styles.group}>
+              <View style={[styles.item, styles.last, { flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
+                <TextInput
+                  style={styles.input}
+                  value={settings.serverUrl}
+                  onChangeText={(serverUrl) => updateSettings({ serverUrl })}
+                  placeholder={autoServerUrl()}
+                  placeholderTextColor={theme.faint}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  accessibilityLabel="Server address"
+                />
+                <Pressable onPress={test} style={{ alignSelf: 'flex-start' }} hitSlop={6}>
+                  <Text style={styles.link}>Test connection</Text>
+                </Pressable>
+                {serverStatus && <Text style={styles.status}>{serverStatus}</Text>}
+              </View>
+            </View>
+            <Text style={styles.foot}>Leave empty to use the Mac running Expo. Your takes are cut there and come back to this phone.</Text>
+          </>
+        )}
 
         <View style={[styles.group, { marginTop: 24 }]}>
-          <Pressable style={[styles.item, styles.last]} onPress={signOut}>
+          <Pressable style={styles.item} onPress={signOut}>
             <Text style={[styles.text, { color: '#D93B3B' }]}>Sign out</Text>
             <Text style={styles.value}>{account?.email ?? 'dev mode'}</Text>
+          </Pressable>
+          <Pressable style={[styles.item, styles.last]} onPress={confirmDelete}>
+            <Text style={[styles.text, { color: '#D93B3B' }]}>Delete account</Text>
           </Pressable>
         </View>
       </ScrollView>

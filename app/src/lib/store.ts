@@ -100,6 +100,14 @@ export function deleteCut(id: string) {
   emit();
 }
 
+/** Removes every cut and its videos from this phone. */
+export function clearCuts() {
+  for (const c of state.cuts) if (c.source && cutFile(c.source).exists) cutFile(c.source).delete();
+  state = { ...state, cuts: [] };
+  indexFile.write('[]');
+  emit();
+}
+
 export function updateSettings(patch: Partial<Settings>) {
   state = { ...state, settings: { ...state.settings, ...patch } };
   settingsFile.write(JSON.stringify(state.settings));

@@ -5,6 +5,8 @@ import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Billing, PlanId } from './plans';
+import { deleteAccountOnServer } from './api';
+import { clearCuts } from './store';
 import { supabase } from './supabase';
 
 export type Language = 'en' | 'es';
@@ -35,6 +37,8 @@ type AuthContextValue = {
   resetPassword: (email: string) => Promise<void>;
   updateProfile: (patch: Profile) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Deletes the account, its takes and cuts on the server, and everything on this phone. */
+  deleteAccount: () => Promise<void>;
   continueWithoutAccount: () => void;
 };
 
@@ -166,6 +170,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
         await supabase.auth.signOut();
+      },
+
+      async deleteAccount() {
+        await deleteAccountOnServer();
+        clearCuts();
+        if (!supabase) {
+          writeDev(null);
+          setAccount(null);
+          return;
+        }
+        await supabase.auth.signOut({ scope: 'local' });
       },
 
       continueWithoutAccount() {
