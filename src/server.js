@@ -6,7 +6,7 @@
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}],
+//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, box?, outline?, x?, y?, scale?, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}],
 //                                        overlays: [{upload, kind, start, end, from, x, y, width, rotation, volume}], height, fps, bitrate } -> { renderId }
 //                                        (music.upload is an id from POST /uploads with the song's bytes)
 //   GET  /cuts/:id/video                                                  -> the latest finished render
@@ -249,6 +249,10 @@ async function createRender(req, res, job) {
       style: String(body.captions.style ?? 'classic'),
       box: typeof body.captions.box === 'boolean' ? body.captions.box : undefined,
       outline: typeof body.captions.outline === 'boolean' ? body.captions.outline : undefined,
+      // Where the user moved captions to (x: middle, y: bottom edge, 0–1 of the frame) and their size.
+      x: Number.isFinite(Number(body.captions.x)) && body.captions.x !== null ? Math.min(1, Math.max(0, Number(body.captions.x))) : undefined,
+      y: Number.isFinite(Number(body.captions.y)) && body.captions.y !== null ? Math.min(1, Math.max(0, Number(body.captions.y))) : undefined,
+      scale: Number(body.captions.scale) > 0 ? Math.min(4, Math.max(0.3, Number(body.captions.scale))) : undefined,
       lines: body.captions.lines.slice(0, 2000).map((l) => ({ start: Number(l.start) || 0, end: Number(l.end) || 0, words: words(l.words) })),
     };
   } else if (body.captions === true) {

@@ -139,7 +139,7 @@ export function CaptionsPanel({
  * Editing one caption line: a field that sits right on top of the keyboard, so what you type is
  * always in view, with the video still showing above it.
  */
-function LineEditor({ line, onDone }: { line: CaptionLine; onDone: (text: string) => void }) {
+export function LineEditor({ line, onDone }: { line: CaptionLine; onDone: (text: string) => void }) {
   const [text, setText] = useState(line.text);
   const done = () => onDone(text.trim());
   return (

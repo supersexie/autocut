@@ -15,7 +15,18 @@ export type CaptionSettings = {
   /** Override the style's background box / black outline (undefined = the style's own). */
   box?: boolean;
   outline?: boolean;
+  /** Where every caption sits: x is its middle, y its bottom edge, as fractions of the frame. */
+  x?: number;
+  y?: number;
+  /** Size, on top of the style's own. */
+  scale?: number;
+  /** Words (keyed like `edits`) that start a new line: where the user split a caption. */
+  breaks?: string[];
 };
+
+/** Where captions sit unless moved: centred, bottom edge 24% up from the bottom of the frame. */
+export const CAPTION_X = 0.5;
+export const CAPTION_Y = 0.76;
 export type TextAlign = 'left' | 'center' | 'right';
 /** Per-text changes made on top of its style (font, colour, background box, alignment). */
 export type TextLook = { font?: string; color?: string; box?: boolean; outline?: boolean; align?: TextAlign };
@@ -235,9 +246,24 @@ export function applyCaps(text: string, caps: Caps) {
   return text;
 }
 
+const wordKey = (w: Word) => String(Math.round(w.start * 100));
+
+/** Splits caption `line` at output time `t` into two lines (null if there's nothing to split, or it was retyped). */
+export function splitCaption(s: CaptionSettings, line: CaptionLine, t: number): CaptionSettings | null {
+  if (s.edits[line.key] !== undefined) return null;
+  // The first word that starts at or after the playhead begins the new line (not the line's own first word).
+  const i = line.words.findIndex((w) => w.start >= t - 0.01);
+  const key = line.words[i]?.key;
+  if (i < 1 || !key) return null;
+  return { ...s, breaks: [...(s.breaks ?? []), key] };
+}
+
+/** Takes a caption line out (undo brings it back). */
+export const deleteCaption = (s: CaptionSettings, line: CaptionLine): CaptionSettings => ({ ...s, edits: { ...s.edits, [line.key]: '' } });
+
 const stripPunctuation = (text: string) => text.replace(/[.,!?;:…"“”]+/g, '');
 
-export type CaptionWord = { text: string; start: number; end: number }; // output time
+export type CaptionWord = { text: string; start: number; end: number; key?: string }; // output time; key = the source word's, like a line's
 export type CaptionLine = { key: string; clip: number; start: number; end: number; text: string; words: CaptionWord[] };
 
 /** Caption lines on the output timeline, with grouping, formatting and the user's edits applied. */
@@ -247,7 +273,12 @@ export function captionLines(words: Word[], clips: ClipEdit[], s: CaptionSetting
     const inClip = words.filter((w) => w.start >= c.start - 0.05 && w.end <= c.end + 0.05);
     const groups: Word[][] = [];
     let cur: Word[] = [];
+    const breaks = new Set(s.breaks ?? []);
     for (const w of inClip) {
+      if (cur.length && breaks.has(wordKey(w))) {
+        groups.push(cur);
+        cur = [];
+      }
       cur.push(w);
       if (cur.length >= s.wordsPerLine || /[.?!]$/.test(w.text)) {
         groups.push(cur);
@@ -256,15 +287,17 @@ export function captionLines(words: Word[], clips: ClipEdit[], s: CaptionSetting
     }
     if (cur.length) groups.push(cur);
     for (const g of groups) {
-      const key = String(Math.round(g[0].start * 100));
+      const key = wordKey(g[0]);
       const start = toOutput(clips, ci, Math.max(c.start, g[0].start));
       const end = Math.min(toOutput(clips, ci, c.end), toOutput(clips, ci, Math.min(c.end, g[g.length - 1].end)) + 0.2);
       let out: CaptionWord[] = g.map((w) => ({
         text: w.text,
         start: toOutput(clips, ci, Math.max(c.start, w.start)),
         end: toOutput(clips, ci, Math.min(c.end, w.end)),
+        key: wordKey(w),
       }));
       const edited = s.edits[key];
+      if (edited === '') continue; // deleted
       if (edited !== undefined) {
         // Spread the typed words evenly over the line's time.
         const typed = edited.split(/\s+/).filter(Boolean);
@@ -304,7 +337,10 @@ export function exportBody(
           style: edit.captions.style,
           box: edit.captions.box,
           outline: edit.captions.outline,
-          lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => later({ start, end, words: w.map(later) })),
+          x: edit.captions.x,
+          y: edit.captions.y,
+          scale: edit.captions.scale,
+          lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => later({ start, end, words: w.map(({ text, start: ws, end: we }) => later({ text, start: ws, end: we })) })),
         }
       : undefined,
     texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => later({ text, style, start, end, x, y, scale, font, color, box, outline, align })),

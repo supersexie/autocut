@@ -16,6 +16,7 @@ import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
 import Slider from '@react-native-community/slider';
 import { OverlayItem, type OverlayGuide } from './OverlayLayer';
+import { Transformable, type Placement } from './Transform';
 import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
 
 type PreviewProps = {
@@ -27,12 +28,23 @@ type PreviewProps = {
   activeWord: number;
   captionStyleId: string;
   captionLook?: TextLook;
+  /** Where captions sit and how big (x: middle, y: bottom edge, as fractions of the frame). */
+  captionPlacement: Placement;
+  /** Captions are selected: show the box with handles. */
+  captionSelected: boolean;
+  /** A finger landed on the caption. */
+  onCaptionTouch: () => void;
+  onCaptionChange: (p: Placement) => void;
+  onCaptionEdit: () => void;
   texts: TextOverlay[];
   selectedText: string | null;
   fullscreen: boolean;
   onTap: () => void;
-  onTapText: (id: string) => void;
-  onMoveText: (id: string, x: number, y: number) => void;
+  onTextTouch: (id: string) => void;
+  onTextChange: (id: string, p: Placement) => void;
+  onTextEdit: (id: string) => void;
+  /** A finger came off a caption or text (the end of one undoable change). */
+  onPlaceEnd: () => void;
   onCloseFullscreen: () => void;
   /** How the picture is zoomed and moved right now (keyframes). */
   framing: Framing;
@@ -50,6 +62,9 @@ type PreviewProps = {
   onOverlayChange: (id: string, patch: Partial<Overlay>) => void;
   onOverlayEnd: () => void;
 };
+
+// Captions wrap inside the export's side margins (60 of 1080 each side, see src/ass.js).
+const CAPTION_WIDTH = 1 - 120 / 1080;
 
 const SNAP_ZOOM = 0.04; // within 4% of 100% snaps to 100%
 const SNAP_CENTRE = 0.015; // within 1.5% of the middle snaps to it
@@ -137,6 +152,9 @@ export function Preview(p: PreviewProps) {
   }
   const overlayBusy = useRef(false);
   const [guide, setGuide] = useState<OverlayGuide | null>(null);
+  const setBusy = (busy: boolean) => {
+    overlayBusy.current = busy;
+  };
   const zoom = useFramingGesture(fw, fh, p.onFrameStart, p.onFrame, p.onFrameEnd, () => overlayBusy.current);
   return (
     <View style={p.fullscreen ? [StyleSheet.absoluteFill, styles.full, { paddingTop: insets.top, paddingBottom: insets.bottom }] : styles.previewWrap}>
@@ -160,9 +178,7 @@ export function Preview(p: PreviewProps) {
                 selected={p.selectedOverlay === o.id}
                 time={p.time}
                 playing={p.playing}
-                onBusy={(busy) => {
-                  overlayBusy.current = busy;
-                }}
+                onBusy={setBusy}
                 onGuide={setGuide}
                 onSelect={() => p.onOverlayStart(o.id)}
                 onChange={(patch) => p.onOverlayChange(o.id, patch)}
@@ -170,12 +186,49 @@ export function Preview(p: PreviewProps) {
               />
             ))}
             {p.line && (
-              <View style={[styles.captionSpot, { bottom: fh * 0.24 }]} pointerEvents="none">
-                <StyledText preset={captionStyle(p.captionStyleId)} look={p.captionLook} words={p.line.words.map((w) => w.text)} active={p.activeWord} frameWidth={fw} />
-              </View>
+              <Transformable
+                frameW={fw}
+                frameH={fh}
+                {...p.captionPlacement}
+                bottom
+                maxWidth={fw * CAPTION_WIDTH}
+                selected={p.captionSelected}
+                onSelect={p.onCaptionTouch}
+                onChange={p.onCaptionChange}
+                onEnd={p.onPlaceEnd}
+                onBusy={setBusy}
+                onGuide={setGuide}
+                onEdit={p.onCaptionEdit}
+              >
+                <StyledText
+                  preset={captionStyle(p.captionStyleId)}
+                  look={p.captionLook}
+                  words={p.line.words.map((w) => w.text)}
+                  active={p.activeWord}
+                  frameWidth={fw}
+                  scale={p.captionPlacement.scale}
+                />
+              </Transformable>
             )}
             {p.texts.map((t) => (
-              <DraggableText key={t.id} text={t} frameW={fw} frameH={fh} selected={p.selectedText === t.id} onTap={() => p.onTapText(t.id)} onMove={(x, y) => p.onMoveText(t.id, x, y)} />
+              <Transformable
+                key={t.id}
+                frameW={fw}
+                frameH={fh}
+                x={t.x}
+                y={t.y}
+                scale={t.scale}
+                maxWidth={fw * 0.94}
+                selected={p.selectedText === t.id}
+                onSelect={() => p.onTextTouch(t.id)}
+                onChange={(placement) => p.onTextChange(t.id, placement)}
+                onEnd={p.onPlaceEnd}
+                onBusy={setBusy}
+                onGuide={setGuide}
+                onEdit={() => p.onTextEdit(t.id)}
+              >
+                <StyledText preset={textStyle(t.style)} look={t} words={t.text.split(' ')} frameWidth={fw} scale={t.scale} />
+              </Transformable>
             ))}
             {guide && (
               <View style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -207,42 +260,6 @@ export function Preview(p: PreviewProps) {
           <SymbolView name="xmark" tintColor="#fff" size={15} weight="bold" />
         </Pressable>
       )}
-    </View>
-  );
-}
-
-function DraggableText({ text, frameW, frameH, selected, onTap, onMove }: { text: TextOverlay; frameW: number; frameH: number; selected: boolean; onTap: () => void; onMove: (x: number, y: number) => void }) {
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const [drag, setDrag] = useState<{ dx: number; dy: number } | null>(null);
-  const latest = useRef({ text, frameW, frameH, onTap, onMove });
-  useEffect(() => {
-    latest.current = { text, frameW, frameH, onTap, onMove };
-  });
-  // PanResponder handlers read the latest props from a ref when a touch happens, never during render.
-  // eslint-disable-next-line react-hooks/refs
-  const [responder] = useState(() =>
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) + Math.abs(g.dy) > 4,
-      onPanResponderMove: (_, g) => setDrag({ dx: g.dx, dy: g.dy }),
-      onPanResponderRelease: (_, g) => {
-        const { text: t, frameW: w, frameH: h, onTap: tap, onMove: move } = latest.current;
-        setDrag(null);
-        if (Math.abs(g.dx) + Math.abs(g.dy) < 4) return tap();
-        move(Math.min(0.95, Math.max(0.05, t.x + g.dx / w)), Math.min(0.95, Math.max(0.05, t.y + g.dy / h)));
-      },
-      onPanResponderTerminate: () => setDrag(null),
-    })
-  );
-  const left = text.x * frameW - size.w / 2 + (drag?.dx ?? 0);
-  const top = text.y * frameH - size.h / 2 + (drag?.dy ?? 0);
-  return (
-    <View
-      {...responder.panHandlers}
-      onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-      style={[styles.textItem, { left, top, opacity: size.w ? 1 : 0 }, selected && styles.textSelected, drag && { transform: [{ scale: 1.04 }] }]}
-    >
-      <StyledText preset={textStyle(text.style)} look={text} words={text.text.split(' ')} frameWidth={frameW} scale={text.scale} />
     </View>
   );
 }

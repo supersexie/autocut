@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, Style
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
-import { CaptionsPanel, FormatPanel, MusicPanel, OverlayVolumePanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
+import { CaptionsPanel, FormatPanel, LineEditor, MusicPanel, OverlayVolumePanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
 import { pickOverlay } from '../../components/editor/overlayMedia';
 import { pickSong, useMusic } from '../../components/editor/music';
 import { CoverPicker, Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
@@ -15,8 +15,8 @@ import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
 import { Button, PressableScale, type SymbolName } from '../../components/ui';
 import {
-  captionLines, clipOffset, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
-  restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
+  CAPTION_X, CAPTION_Y, captionLines, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
+  restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
 } from '../../lib/edit';
 import { getWaveform } from '../../lib/api';
 import { cutFile, editOf, getSettings, saveEdit, updateCut, updateSettings, useCut, type CutRecord } from '../../lib/store';
@@ -52,8 +52,14 @@ function Editor({ cut }: { cut: CutRecord }) {
   const { clips } = edit;
   const total = totalDuration(clips);
 
-  const [selectedText, setSelectedText] = useState<string | null>(null);
-  const [selectedOverlay, setSelectedOverlay] = useState<string | null>(null);
+  // One thing at a time is selected: a text, an overlay, or a caption line (by its key).
+  const [selection, setSelection] = useState<{ kind: 'text' | 'overlay' | 'caption'; id: string } | null>(null);
+  const selectedText = selection?.kind === 'text' ? selection.id : null;
+  const selectedOverlay = selection?.kind === 'overlay' ? selection.id : null;
+  const selectedCaption = selection?.kind === 'caption' ? selection.id : null;
+  const setSelectedText = (id: string | null) => setSelection(id ? { kind: 'text', id } : null);
+  const setSelectedOverlay = (id: string | null) => setSelection(id ? { kind: 'overlay', id } : null);
+  const [editingLine, setEditingLine] = useState<CaptionLine | null>(null);
   const [panel, setPanel] = useState<PanelId>(null);
   const [focusLine, setFocusLine] = useState<string | undefined>();
   const [composer, setComposer] = useState<(TextDraft & { id?: string }) | null>(null);
@@ -162,6 +168,9 @@ function Editor({ cut }: { cut: CutRecord }) {
   const activeWord = line ? Math.max(0, line.words.findLastIndex((w) => w.start <= time)) : -1;
   const visibleTexts = edit.texts.filter((t) => time >= t.start && time < t.end);
   const text = edit.texts.find((t) => t.id === selectedText);
+  const captionLine = lines.find((l) => l.key === selectedCaption);
+  const captionPlacement = { x: edit.captions.x ?? CAPTION_X, y: edit.captions.y ?? CAPTION_Y, scale: edit.captions.scale ?? 1 };
+  const setCaptions = (captions: CaptionSettings) => commit({ ...edit, captions }, { keepTime: true });
   const updateText = (id: string, patch: Partial<TextOverlay>) => commit({ ...edit, texts: edit.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)) }, { keepTime: true });
 
   // ---- Overlays: photos and videos over the picture.
@@ -171,9 +180,12 @@ function Editor({ cut }: { cut: CutRecord }) {
   const setOverlays = (next: Overlay[]) => commit({ ...edit, overlays: next }, { keepTime: true });
   const updateOverlay = (id: string, patch: Partial<Overlay>) => setOverlays(overlays.map((o) => (o.id === id ? { ...o, ...patch } : o)));
   const selectOverlay = (id: string | null) => {
-    setSelectedText(null);
     setSelectedOverlay(id);
     if (panel === 'overlayVolume' && id !== selectedOverlay) setPanel(null);
+  };
+  const selectCaption = (key: string) => {
+    setSelection({ kind: 'caption', id: key });
+    if (panel && panel !== 'captionStyle') setPanel(null);
   };
 
   async function addOverlay() {
@@ -196,22 +208,30 @@ function Editor({ cut }: { cut: CutRecord }) {
     }
   }
 
-  // Moving, sizing and turning an overlay with fingers updates it live; the undo point is taken at
-  // its first change, so a tap that only selects it leaves nothing to undo.
-  const overlayMoved = useRef(false);
-  function overlayTouched(id: string) {
+  // Moving and sizing things on the picture with fingers (overlays, text, captions) updates them
+  // live; the undo point is taken at the first change, so a tap that only selects leaves nothing to undo.
+  const placing = useRef(false);
+  function touched() {
     playback.pause();
-    overlayMoved.current = false;
-    if (id !== selectedOverlay) selectOverlay(id);
+    placing.current = false;
   }
-  function overlayLive(id: string, patch: Partial<Overlay>) {
-    const first = !overlayMoved.current;
-    overlayMoved.current = true;
+  function liveEdit(change: (e: Edit) => Edit) {
+    const first = !placing.current;
+    placing.current = true;
     setHistory((h) => {
-      const present = { ...h.present, overlays: (h.present.overlays ?? []).map((o) => (o.id === id ? { ...o, ...patch } : o)) };
+      const present = change(h.present);
       return first ? { past: [...h.past, h.present].slice(-60), present, future: [] } : { ...h, present };
     });
   }
+  const placeEnd = () => {
+    placing.current = false;
+  };
+  function overlayTouched(id: string) {
+    touched();
+    if (id !== selectedOverlay) selectOverlay(id);
+  }
+  const overlayLive = (id: string, patch: Partial<Overlay>) =>
+    liveEdit((e) => ({ ...e, overlays: (e.overlays ?? []).map((o) => (o.id === id ? { ...o, ...patch } : o)) }));
 
   function addText(d: TextDraft) {
     // Near the end, start early enough that the text is on screen for at least a second.
@@ -254,7 +274,8 @@ function Editor({ cut }: { cut: CutRecord }) {
   const clip = clips[selected];
   type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'volume' | 'speed' | 'restore'
     | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete'
-    | 'overlay' | 'overlaySplit' | 'overlayDuplicate' | 'overlayMute' | 'overlayVolume' | 'overlayFront' | 'overlayDelete';
+    | 'overlay' | 'overlaySplit' | 'overlayDuplicate' | 'overlayMute' | 'overlayVolume' | 'overlayFront' | 'overlayDelete'
+    | 'captionEdit' | 'captionSplit' | 'captionDelete' | 'captionStyle' | 'captionAll';
   type Tool = { id: ToolId; icon: SymbolName; label: string; disabled?: boolean; danger?: boolean };
   const clipTools: Tool[] = [
     { id: 'split', icon: 'square.split.2x1', label: 'Split' },
@@ -290,7 +311,15 @@ function Editor({ cut }: { cut: CutRecord }) {
     { id: 'overlayFront', icon: 'square.3.layers.3d.top.filled', label: 'To front', disabled: overlays.at(-1)?.id === overlay?.id },
     { id: 'overlayDelete', icon: 'trash', label: 'Delete', danger: true },
   ];
-  const tools = overlay ? overlayTools : text ? textTools : clipTools;
+  const captionSplit = captionLine ? splitCaption(edit.captions, captionLine, time) : null;
+  const captionTools: Tool[] = [
+    { id: 'captionEdit', icon: 'pencil', label: 'Edit' },
+    { id: 'captionSplit', icon: 'square.split.2x1', label: 'Split', disabled: !captionSplit },
+    { id: 'captionDelete', icon: 'trash', label: 'Delete', danger: true },
+    { id: 'captionStyle', icon: 'textformat', label: 'Style' },
+    { id: 'captionAll', icon: 'list.bullet', label: 'All captions' },
+  ];
+  const tools = overlay ? overlayTools : text ? textTools : captionLine ? captionTools : clipTools;
 
   // ---- Song under the video.
   async function addSong(replace = false) {
@@ -315,6 +344,20 @@ function Editor({ cut }: { cut: CutRecord }) {
     else if (tool === 'speed') setPanel('speed');
     else if (tool === 'restore') setRestoring(true);
     else if (tool === 'overlay') addOverlay();
+    else if (captionLine && tool.startsWith('caption')) {
+      if (tool === 'captionEdit') {
+        playback.pause();
+        setEditingLine(captionLine);
+      } else if (tool === 'captionSplit' && captionSplit) setCaptions(captionSplit);
+      else if (tool === 'captionDelete') {
+        setCaptions(deleteCaption(edit.captions, captionLine));
+        setSelection(null);
+      } else if (tool === 'captionStyle') setPanel('captionStyle');
+      else if (tool === 'captionAll') {
+        setFocusLine(captionLine.key);
+        setPanel('captions');
+      }
+    }
     else if (overlay) {
       if (tool === 'overlaySplit') {
         const next = splitOverlay(overlays, overlay.id, time, newId);
@@ -372,15 +415,31 @@ function Editor({ cut }: { cut: CutRecord }) {
         activeWord={activeWord}
         captionStyleId={edit.captions.style}
         captionLook={{ box: edit.captions.box, outline: edit.captions.outline }}
+        captionPlacement={captionPlacement}
+        captionSelected={!!selectedCaption}
+        onCaptionTouch={() => {
+          touched();
+          if (line) selectCaption(line.key);
+        }}
+        onCaptionChange={(p) => liveEdit((e) => ({ ...e, captions: { ...e.captions, ...p } }))}
+        onCaptionEdit={() => {
+          playback.pause();
+          if (line) setEditingLine(line);
+        }}
+        onPlaceEnd={placeEnd}
         texts={visibleTexts}
         selectedText={selectedText}
         fullscreen={fullscreen}
-        onTap={() => (selectedText || selectedOverlay ? selectOverlay(null) : playback.toggle())}
-        onTapText={(id) => {
-          setSelectedOverlay(null);
-          setSelectedText(id);
+        onTap={() => (selection ? selectOverlay(null) : playback.toggle())}
+        onTextTouch={(id) => {
+          touched();
+          if (id !== selectedText) setSelectedText(id);
         }}
-        onMoveText={(id, x, y) => updateText(id, { x, y })}
+        onTextChange={(id, p) => liveEdit((e) => ({ ...e, texts: e.texts.map((t) => (t.id === id ? { ...t, ...p } : t)) }))}
+        onTextEdit={(id) => {
+          const t = edit.texts.find((x) => x.id === id);
+          if (t) setComposer({ id: t.id, text: t.text, style: t.style, font: t.font, color: t.color, box: t.box, outline: t.outline, align: t.align, scale: t.scale });
+        }}
         onCloseFullscreen={() => setFullscreen(false)}
         framing={framing}
         onFrameStart={startFraming}
@@ -392,9 +451,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         playing={playing}
         onOverlayStart={overlayTouched}
         onOverlayChange={overlayLive}
-        onOverlayEnd={() => {
-          overlayMoved.current = false;
-        }}
+        onOverlayEnd={placeEnd}
       />
 
       <View style={styles.transport}>
@@ -472,11 +529,19 @@ function Editor({ cut }: { cut: CutRecord }) {
               setChoosingCover(true);
             }}
             onAudio={() => (edit.music ? setPanel('music') : addSong())}
+            selectedCaption={selectedCaption}
             onCaptions={(l) => {
               playback.setScrubbing(false);
-              if (l) playback.seek(l.start);
-              setFocusLine(l?.key);
-              setPanel('captions');
+              if (!l) {
+                setFocusLine(undefined);
+                setPanel('captions');
+                return;
+              }
+              // A caption block selects that caption, like CutAI: move it, resize it, edit, split or delete it.
+              playback.pause();
+              playback.seek(l.start + 0.01);
+              selectCaption(l.key);
+              Haptics.selectionAsync();
             }}
             onSelectText={(tid) => {
               playback.setScrubbing(false);
@@ -506,7 +571,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         </View>
 
         <View ref={toolbarRef} collapsable={false} style={[styles.toolbar, { paddingBottom: insets.bottom + 4 }]}>
-          {(text || overlay) && (
+          {(text || overlay || captionLine) && (
             <Pressable onPress={() => selectOverlay(null)} hitSlop={10} style={styles.toolBack} accessibilityLabel="Back to clips">
               <SymbolView name="chevron.left" tintColor={theme.ink} size={16} weight="semibold" />
             </Pressable>
@@ -543,7 +608,13 @@ function Editor({ cut }: { cut: CutRecord }) {
           />
         )}
         {panel === 'captionStyle' && (
-          <StylePicker kind="captions" value={edit.captions.style} onPick={(style) => commit({ ...edit, captions: { ...edit.captions, style, box: undefined, outline: undefined } }, { keepTime: true })} onClose={() => setPanel('captions')} onDone={() => setPanel('captions')} />
+          <StylePicker
+            kind="captions"
+            value={edit.captions.style}
+            onPick={(style) => commit({ ...edit, captions: { ...edit.captions, style, box: undefined, outline: undefined } }, { keepTime: true })}
+            onClose={() => setPanel(captionLine ? null : 'captions')}
+            onDone={() => setPanel(captionLine ? null : 'captions')}
+          />
         )}
         {panel === 'format' && (
           <FormatPanel settings={edit.captions} onChange={(captions) => commit({ ...edit, captions }, { keepTime: true })} onClose={() => setPanel('captions')} onDone={() => setPanel('captions')} />
@@ -602,6 +673,16 @@ function Editor({ cut }: { cut: CutRecord }) {
         )}
       </View>
 
+      {editingLine && (
+        <LineEditor
+          line={editingLine}
+          onDone={(t) => {
+            const l = editingLine;
+            setEditingLine(null);
+            if (t && t !== l.text) setCaptions({ ...edit.captions, edits: { ...edit.captions.edits, [l.key]: t } });
+          }}
+        />
+      )}
       {composer && (
         <TextComposer
           initial={composer}

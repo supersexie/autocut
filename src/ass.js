@@ -95,13 +95,16 @@ export function buildAss({ width, height, captions, texts = [] }) {
 
   if (captions?.lines?.length) {
     const s = withLook(STYLES.captions.find((c) => c.id === captions.style) ?? STYLES.captions[0], { box: captions.box, outline: captions.outline });
-    styles.push(styleLine('Caption', s, playResY, 2, Math.round(playResY * 0.24)));
-    const glow = s.glow ? `{\\blur${s.glow}}` : '';
+    styles.push(styleLine('Caption', { ...s, size: (s.size ?? 1) * (captions.scale ?? 1) }, playResY, 2, Math.round(playResY * 0.24)));
+    // Moved by the user: pinned by the middle of its bottom edge. Otherwise the style's own spot.
+    const moved = captions.x !== undefined || captions.y !== undefined;
+    const pos = moved ? `\\an2\\pos(${Math.round((captions.x ?? 0.5) * BASE_WIDTH)},${Math.round((captions.y ?? 0.76) * playResY)})` : '';
+    const lead = s.glow || pos ? `{${pos}${s.glow ? `\\blur${s.glow}` : ''}}` : ''; // tags at the start of every caption event
     for (const line of captions.lines) {
       const words = line.words.filter((w) => w.text);
       const mode = s.highlight?.mode;
       if (!mode || !words.length) {
-        events.push(`Dialogue: 0,${time(line.start)},${time(line.end)},Caption,,0,0,0,,${glow}${clean(upper(s, words.map((w) => w.text).join(' ') || line.text || ''))}`);
+        events.push(`Dialogue: 0,${time(line.start)},${time(line.end)},Caption,,0,0,0,,${lead}${clean(upper(s, words.map((w) => w.text).join(' ') || line.text || ''))}`);
         continue;
       }
       // Word by word: one event per word, from that word until the next one starts.
@@ -117,7 +120,7 @@ export function buildAss({ width, height, captions, texts = [] }) {
             : `{\\1c${tagColor(s.highlight.color)}}`;
           text = words.map((x, j) => (j === i ? `${hl}${clean(upper(s, x.text))}{\\r}` : clean(upper(s, x.text)))).join(' ');
         }
-        events.push(`Dialogue: 0,${time(start)},${time(end)},Caption,,0,0,0,,${glow}${text}`);
+        events.push(`Dialogue: 0,${time(start)},${time(end)},Caption,,0,0,0,,${lead}${text}`);
       });
     }
   }

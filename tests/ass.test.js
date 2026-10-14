@@ -22,6 +22,17 @@ test('the default look is white TikTok Sans with no outline, and an outline can 
   assert.deepEqual([text[1], text[16]], ['TikTok Sans Bold', '0']);
 });
 
+test('moved and resized captions are pinned where the user put them', () => {
+  const ass = buildAss({ width: 1080, height: 1920, captions: { style: 'classic', x: 0.25, y: 0.5, scale: 1.5, lines: [line] } });
+  assert.match(dialogues(ass)[0], /\{\\an2\\pos\(270,960\)\}make it pop$/);
+  assert.equal(ass.split('\n').find((l) => l.startsWith('Style: Caption')).split(',')[2], String(Math.round(1080 * 0.085 * 1.5)));
+  // Word-by-word styles too, on every event.
+  const words = dialogues(buildAss({ width: 1080, height: 1920, captions: { style: 'word-box', y: 0.6, lines: [line] } }));
+  assert.ok(words.every((d) => d.includes('\\an2\\pos(540,1152)')));
+  // Not moved: the style's own spot, no position tag.
+  assert.doesNotMatch(dialogues(buildAss({ width: 1080, height: 1920, captions: { style: 'classic', lines: [line] } }))[0], /pos/);
+});
+
 test('simple styles write one event per line', () => {
   const ass = buildAss({ width: 1080, height: 1920, captions: { style: 'classic', lines: [line] } });
   assert.equal(dialogues(ass).length, 1);

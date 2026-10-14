@@ -37,6 +37,8 @@ type Props = {
   /** The video's own sound is off: its waveform lies flat. */
   muted?: boolean;
   lines: CaptionLine[];
+  /** The caption line (by key) that's selected. */
+  selectedCaption: string | null;
   texts: TextOverlay[];
   selectedText: string | null;
   onScrubStart: () => void;
@@ -277,7 +279,11 @@ export function Timeline(p: Props) {
               <Pressable onPress={() => p.onCaptions()} style={styles.lane}>
                 {p.captionsOn && p.lines.length ? (
                   p.lines.map((l) => (
-                    <Pressable key={`${l.key}-${l.start}`} onPress={() => p.onCaptions(l)} style={[styles.chip, { left: x(l.start), width: Math.max(14, x(l.end - l.start) - 2) }]}>
+                    <Pressable
+                      key={`${l.key}-${l.start}`}
+                      onPress={() => p.onCaptions(l)}
+                      style={[styles.chip, { left: x(l.start), width: Math.max(14, x(l.end - l.start) - 2) }, p.selectedCaption === l.key && styles.chipOn]}
+                    >
                       <Text style={styles.chipText} numberOfLines={1}>
                         {l.text}
                       </Text>
@@ -575,6 +581,7 @@ const styles = StyleSheet.create({
   song: { position: 'absolute', top: 3, bottom: 3, left: 2, right: 2, borderRadius: 7, backgroundColor: '#3A3A40', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8 },
   songText: { color: '#fff', fontSize: 11, fontWeight: '600', flexShrink: 1 },
   chip: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, backgroundColor: theme.ink, justifyContent: 'center', paddingHorizontal: 6 },
+  chipOn: { borderWidth: 2, borderColor: '#fff', zIndex: 2 },
   chipText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   textChip: { backgroundColor: '#E4E4E8' },
   textChipOn: { borderWidth: 2, borderColor: theme.ink },

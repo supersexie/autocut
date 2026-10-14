@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   makeClip, splitAt, removeClip, duplicateClip, moveClip, trimClip, restoreCut, isRestored, locate, clipOffset,
   totalDuration, captionLines, applyCaps, exportBody, DEFAULT_CAPTIONS, framingAt, clampFraming,
-  overlayHeight, overlaysAt, splitOverlay, retimeOverlay,
+  overlayHeight, overlaysAt, splitOverlay, retimeOverlay, splitCaption, deleteCaption,
 } from '../src/lib/edit.ts';
 
 const clips = [makeClip(1, 3), makeClip(5, 6), makeClip(8, 10)];
@@ -153,4 +153,25 @@ test('export sends uploaded overlays, shifted for the cover, muted as silent', (
   assert.equal(b.from, 1);
   // One that never uploaded is left out rather than sent broken.
   assert.equal(exportBody(edit, words, {}, undefined, { p: 'up-p' }).overlays.length, 1);
+});
+
+test('captions: split a line at the playhead, delete one, and the export carries where they sit', () => {
+  const one = [makeClip(1, 2.2)];
+  const settings = { ...DEFAULT_CAPTIONS, wordsPerLine: 5 };
+  const [line] = captionLines(words, one, settings);
+  assert.equal(line.text, 'Hi there, friend.');
+  // Playhead on "there,": it starts the second line.
+  const split = splitCaption(settings, line, 0.3);
+  assert.ok(split);
+  assert.deepEqual(captionLines(words, one, split).map((l) => l.text), ['Hi', 'there, friend.']);
+  // Nothing to split before the second word, or in a retyped line.
+  assert.equal(splitCaption(settings, line, 0), null);
+  assert.equal(splitCaption({ ...settings, edits: { [line.key]: 'Hello' } }, line, 0.3), null);
+  // Deleting takes the line out.
+  const lines = captionLines(words, one, split);
+  assert.deepEqual(captionLines(words, one, deleteCaption(split, lines[0])).map((l) => l.text), ['there, friend.']);
+  // Position and size go to the export; words go without their keys.
+  const body = exportBody({ clips: one, muted: false, captions: { ...split, x: 0.4, y: 0.5, scale: 1.3 }, texts: [] }, words, {});
+  assert.deepEqual([body.captions.x, body.captions.y, body.captions.scale], [0.4, 0.5, 1.3]);
+  assert.deepEqual(Object.keys(body.captions.lines[0].words[0]).sort(), ['end', 'start', 'text']);
 });
