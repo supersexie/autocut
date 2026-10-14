@@ -22,7 +22,8 @@ export type Playback = {
   preparing: boolean;
 };
 
-type Options = { cutId: string; sourceUri: string; clips: ClipEdit[]; muted: boolean };
+/** `cutId` is the cut on this phone, `serverId` the same cut on the server (for previews). */
+type Options = { cutId: string; serverId?: string; sourceUri: string; clips: ClipEdit[]; muted: boolean };
 
 /**
  * App builds have Autocut's native player, which stitches the clips on the phone: smooth through
@@ -146,7 +147,7 @@ function useExpoGoPlayback(o: Options): Playback {
 }
 
 /** One player over the server's stitched preview of the clips (once it's downloaded and loaded). */
-function usePreviewPlayback({ cutId, clips, muted }: Options) {
+function usePreviewPlayback({ cutId, serverId, clips, muted }: Options) {
   const player = useVideoPlayer(null, (p) => {
     p.timeUpdateEventInterval = 1 / 30;
     p.loop = false;
@@ -163,9 +164,10 @@ function usePreviewPlayback({ cutId, clips, muted }: Options) {
   // Ask for a preview of the clips once they've settled for a moment.
   useEffect(() => {
     let alive = true;
+    if (!serverId) return; // made on another server: no previews, the relay plays it
     const t = setTimeout(() => {
       setRequest({ clips });
-      previewOf(cutId, clips, () => alive)
+      previewOf(cutId, serverId, clips, () => alive)
         .then((uri) => {
           if (!alive) return;
           if (uri) setFile({ clips, uri });
@@ -177,7 +179,7 @@ function usePreviewPlayback({ cutId, clips, muted }: Options) {
       alive = false;
       clearTimeout(t);
     };
-  }, [cutId, clips]);
+  }, [cutId, serverId, clips]);
 
   useEffect(() => {
     if (!file) return;

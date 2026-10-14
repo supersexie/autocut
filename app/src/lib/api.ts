@@ -118,19 +118,25 @@ export async function startRender(id: string, body: object) {
  * can play straight through the cuts. Resolves to the file's URI, or undefined if `alive()` turns
  * false first or the server couldn't make it. An edit previewed before comes straight from cache.
  */
-export async function previewOf(cutId: string, clips: { start: number; end: number; speed: number; volume: number }[], alive: () => boolean) {
+export async function previewOf(
+  cutId: string,
+  serverId: string,
+  clips: { start: number; end: number; speed: number; volume: number }[],
+  alive: () => boolean
+) {
+  // `cutId` names the files on the phone; `serverId` is the same cut on the server.
   const body = JSON.stringify({ clips: clips.map(({ start, end, speed, volume }) => ({ start, end, speed, volume })) });
-  let { key, stage } = await call(`/cuts/${cutId}/preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  let { key, stage } = await call(`/cuts/${serverId}/preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
   if (!previewsDir.exists) previewsDir.create({ intermediates: true });
   const file = new File(previewsDir, `${cutId}-${key}.mp4`);
   if (file.exists) return file.uri;
   while (stage === 'rendering') {
     await sleep(700);
     if (!alive()) return;
-    ({ stage } = await call(`/cuts/${cutId}/preview?key=${key}&status=1`));
+    ({ stage } = await call(`/cuts/${serverId}/preview?key=${key}&status=1`));
   }
   if (stage !== 'ready' || !alive()) return;
-  await File.downloadFileAsync(`${serverUrl()}/cuts/${cutId}/preview?key=${key}`, file, { headers: await authHeaders() });
+  await File.downloadFileAsync(`${serverUrl()}/cuts/${serverId}/preview?key=${key}`, file, { headers: await authHeaders() });
   deletePreviews(cutId, file.name);
   return file.uri;
 }
