@@ -155,7 +155,8 @@ export default function Welcome() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom + 10 }]}>
-      <View style={styles.top}>
+      {/* In the same column as everything else, so on iPad they sit by the card, not in the far corners. */}
+      <View style={[styles.top, column(COLUMN)]}>
         {phase === 'intro' ? (
           <View />
         ) : (

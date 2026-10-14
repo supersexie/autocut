@@ -218,8 +218,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 /** Which sign-in providers are switched on in the Supabase project, so we only show those. */
 /** Apple sign-in is offered on iPhone and iPad; Google everywhere. */
+/**
+ * Which "Continue with…" buttons to show. While developing they always show, so the screens can be
+ * seen as designed; in release builds only the ones switched on in Supabase do, so nobody (an App
+ * Store reviewer included) taps a button that can't work.
+ */
 export async function socialOptions() {
-  return { apple: Platform.OS === 'ios', google: true };
+  if (__DEV__) return { apple: Platform.OS === 'ios', google: true };
+  const enabled = await enabledProviders();
+  return { apple: Platform.OS === 'ios' && enabled.apple, google: enabled.google };
 }
 
 /** Stops with a plain message if the provider isn't switched on in Supabase yet. */
