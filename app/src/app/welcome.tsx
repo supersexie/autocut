@@ -147,18 +147,6 @@ export default function Welcome() {
         <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
       </Animated.View>
 
-      {/* The picture fades into the white page behind the words and buttons. */}
-      <Svg style={styles.fade} width="100%" height="100%" preserveAspectRatio="none" pointerEvents="none">
-        <Defs>
-          <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-            <Stop offset="0" stopColor="#fff" stopOpacity="0" />
-            <Stop offset="0.45" stopColor="#fff" stopOpacity="0.88" />
-            <Stop offset="1" stopColor="#fff" stopOpacity="1" />
-          </LinearGradient>
-        </Defs>
-        <Rect x="0" y="0" width="100%" height="100%" fill="url(#fade)" />
-      </Svg>
-
       <View style={[styles.top, { top: insets.top + 8 }]}>
         {phase === 'intro' ? (
           <Animated.View exiting={FadeOut.duration(150)} style={styles.chip}>
@@ -180,7 +168,20 @@ export default function Welcome() {
         )}
       </View>
 
-      <View style={[styles.bottom, { paddingBottom: insets.bottom + 10 }, column()]}>
+      {/* A solid white panel for the words and buttons; the picture above stays clear, with a short fade into it. */}
+      <View style={[styles.panel, { paddingBottom: insets.bottom + 10 }]}>
+        <View style={styles.fade} pointerEvents="none">
+          <Svg width="100%" height="100%" preserveAspectRatio="none">
+            <Defs>
+              <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#fff" stopOpacity="0" />
+                <Stop offset="1" stopColor="#fff" stopOpacity="1" />
+              </LinearGradient>
+            </Defs>
+            <Rect x="0" y="0" width="100%" height="100%" fill="url(#fade)" />
+          </Svg>
+        </View>
+        <View style={column()}>
         {phase === 'intro' ? (
           <Animated.View key="intro" exiting={FadeOut.duration(180)} style={{ gap: 10 }}>
             <Text style={styles.headline}>Raw take in.{'\n'}Tight cut out.</Text>
@@ -195,14 +196,21 @@ export default function Welcome() {
           </Animated.View>
         ) : (
           <Animated.View key="demo" entering={FadeInDown.duration(380).easing(ease)} style={{ gap: 14 }}>
-            {/* What's being said, word by word, the word being spoken in bold. */}
-            <Text style={styles.transcript} numberOfLines={2}>
-              {line?.map((w, i) => (
-                <Text key={`${w.s}-${i}`} style={[w.s > time && styles.unsaid, w.s <= time && time < w.e + 0.1 && styles.saying]}>
-                  {w.t}{' '}
-                </Text>
-              ))}
-            </Text>
+            {phase === 'reading' ? (
+              // What's being said, word by word, the word being spoken in bold. Once the edit takes
+              // over, its own captions say it, so this gives way to the result.
+              <Text style={styles.transcript} numberOfLines={2}>
+                {line?.map((w, i) => (
+                  <Text key={`${w.s}-${i}`} style={[w.s > time && styles.unsaid, w.s <= time && time < w.e + 0.1 && styles.saying]}>
+                    {w.t}{' '}
+                  </Text>
+                ))}
+              </Text>
+            ) : (
+              <Animated.Text entering={FadeIn.duration(300)} style={styles.transcript}>
+                Cut, captioned,{'\n'}ready to post.
+              </Animated.Text>
+            )}
 
             <View>
               <View style={styles.track}>
@@ -240,6 +248,7 @@ export default function Welcome() {
             <Text style={styles.note}>Sample clip. Nothing uploaded, no permissions needed.</Text>
           </Animated.View>
         )}
+        </View>
       </View>
     </View>
   );
@@ -247,12 +256,12 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '58%' },
+  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.bg, paddingHorizontal: 22, paddingTop: 6 },
+  fade: { position: 'absolute', left: 0, right: 0, top: -70, height: 70 },
   top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chip: { backgroundColor: 'rgba(17,17,20,0.55)', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
   chipText: { color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
   round: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(17,17,20,0.55)', alignItems: 'center', justifyContent: 'center' },
-  bottom: { position: 'absolute', bottom: 0, paddingHorizontal: 22 },
   headline: { fontSize: 36, fontWeight: '800', color: theme.ink, letterSpacing: -0.9, lineHeight: 40 },
   sub: { fontSize: 15, color: theme.muted, lineHeight: 21 },
   signIn: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
