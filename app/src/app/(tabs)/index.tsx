@@ -12,7 +12,8 @@ import { Button, Logo } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
 import { useAuth } from '../../lib/auth';
 import type { Take } from '../../lib/jobs';
-import { useCuts, useSettings } from '../../lib/store';
+import { folderName, useCuts, useFolders, useSettings } from '../../lib/store';
+import { AddVideoSheet, FolderSheet } from '../../components/CameraSheets';
 import { formatTime, theme } from '../../lib/theme';
 
 const LENGTHS = [
@@ -30,7 +31,7 @@ export default function CreateScreen() {
   const navigation = useNavigation();
   const { account } = useAuth();
   const cuts = useCuts();
-  const { mirrorSelfie } = useSettings();
+  const { mirrorSelfie, saveFolder } = useSettings();
   const [camPermission, requestCam] = useCameraPermissions();
   const [micPermission, requestMic] = useMicrophonePermissions();
   const camera = useRef<CameraView>(null);
@@ -46,6 +47,8 @@ export default function CreateScreen() {
   const [takes, setTakes] = useState<Take[]>([]);
   const [elapsed, setElapsed] = useState(0);
   const [showTip, setShowTip] = useState(true);
+  const [sheet, setSheet] = useState<'folder' | 'add' | null>(null);
+  useFolders(); // re-render when a folder is renamed
 
   // Keep the camera running until the next screen has slid in, so the transition never flashes black.
   const blurTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -149,11 +152,16 @@ export default function CreateScreen() {
     if (!next.length) setMode('idle');
   }
 
-  async function importVideo() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], videoExportPreset: ImagePicker.VideoExportPreset.H264_1920x1080, quality: 1 });
-    const a = result.assets?.[0];
-    if (result.canceled || !a) return;
-    review([{ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }]);
+  /** One video to cut, or several (in the order they're tapped) joined into one cut. */
+  async function importVideo(kind: 'single' | 'multiple' = 'single') {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['videos'],
+      videoExportPreset: ImagePicker.VideoExportPreset.H264_1920x1080,
+      quality: 1,
+      ...(kind === 'multiple' && { allowsMultipleSelection: true, selectionLimit: 20, orderedSelection: true }),
+    });
+    if (result.canceled || !result.assets.length) return;
+    review(result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 })));
   }
 
   if (!camPermission) return <View style={styles.black} />;
@@ -168,7 +176,8 @@ export default function CreateScreen() {
           onPress={() => (camPermission.canAskAgain ? requestCam() : Linking.openSettings())}
           style={{ alignSelf: 'stretch' }}
         />
-        <Button kind="text" title="Import a video" onPress={importVideo} />
+        <Button kind="text" title="Import a video" onPress={() => setSheet('add')} />
+        <AddVideoSheet visible={sheet === 'add'} onClose={() => setSheet(null)} onPick={importVideo} />
       </View>
     );
   }
@@ -260,7 +269,12 @@ export default function CreateScreen() {
         <View style={styles.controls}>
           <View style={styles.side}>
             {mode === 'idle' && !takes.length ? (
-              <RoundIcon name="photo.on.rectangle" label="Import a video" onPress={importVideo} big />
+              <Pressable onPress={() => setSheet('folder')} style={({ pressed }) => [styles.folder, pressed && { opacity: 0.8 }]} accessibilityLabel="Where new videos are saved">
+                <SymbolView name="folder.fill" tintColor={theme.ink} size={16} />
+                <Text style={styles.folderText} numberOfLines={1}>
+                  {folderName(saveFolder) ?? 'Cuts'}
+                </Text>
+              </Pressable>
             ) : null}
           </View>
 
@@ -278,6 +292,11 @@ export default function CreateScreen() {
           </Pressable>
 
           <View style={[styles.side, { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }]}>
+            {mode === 'idle' && !takes.length && (
+              <Pressable onPress={() => setSheet('add')} style={({ pressed }) => [styles.importButton, pressed && { opacity: 0.8 }]} accessibilityLabel="Add a video from Photos">
+                <SymbolView name="photo.on.rectangle.angled" tintColor={theme.ink} size={22} />
+              </Pressable>
+            )}
             {mode === 'paused' && <RoundIcon name="xmark" label="Delete last take" onPress={discardLast} />}
             {busy && (
               <Pressable onPress={finish} style={styles.done} accessibilityLabel="Done recording">
@@ -287,6 +306,8 @@ export default function CreateScreen() {
           </View>
         </View>
       </View>
+      <FolderSheet visible={sheet === 'folder'} onClose={() => setSheet(null)} />
+      <AddVideoSheet visible={sheet === 'add'} onClose={() => setSheet(null)} onPick={importVideo} />
     </View>
   );
 }
@@ -347,7 +368,10 @@ const styles = StyleSheet.create({
   pillText: { color: '#fff', fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
   round: { backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', alignItems: 'center', gap: 16 },
-  lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: 3 },
+  lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: 3, alignSelf: 'flex-end', marginRight: 24 },
+  folder: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', maxWidth: 150, backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
+  folderText: { fontSize: 15, fontWeight: '600', color: theme.ink, flexShrink: 1 },
+  importButton: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   length: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
   lengthOn: { backgroundColor: '#fff' },
   lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '700' },

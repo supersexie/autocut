@@ -10,7 +10,10 @@ import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
 import * as Sharing from 'expo-sharing';
 import { coverSource } from '../../lib/edit';
-import { editedDuration, cutFile, cutProgress, cutStatus, deleteCut, duplicateCut, exportFile, updateCut, useCuts, type CutRecord } from '../../lib/store';
+import {
+  createFolder, cutFile, cutProgress, cutStatus, deleteCut, deleteFolder, duplicateCut, editedDuration, exportFile, getFolders, moveCuts, renameFolder, updateCut,
+  useCuts, useFolders, type CutRecord, type Folder,
+} from '../../lib/store';
 import { column, formatTime, theme, WIDE_COLUMN } from '../../lib/theme';
 
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
@@ -29,6 +32,16 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: 'exported', label: 'Exported' },
 ];
 
+/** Asks which folder to file `ids` in (or a new one), then moves them. */
+function moveToFolder(ids: string[], folders: Folder[]) {
+  const choices = ['Cuts (no folder)', ...folders.map((f) => f.name), 'New folder…'];
+  sheet(ids.length === 1 ? 'Move to folder' : `Move ${ids.length} cuts to`, choices, (i) => {
+    if (i === 0) moveCuts(ids, undefined);
+    else if (i <= folders.length) moveCuts(ids, folders[i - 1].id);
+    else Alert.prompt('New folder', undefined, (name) => name.trim() && moveCuts(ids, createFolder(name)), 'plain-text');
+  });
+}
+
 /** A menu of options as an iOS action sheet; `onPick` gets the chosen index. */
 const sheet = (title: string | undefined, options: string[], onPick: (i: number) => void, destructive?: number) =>
   ActionSheetIOS.showActionSheetWithOptions({ title, options: [...options, 'Cancel'], cancelButtonIndex: options.length, destructiveButtonIndex: destructive }, (i) => {
@@ -36,7 +49,12 @@ const sheet = (title: string | undefined, options: string[], onPick: (i: number)
   });
 
 export default function CutsScreen() {
-  const cuts = useCuts();
+  const all = useCuts();
+  const folders = useFolders();
+  const [folder, setFolder] = useState<string>('all'); // 'all' or a folder id
+  const current = folders.find((f) => f.id === folder);
+  // A deleted folder falls back to showing everything.
+  const cuts = current ? all.filter((c) => c.folderId === current.id) : all;
   const insets = useSafeAreaInsets();
   const [sort, setSort] = useState<Sort>('newest');
   const [filter, setFilter] = useState<Filter>('all');
@@ -53,11 +71,36 @@ export default function CutsScreen() {
     );
 
   function menu() {
-    sheet(undefined, ['Select', 'Sort by…', 'Filter…'], (i) => {
+    sheet(undefined, ['Select', 'New folder', 'Sort by…', 'Filter…'], (i) => {
       if (i === 0) setSelecting(true);
-      else if (i === 1) sheet('Sort by', SORTS.map((s) => (s.value === sort ? `✓ ${s.label}` : s.label)), (k) => setSort(SORTS[k].value));
+      else if (i === 1) Alert.prompt('New folder', 'Group cuts by product, brand or series.', (name) => name.trim() && setFolder(createFolder(name)), 'plain-text');
+      else if (i === 2) sheet('Sort by', SORTS.map((s) => (s.value === sort ? `✓ ${s.label}` : s.label)), (k) => setSort(SORTS[k].value));
       else sheet('Show', FILTERS.map((f) => (f.value === filter ? `✓ ${f.label}` : f.label)), (k) => setFilter(FILTERS[k].value));
     });
+  }
+
+  function folderActions(f: Folder) {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    sheet(
+      f.name,
+      ['Rename', 'Delete folder'],
+      (i) => {
+        if (i === 0) Alert.prompt('Rename folder', undefined, (name) => renameFolder(f.id, name), 'plain-text', f.name);
+        else
+          Alert.alert(`Delete “${f.name}”?`, 'The folder goes; its cuts move back to the main Cuts page.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Delete folder',
+              style: 'destructive',
+              onPress: () => {
+                deleteFolder(f.id);
+                setFolder('all');
+              },
+            },
+          ]);
+      },
+      1
+    );
   }
 
   function endSelecting() {
@@ -94,12 +137,37 @@ export default function CutsScreen() {
               <Text style={styles.textButtonLabel}>Done</Text>
             </Pressable>
           ) : (
-            cuts.length > 0 && <RoundButton icon="ellipsis" label="More" onPress={menu} />
+            all.length > 0 && <RoundButton icon="ellipsis" label="More" onPress={menu} />
           )}
         </View>
         <Text style={styles.h1}>{selecting ? (selected.length ? `${selected.length} selected` : 'Select cuts') : 'Cuts'}</Text>
 
-        {cuts.length === 0 && (
+        {folders.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.folders} contentContainerStyle={{ gap: 8 }}>
+            <Pressable onPress={() => setFolder('all')} style={[styles.folderChip, !current && styles.folderChipOn]}>
+              <Text style={[styles.folderChipText, !current && { color: '#fff' }]}>All</Text>
+            </Pressable>
+            {folders.map((f) => (
+              <Pressable key={f.id} onPress={() => setFolder(f.id)} onLongPress={() => folderActions(f)} style={[styles.folderChip, current?.id === f.id && styles.folderChipOn]}>
+                <SymbolView name="folder.fill" tintColor={current?.id === f.id ? '#fff' : theme.ink} size={13} />
+                <Text style={[styles.folderChipText, current?.id === f.id && { color: '#fff' }]}>{f.name}</Text>
+                <Text style={[styles.folderCount, current?.id === f.id && { color: 'rgba(255,255,255,0.7)' }]}>{all.filter((c) => c.folderId === f.id).length}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+
+        {cuts.length === 0 && current && (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <SymbolView name="folder" tintColor={theme.muted} size={26} />
+            </View>
+            <Text style={styles.emptyTitle}>Nothing in {current.name} yet</Text>
+            <Text style={styles.emptyBody}>Hold a cut and choose Move to folder, or pick this folder on the camera before you record.</Text>
+          </View>
+        )}
+
+        {cuts.length === 0 && !current && (
           <View style={styles.empty}>
             <View style={styles.emptyIcon}>
               <SymbolView name="film.stack" tintColor={theme.muted} size={26} />
@@ -123,7 +191,9 @@ export default function CutsScreen() {
         {cuts.some((c) => c.status === 'ready') && (
           <>
             <Pressable onPress={() => setOpen(!open)} style={styles.section} accessibilityRole="button" accessibilityState={{ expanded: open }}>
-              <Text style={styles.sectionTitle}>On this {DEVICE}</Text>
+              <Text style={styles.sectionTitle} numberOfLines={1}>
+                {current ? current.name : `On this ${DEVICE}`}
+              </Text>
               <View style={styles.count}>
                 <Text style={styles.countText}>{done.length}</Text>
               </View>
@@ -148,6 +218,17 @@ export default function CutsScreen() {
             style={styles.selectAll}
           >
             <Text style={styles.selectAllText}>{selected.length === cuts.length ? 'Select none' : 'Select all'}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => {
+              moveToFolder(selected, folders);
+              endSelecting();
+            }}
+            disabled={!selected.length}
+            style={[styles.moveButton, !selected.length && { opacity: 0.4 }]}
+          >
+            <SymbolView name="folder" tintColor={theme.ink} size={15} />
+            <Text style={styles.moveText}>Move</Text>
           </Pressable>
           <Pressable onPress={deleteSelected} disabled={!selected.length} style={[styles.deleteButton, !selected.length && { opacity: 0.4 }]}>
             <SymbolView name="trash" tintColor="#fff" size={15} />
@@ -192,6 +273,7 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
       { label: 'Rename', run: () => Alert.prompt('Rename cut', undefined, (title) => title.trim() && updateCut(cut.id, { title: title.trim() }), 'plain-text', cut.title) },
       ...(exported.exists ? [{ label: 'Share', run: () => Sharing.shareAsync(exported.uri, { mimeType: 'video/mp4', UTI: 'public.mpeg-4' }) }] : []),
       ...(cut.status === 'ready' && cut.source ? [{ label: 'Duplicate', run: () => duplicateCut(cut.id) }] : []),
+      { label: 'Move to folder…', run: () => moveToFolder([cut.id], getFolders()) },
       {
         label: 'Delete',
         run: () =>
@@ -278,7 +360,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 20, padding: 8, paddingLeft: 16,
     shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
   },
-  selectAll: { paddingVertical: 8 },
+  selectAll: { paddingVertical: 8, marginRight: 'auto' },
+  moveButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginRight: 8 },
+  moveText: { color: theme.ink, fontSize: 15, fontWeight: '700' },
+  folders: { marginTop: 14, marginHorizontal: -18, paddingHorizontal: 18, flexGrow: 0 },
+  folderChip: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 8 },
+  folderChipOn: { backgroundColor: theme.ink },
+  folderChipText: { fontSize: 14, fontWeight: '600', color: theme.ink },
+  folderCount: { fontSize: 12, fontWeight: '600', color: theme.muted, fontVariant: ['tabular-nums'] },
   selectAllText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   deleteButton: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: theme.danger, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 10 },
   deleteText: { color: '#fff', fontSize: 15, fontWeight: '700' },

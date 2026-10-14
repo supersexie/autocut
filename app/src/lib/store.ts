@@ -26,6 +26,8 @@ export type CutRecord = {
   previewFlip?: boolean;
   /** The take on this phone, when it's the very file the server cuts (one take, not flipped). */
   localSource?: string;
+  /** The folder it's filed in; none = the main Cuts page. */
+  folderId?: string;
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally
@@ -46,9 +48,13 @@ export type Settings = {
   tourDone: boolean;
   ratingAsked: boolean;
   serverUrl: string; // empty = use the Mac running the dev server
+  /** Folder new cuts are filed in, chosen on the camera; empty = the main Cuts page. */
+  saveFolder: string;
 };
 
-const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, ratingAsked: false, serverUrl: '' };
+export type Folder = { id: string; name: string; createdAt: string };
+
+const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, ratingAsked: false, serverUrl: '', saveFolder: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
 /** The editor's stitched previews (see previewOf in api.ts), named `<cut id>-<key>.mp4`. */
@@ -76,6 +82,7 @@ export function deletePreviews(cutId: string, keep?: string) {
 }
 const indexFile = new File(cutsDir, 'index-v2.json');
 const settingsFile = new File(Paths.document, 'settings.json');
+const foldersFile = new File(Paths.document, 'folders.json');
 
 function readJson<T>(file: File, fallback: T): T {
   try {
@@ -90,6 +97,7 @@ cutsDir.create({ intermediates: true, idempotent: true });
 let state = {
   cuts: readJson<CutRecord[]>(indexFile, []),
   settings: { ...DEFAULT_SETTINGS, ...readJson<Partial<Settings>>(settingsFile, {}) },
+  folders: readJson<Folder[]>(foldersFile, []),
 };
 const listeners = new Set<() => void>();
 const subscribe = (l: () => void) => {
@@ -165,8 +173,9 @@ export function clearCuts() {
     removeFiles(c);
     deletePreviews(c.id);
   }
-  state = { ...state, cuts: [] };
+  state = { ...state, cuts: [], folders: [] };
   indexFile.write('[]');
+  foldersFile.write('[]');
   emit();
 }
 
@@ -177,6 +186,45 @@ export function updateSettings(patch: Partial<Settings>) {
 }
 
 export const getSettings = () => state.settings;
+
+// ---- Folders: a way to group cuts (one product, one brand…). They live on this phone.
+
+function saveFolders(folders: Folder[]) {
+  state = { ...state, folders };
+  foldersFile.write(JSON.stringify(folders));
+  emit();
+}
+
+export const useFolders = () => useSyncExternalStore(subscribe, () => state.folders);
+export const getFolders = () => state.folders;
+export const folderName = (id?: string) => state.folders.find((f) => f.id === id)?.name;
+
+/** Makes a folder (or returns the one that already has this name) and gives back its id. */
+export function createFolder(name: string) {
+  const clean = name.trim().slice(0, 40);
+  const existing = state.folders.find((f) => f.name.toLowerCase() === clean.toLowerCase());
+  if (existing) return existing.id;
+  const folder: Folder = { id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name: clean, createdAt: new Date().toISOString() };
+  saveFolders([...state.folders, folder]);
+  return folder.id;
+}
+
+export function renameFolder(id: string, name: string) {
+  if (name.trim()) saveFolders(state.folders.map((f) => (f.id === id ? { ...f, name: name.trim().slice(0, 40) } : f)));
+}
+
+/** Removes the folder; its cuts go back to the main Cuts page. */
+export function deleteFolder(id: string) {
+  moveCuts(state.cuts.filter((c) => c.folderId === id).map((c) => c.id), undefined);
+  if (state.settings.saveFolder === id) updateSettings({ saveFolder: '' });
+  saveFolders(state.folders.filter((f) => f.id !== id));
+}
+
+export function moveCuts(ids: string[], folderId: string | undefined) {
+  state = { ...state, cuts: state.cuts.map((c) => (ids.includes(c.id) ? { ...c, folderId } : c)) };
+  persist();
+  emit();
+}
 export const useCuts = () => useSyncExternalStore(subscribe, () => state.cuts);
 export const useCut = (id: string) => useSyncExternalStore(subscribe, () => getCut(id));
 export const useSettings = () => useSyncExternalStore(subscribe, () => state.settings);

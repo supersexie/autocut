@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import { createCut, download, getJob, ServerUnreachable, stopJob, uploadTake } from './api';
-import { addCut, cutFile, getCut, getCuts, updateCut, type CutRecord } from './store';
+import { addCut, cutFile, getCut, getCuts, getSettings, updateCut, type CutRecord } from './store';
 import { sleep } from './theme';
 
 /** `flip`: a front-camera take, which iOS records mirrored; the server flips it back. */
@@ -28,6 +28,8 @@ export function startCut(takes: Take[], language: string): string {
     // One take that needs no flipping is exactly what the server will cut, so the editor can use
     // this copy instead of downloading it back.
     localSource: takes.length === 1 && !takes[0].flip ? takes[0].uri : undefined,
+    // Filed where the camera's folder button says (if that folder still exists).
+    folderId: getSettings().saveFolder || undefined,
     duration: takes.reduce((t, k) => t + k.duration, 0),
     words: [],
     cuts: [],
