@@ -74,7 +74,8 @@ function Card({ cut }: { cut: CutRecord }) {
   let status: string;
   if (cut.status === 'ready') status = `${formatTime(cut.duration)} → ${formatTime(clipsDuration(cut.clips))}`;
   else if (cut.status === 'failed') status = cut.error ?? "The edit didn't finish.";
-  else if (cut.status === 'uploading') status = `Uploading ${Math.round(cut.progress * 100)}%`;
+  else if (cut.status === 'uploading') status = cut.stage === 'waiting' ? 'Waiting to upload' : `Uploading ${Math.round(cut.progress * 100)}%`;
+  else if (cut.stage === 'queued') status = 'Waiting in line';
   else status = `Cutting ${Math.round(25 + 75 * cut.progress)}%`;
 
   return (

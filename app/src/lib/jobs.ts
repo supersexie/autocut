@@ -18,7 +18,7 @@ export function startCut(takes: Take[], language: string): string {
     createdAt: new Date().toISOString(),
     title: 'New take',
     status: 'uploading',
-    stage: 'uploading',
+    stage: 'waiting',
     progress: 0,
     takes: takes.length,
     previewUri: takes[0]?.uri,
@@ -33,12 +33,25 @@ export function startCut(takes: Take[], language: string): string {
   return id;
 }
 
-async function run(id: string, takes: Take[], language: string) {
-  try {
+// Uploads go one at a time, so a batch of 10 doesn't split the phone's connection ten ways.
+let uploads: Promise<unknown> = Promise.resolve();
+
+function uploadAll(id: string, takes: Take[]) {
+  const mine = uploads.then(async () => {
+    updateCut(id, { stage: 'uploading' });
     const ids: string[] = [];
     for (const [i, take] of takes.entries()) {
       ids.push(await uploadTake(take.uri, take.mime, (f) => updateCut(id, { progress: (i + f) / takes.length })));
     }
+    return ids;
+  });
+  uploads = mine.catch(() => {});
+  return mine;
+}
+
+async function run(id: string, takes: Take[], language: string) {
+  try {
+    const ids = await uploadAll(id, takes);
     const serverId = await createCut(ids, language);
     updateCut(id, { serverId, status: 'processing', stage: 'queued', progress: 0 });
     await track(id);
