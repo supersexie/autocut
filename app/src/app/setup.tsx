@@ -70,7 +70,7 @@ export default function Setup() {
 
   if (step === 'help') {
     return (
-      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.goal} />}>
+      <Backdrop footer={<Button title="Next" onPress={next} disabled={!draft.goal} />}>
         {header}
         <Title>What would help you most?</Title>
         <View style={{ gap: 10 }}>
@@ -84,7 +84,7 @@ export default function Setup() {
 
   if (step === 'volume') {
     return (
-      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.perWeek} />}>
+      <Backdrop footer={<Button title="Next" onPress={next} disabled={!draft.perWeek} />}>
         {header}
         <Title sub="Roughly is fine.">How many videos do you post a week?</Title>
         <View style={{ gap: 10 }}>
@@ -104,7 +104,7 @@ export default function Setup() {
 
   if (step === 'cost') {
     return (
-      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.editorCost} />}>
+      <Backdrop footer={<Button title="Next" onPress={next} disabled={!draft.editorCost} />}>
         {header}
         <Title sub="Per month, for editing.">What do you spend on edits now?</Title>
         <View style={{ gap: 10 }}>
