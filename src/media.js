@@ -96,37 +96,60 @@ export async function joinTakes(inputs, output, { onProgress } = {}) {
   );
 }
 
-// Render only the kept [start, end] ranges, back to back, with tiny audio fades to avoid clicks.
-// `height` scales the output (keeping aspect), `fps` resamples the frame rate.
-export async function render(input, output, segments, { subtitles, height, fps, onProgress } = {}) {
+// atempo only accepts 0.5–2, so chain it for faster or slower speeds.
+function atempo(speed) {
+  const parts = [];
+  let left = speed;
+  while (left > 2) { parts.push('atempo=2'); left /= 2; }
+  while (left < 0.5) { parts.push('atempo=0.5'); left /= 0.5; }
+  parts.push(`atempo=${left.toFixed(4)}`);
+  return parts.join(',');
+}
+
+/**
+ * Renders the clips back to back. A clip is [start, end] or { start, end, speed, volume }
+ * (volume 0 mutes it). Audio gets tiny fades at each join so cuts don't click.
+ * `subtitles` burns an SRT; `ass` burns an ASS file using fonts from `fontsDir`.
+ * `height` scales (keeping aspect), `fps` resamples, `bitrate` is in Mbps.
+ */
+export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, onProgress } = {}) {
   const fade = 0.012;
   const parts = [];
   const labels = [];
-  segments.forEach(([s, e], i) => {
-    const d = (e - s).toFixed(3);
-    parts.push(`[0:v]trim=start=${s.toFixed(3)}:end=${e.toFixed(3)},setpts=PTS-STARTPTS[v${i}]`);
+  const list = clips.map((c) => (Array.isArray(c) ? { start: c[0], end: c[1] } : c));
+  let total = 0;
+  list.forEach(({ start: s, end: e, speed = 1, volume = 1 }, i) => {
+    const out = (e - s) / speed;
+    total += out;
+    parts.push(`[0:v]trim=start=${s.toFixed(3)}:end=${e.toFixed(3)},setpts=(PTS-STARTPTS)/${speed}[v${i}]`);
     parts.push(
-      `[0:a]atrim=start=${s.toFixed(3)}:end=${e.toFixed(3)},asetpts=PTS-STARTPTS,` +
-        `afade=t=in:d=${fade},afade=t=out:st=${Math.max(0, d - fade).toFixed(3)}:d=${fade}[a${i}]`
+      `[0:a]atrim=start=${s.toFixed(3)}:end=${e.toFixed(3)},asetpts=PTS-STARTPTS` +
+        (speed !== 1 ? `,${atempo(speed)}` : '') +
+        (volume !== 1 ? `,volume=${volume.toFixed(3)}` : '') +
+        `,afade=t=in:d=${fade},afade=t=out:st=${Math.max(0, out - fade).toFixed(3)}:d=${fade}[a${i}]`
     );
     labels.push(`[v${i}][a${i}]`);
   });
   const post = [height && `scale=-2:${height}`, fps && `fps=${fps}`].filter(Boolean).join(',');
-  parts.push(`${labels.join('')}concat=n=${segments.length}:v=1:a=1[${post ? 'vr' : 'vc'}][ac]`);
+  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${post ? 'vr' : 'vc'}][ac]`);
   if (post) parts.push(`[vr]${post}[vc]`);
   let vOut = '[vc]';
-  if (subtitles) {
+  const esc = (f) => f.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
+  if (ass) {
+    parts.push(`[vc]ass='${esc(ass)}'${fontsDir ? `:fontsdir='${esc(fontsDir)}'` : ''}[vs]`);
+    vOut = '[vs]';
+  } else if (subtitles) {
     const style = 'FontName=Helvetica,FontSize=13,Bold=1,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline=2,Shadow=0,Alignment=2,MarginV=60';
-    const escaped = subtitles.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
-    parts.push(`[vc]subtitles='${escaped}':force_style='${style}'[vs]`);
+    parts.push(`[vc]subtitles='${esc(subtitles)}':force_style='${style}'[vs]`);
     vOut = '[vs]';
   }
+  const quality = bitrate ? ['-b:v', `${bitrate}M`, '-maxrate', `${bitrate}M`, '-bufsize', `${bitrate * 2}M`] : ['-crf', '18'];
   await run([
     '-y', '-i', input,
     '-filter_complex', parts.join(';'),
     '-map', vOut, '-map', '[ac]',
-    '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-pix_fmt', 'yuv420p',
+    '-c:v', 'libx264', '-preset', 'veryfast', ...quality, '-pix_fmt', 'yuv420p',
     '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
     output,
-  ], { total: segments.reduce((t, [a, b]) => t + b - a, 0), onProgress });
+  ], { total, onProgress });
 }

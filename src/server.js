@@ -6,7 +6,7 @@
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { segments: [[s,e]], captions, height, fps } -> { renderId }
+//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, height, fps, bitrate } -> { renderId }
 //   GET  /cuts/:id/video                                                  -> the latest finished render
 //   DELETE /account                                                       -> deletes the user, their takes and cuts
 // Every route but /health needs `Authorization: Bearer <Supabase access token>` (see auth.js).
@@ -19,7 +19,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { authEnabled, deleteAuthUser, LOCAL_USER, userIdFrom } from './auth.js';
 import { joinTakes } from './media.js';
-import { analyze, renderCut } from './pipeline.js';
+import { analyze, renderEdit } from './pipeline.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA = path.resolve(process.env.AUTOCUT_DATA ?? new URL('../data', import.meta.url).pathname);
@@ -219,12 +219,42 @@ async function createRender(req, res, job) {
   } catch {
     return send(res, 400, { error: 'Bad export request.' });
   }
-  const segments = (Array.isArray(body.segments) ? body.segments : [])
-    .map(([s, e]) => [Math.max(0, Number(s)), Math.min(job.duration, Number(e))])
-    .filter(([s, e]) => Number.isFinite(s) && Number.isFinite(e) && e - s >= 0.05);
-  if (!segments.length) return send(res, 400, { error: 'There is nothing left in this cut to export.' });
+  // `clips` (speed/volume per clip) from the editor, or plain `segments` [[start, end]].
+  const raw = Array.isArray(body.clips) ? body.clips : Array.isArray(body.segments) ? body.segments.map(([start, end]) => ({ start, end })) : [];
+  const clips = raw
+    .slice(0, 500)
+    .map((c) => ({
+      start: Math.max(0, Number(c.start)),
+      end: Math.min(job.duration, Number(c.end)),
+      speed: Math.min(4, Math.max(0.25, Number(c.speed) || 1)),
+      volume: Math.min(2, Math.max(0, c.volume === undefined ? 1 : Number(c.volume))),
+    }))
+    .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end - c.start >= 0.05);
+  if (!clips.length) return send(res, 400, { error: 'There is nothing left in this cut to export.' });
   const height = [480, 720, 1080, 1440, 2160].includes(Number(body.height)) ? Number(body.height) : undefined;
   const fps = [24, 25, 30, 60].includes(Number(body.fps)) ? Number(body.fps) : undefined;
+  const bitrate = [4, 8, 12, 20, 30, 60].includes(Number(body.bitrate)) ? Number(body.bitrate) : undefined;
+  const words = (list) =>
+    (Array.isArray(list) ? list : []).slice(0, 2000).map((w) => ({ text: String(w.text ?? '').slice(0, 80), start: Number(w.start) || 0, end: Number(w.end) || 0 }));
+  let captions;
+  if (body.captions && Array.isArray(body.captions.lines)) {
+    captions = {
+      style: String(body.captions.style ?? 'classic'),
+      lines: body.captions.lines.slice(0, 2000).map((l) => ({ start: Number(l.start) || 0, end: Number(l.end) || 0, words: words(l.words) })),
+    };
+  } else if (body.captions === true) {
+    // Older clients: default captions from the transcript.
+    captions = { style: 'classic', lines: defaultLines(job.words ?? [], clips) };
+  }
+  const texts = (Array.isArray(body.texts) ? body.texts : []).slice(0, 50).map((t) => ({
+    text: String(t.text ?? '').slice(0, 200),
+    style: String(t.style ?? 'classic'),
+    start: Number(t.start) || 0,
+    end: Number(t.end) || 0,
+    x: Math.min(1, Math.max(0, Number(t.x ?? 0.5))),
+    y: Math.min(1, Math.max(0, Number(t.y ?? 0.5))),
+    scale: Math.min(3, Math.max(0.3, Number(t.scale) || 1)),
+  }));
 
   const renderId = randomUUID();
   job.render = { id: renderId, stage: 'queued', progress: 0, output: path.join(job.dir, `render-${renderId}.mp4`) };
@@ -236,12 +266,7 @@ async function createRender(req, res, job) {
     r.stage = 'rendering';
     console.log(`[${job.id.slice(0, 8)}] exporting`);
     try {
-      await renderCut(job.source, r.output, segments, job.words ?? [], {
-        captions: !!body.captions,
-        height,
-        fps,
-        onProgress: (f) => (r.progress = f),
-      });
+      await renderEdit(job.source, r.output, { clips, captions, texts, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
       Object.assign(r, { stage: 'ready', progress: 1, size: (await stat(r.output)).size });
     } catch (err) {
       console.error(err);
@@ -249,6 +274,25 @@ async function createRender(req, res, job) {
     }
     await saveJob(job);
   });
+}
+
+// Caption lines (4 words max) on the output timeline, for clients that don't send their own.
+function defaultLines(words, clips) {
+  const lines = [];
+  let offset = 0;
+  for (const c of clips) {
+    const inClip = words.filter((w) => w.start >= c.start - 0.05 && w.end <= c.end + 0.05);
+    for (let i = 0; i < inClip.length; i += 4) {
+      const group = inClip.slice(i, i + 4).map((w) => ({
+        text: w.text,
+        start: offset + (Math.max(w.start, c.start) - c.start) / c.speed,
+        end: offset + (Math.min(w.end, c.end) - c.start) / c.speed,
+      }));
+      lines.push({ start: group[0].start, end: group.at(-1).end + 0.2, words: group });
+    }
+    offset += (c.end - c.start) / c.speed;
+  }
+  return lines;
 }
 
 async function sendFile(req, res, file, type) {

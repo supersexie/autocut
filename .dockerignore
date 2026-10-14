@@ -2,7 +2,12 @@ node_modules
 .models
 data
 samples
-app
+app/*
+!app/src
+app/src/*
+!app/src/lib
+app/src/lib/*
+!app/src/lib/styles.json
 ios
 prototype
 tests

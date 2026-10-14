@@ -1,5 +1,6 @@
 import { writeFile } from 'node:fs/promises';
-import { decodeAudio, loudness, render, SAMPLE_RATE } from './media.js';
+import { decodeAudio, loudness, probe, render, SAMPLE_RATE } from './media.js';
+import { buildAss, FONTS_DIR } from './ass.js';
 import { transcribe } from './transcribe.js';
 import { planCuts, noiseFloor } from './plan.js';
 import { remapWords, toSrt } from './captions.js';
@@ -58,6 +59,28 @@ export async function renderCut(input, output, segments, words, { captions = fal
     await writeFile(subtitles, toSrt(remapWords(withWords)));
   }
   await render(input, output, segments, { subtitles, height, fps, onProgress });
+}
+
+/**
+ * Renders an edit from the app: clips with speed/volume, styled captions and text overlays.
+ * edit = { clips: [{ start, end, speed, volume }], captions?: { style, lines }, texts?: [...],
+ *          height?, fps?, bitrate? }  (caption lines and texts are on the output timeline)
+ */
+export async function renderEdit(input, output, edit, { onProgress } = {}) {
+  let ass;
+  if (edit.captions?.lines?.length || edit.texts?.length) {
+    const { width, height } = await probe(input);
+    ass = output.replace(/\.mp4$/, '') + '.ass';
+    await writeFile(ass, buildAss({ width, height, captions: edit.captions, texts: edit.texts }));
+  }
+  await render(input, output, edit.clips, {
+    ass,
+    fontsDir: FONTS_DIR,
+    height: edit.height,
+    fps: edit.fps,
+    bitrate: edit.bitrate,
+    onProgress,
+  });
 }
 
 // Raw take in, cut video out (used by the CLI).
