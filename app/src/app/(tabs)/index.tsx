@@ -168,7 +168,10 @@ export default function CreateScreen() {
       return;
     }
     if (result.canceled || !result.assets.length) return;
-    review(result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 })));
+    const picked = result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }));
+    // Several clips: put them in order first, then they're combined into one cut.
+    if (kind === 'multiple') router.push({ pathname: '/arrange', params: { takes: JSON.stringify(picked) } });
+    else review(picked);
   }
 
   if (!camPermission) return <View style={styles.black} />;

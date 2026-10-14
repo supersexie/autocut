@@ -45,12 +45,14 @@ function RootNavigator() {
       <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="review" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="arrange" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="cut/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         {/* A full-screen modal like "Cutting", so going from one to the other never shows the camera
             underneath, and no edge swipe fights the timeline. */}
         <Stack.Screen name="edit/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="settings" />
         <Stack.Screen name="plan" />
+        <Stack.Screen name="change-plan" />
         <Stack.Screen name="cut-options" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.55, 1], sheetGrabberVisible: true }} />
         <Stack.Screen name="edit-profile" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true }} />
       </Stack.Protected>

@@ -118,7 +118,9 @@ export default function Cutting() {
           : null
     : cut.stage === 'queued'
       ? 'Waiting for the last cut to finish'
-      : null;
+      : cut.stage === 'joining'
+        ? 'Combining your clips…'
+        : null;
 
   return (
     <Backdrop

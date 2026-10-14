@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // HTTP API the mobile app talks to.
 //   POST /uploads                      body: raw video bytes              -> { id }
-//   POST /cuts?uploads=a,b&flips=1,0&maxGap=0.3&fillers=1&retakes=1&lang=en -> { id }   (joins takes, un-mirrors selfies, finds cuts)
+//   POST /cuts?uploads=a,b&flips=1,0&blend=1&maxGap=0.3&fillers=1&retakes=1&lang=en -> { id }   (joins takes, un-mirrors selfies, finds cuts)
 //   POST /cuts?...                     body: raw video bytes (one take)    -> { id }
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
@@ -172,7 +172,7 @@ async function createCut(req, res, url, userId) {
         log('joining');
         job.stage = 'joining';
         job.source = path.join(dir, 'source.mp4');
-        await joinTakes(takes, job.source, { flips, onProgress: (f) => (job.progress = 0.15 * f) });
+        await joinTakes(takes, job.source, { flips, blend: q.get('blend') === '1', onProgress: (f) => (job.progress = 0.15 * f) });
         await Promise.all(takes.map((t) => rm(t, { force: true }))); // joined: the separate takes aren't needed
       } else {
         // Move rather than copy: a long take is hundreds of MB, and the upload isn't used again.

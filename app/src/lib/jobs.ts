@@ -13,7 +13,7 @@ const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slic
  * Sends takes off to be cut. Runs in the background: the record in the store carries the status,
  * so screens just render it, and the cut keeps going if the user leaves the screen.
  */
-export function startCut(takes: Take[], language: string): string {
+export function startCut(takes: Take[], language: string, { blend = false }: { blend?: boolean } = {}): string {
   const id = newId();
   const record: CutRecord = {
     id,
@@ -30,7 +30,7 @@ export function startCut(takes: Take[], language: string): string {
     localSource: takes.length === 1 && !takes[0].flip ? takes[0].uri : undefined,
     // Filed where the camera's folder button says (if that folder still exists).
     folderId: getSettings().saveFolder || undefined,
-    retry: { takes, language },
+    retry: { takes, language, blend },
     duration: takes.reduce((t, k) => t + k.duration, 0),
     words: [],
     cuts: [],
@@ -38,7 +38,7 @@ export function startCut(takes: Take[], language: string): string {
     exports: 0,
   };
   addCut(record);
-  run(id, takes, language);
+  run(id, takes, language, blend);
   return id;
 }
 
@@ -75,10 +75,10 @@ function uploadAll(id: string, takes: Take[]) {
   return mine;
 }
 
-async function run(id: string, takes: Take[], language: string) {
+async function run(id: string, takes: Take[], language: string, blend = false) {
   try {
     const ids = await uploadAll(id, takes);
-    const serverId = await createCut(ids, takes.map((t) => !!t.flip), language);
+    const serverId = await createCut(ids, takes.map((t) => !!t.flip), language, blend);
     updateCut(id, { serverId, status: 'processing', stage: 'queued', progress: 0 });
     await track(id);
   } catch (e) {
@@ -187,7 +187,7 @@ export async function retryCut(id: string) {
     return;
   }
   updateCut(id, { status: 'uploading', stage: 'waiting', progress: 0, error: undefined, serverId: undefined });
-  run(id, takes, record.retry?.language ?? 'en');
+  run(id, takes, record.retry?.language ?? 'en', record.retry?.blend);
 }
 
 export async function stopCut(id: string) {

@@ -1,15 +1,14 @@
+import { router } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Footnote, Meter, PageHeader, Row } from '../components/list';
 import { Button } from '../components/ui';
-import { useAuth } from '../lib/auth';
 import { column, COLUMN, theme } from '../lib/theme';
 import { usageLine, useUsage } from '../lib/usage';
 
 /** "Your plan": the plan, this month's edits, and changing it. */
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
-  const { updateProfile } = useAuth();
   const { plan, used, limit, left, resets } = useUsage();
 
   return (
@@ -22,8 +21,7 @@ export default function PlanScreen() {
           </Text>
           <Text style={styles.line}>{plan.edits}</Text>
           <Text style={styles.small}>Free while Autocut is in beta. You won’t be charged.</Text>
-          {/* Back to the plan picker; picking a plan there brings you straight back. */}
-          <Button title="Change plan" onPress={() => updateProfile({ onboarded: false })} style={{ marginTop: 16 }} />
+          <Button title="Change plan" onPress={() => router.push('/change-plan')} style={{ marginTop: 16 }} />
         </Card>
 
         <Card style={[styles.pad, { marginTop: 12 }]}>

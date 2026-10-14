@@ -73,7 +73,11 @@ export function probe(input) {
 // Joins several takes into one video at the first take's size, so they cut as one.
 // `flips[i]` mirrors take i back (front-camera recordings come out mirrored on iOS).
 // One take is just re-encoded (to flip it); several are joined at the first take's size.
-export async function joinTakes(inputs, output, { flips = [], onProgress } = {}) {
+/**
+ * Joins takes into one video at the first take's size. `blend` fades the sound out and back in
+ * over a moment at each join, so it doesn't jump from one clip's room to the next.
+ */
+export async function joinTakes(inputs, output, { flips = [], blend = false, onProgress } = {}) {
   const infos = await Promise.all(inputs.map(probe));
   const w = infos[0].width - (infos[0].width % 2);
   const h = infos[0].height - (infos[0].height % 2);
@@ -83,7 +87,11 @@ export async function joinTakes(inputs, output, { flips = [], onProgress } = {})
     const flip = flips[i] ? 'hflip,' : '';
     const fps = inputs.length > 1 ? ',fps=30' : '';
     parts.push(`[${i}:v]${flip}scale=${w}:${h}:force_original_aspect_ratio=decrease,pad=${w}:${h}:(ow-iw)/2:(oh-ih)/2,setsar=1${fps},format=yuv420p[v${i}]`);
-    parts.push(info.hasAudio ? `[${i}:a]aresample=48000,aformat=channel_layouts=stereo[a${i}]` : `anullsrc=r=48000:cl=stereo,atrim=0:${info.duration}[a${i}]`);
+    const fade = 0.15;
+    const fades = blend && inputs.length > 1
+      ? [i > 0 && `afade=t=in:d=${fade}`, i < inputs.length - 1 && `afade=t=out:st=${Math.max(0, info.duration - fade).toFixed(3)}:d=${fade}`].filter(Boolean).map((f) => `,${f}`).join('')
+      : '';
+    parts.push(info.hasAudio ? `[${i}:a]aresample=48000,aformat=channel_layouts=stereo${fades}[a${i}]` : `anullsrc=r=48000:cl=stereo,atrim=0:${info.duration}[a${i}]`);
     labels.push(`[v${i}][a${i}]`);
   });
   parts.push(`${labels.join('')}concat=n=${inputs.length}:v=1:a=1[v][a]`);
