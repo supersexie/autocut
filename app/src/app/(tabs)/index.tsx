@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Logo, PressableScale } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
@@ -26,6 +27,11 @@ const LENGTHS = [
 ];
 
 type Mode = 'idle' | 'recording' | 'paused';
+
+// Pinch zoom: how far zoom moves per doubling of the finger gap, and how far in it can go
+// (about 10x on the main camera; the rest of the lens's range is too blurry to film with).
+const ZOOM_PER_LOG = Math.log(40);
+const MAX_ZOOM = 0.5;
 
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();
@@ -123,14 +129,40 @@ export default function CreateScreen() {
   }
 
   // Double-tap the picture to switch cameras (not mid-take: switching stops the recording on iOS).
+  // ---- Pinch the picture to zoom, like the Camera app. expo-camera's zoom is 0–1 on a log scale up
+  // to the lens's own maximum, so a pinch adds to it in log terms: spreading the fingers to twice
+  // as far apart zooms in by roughly 2x, whatever the phone.
+  const [zoom, setZoom] = useState(0);
+  const zoomRef = useRef({ zoom, from: 0, pinchedAt: 0 });
+  useEffect(() => {
+    zoomRef.current.zoom = zoom;
+  });
+  // eslint-disable-next-line react-hooks/refs
+  const [pinch] = useState(() =>
+    Gesture.Pinch()
+      .runOnJS(true)
+      .onStart(() => {
+        zoomRef.current.from = zoomRef.current.zoom;
+      })
+      .onUpdate((e) => {
+        const next = Math.max(0, Math.min(MAX_ZOOM, zoomRef.current.from + Math.log(Math.max(0.01, e.scale)) / ZOOM_PER_LOG));
+        if (Math.abs(next - zoomRef.current.zoom) > 0.002) setZoom(next);
+      })
+      .onFinalize(() => {
+        zoomRef.current.pinchedAt = Date.now();
+      })
+  );
+
   const lastTap = useRef(0);
   function flip() {
     if (mode === 'recording') return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setFacing((f) => (f === 'front' ? 'back' : 'front'));
+    setZoom(0); // each lens starts unzoomed
   }
   function tapPreview() {
     const now = Date.now();
+    if (now - zoomRef.current.pinchedAt < 350) return; // the end of a pinch isn't a tap
     if (now - lastTap.current < 300) {
       lastTap.current = 0;
       flip();
@@ -241,16 +273,25 @@ export default function CreateScreen() {
           videoStabilizationMode="off"
           facing={facing}
           enableTorch={torch}
+          zoom={zoom}
           videoQuality="1080p"
           onCameraReady={() => setReady(true)}
         />
       )}
 
-      <Pressable
-        onPress={tapPreview}
-        accessibilityLabel="Double-tap to switch camera"
-        style={{ position: 'absolute', top: insets.top, left: frameX, width: frameW, height: frameH }}
-      />
+      <GestureDetector gesture={pinch}>
+        <Pressable
+          onPress={tapPreview}
+          accessibilityLabel="Double-tap to switch camera, pinch to zoom"
+          style={{ position: 'absolute', top: insets.top, left: frameX, width: frameW, height: frameH }}
+        />
+      </GestureDetector>
+      {zoom > 0.01 && (
+        <Pressable onPress={() => setZoom(0)} hitSlop={8} style={[styles.zoomPill, { top: insets.top + frameH * 0.5 - 16, right: frameX + 16 }]} accessibilityLabel="Reset zoom">
+          <SymbolView name="minus.magnifyingglass" tintColor="#fff" size={14} />
+          <Text style={styles.zoomText}>1×</Text>
+        </Pressable>
+      )}
 
       <View style={[styles.top, { top: insets.top + 8, left: frameX + 16, right: frameX + 16 }]}>
         <View style={styles.brand}>
@@ -429,6 +470,8 @@ function RoundIcon({ name, label, onPress, disabled, big }: { name: React.Compon
 }
 
 const styles = StyleSheet.create({
+  zoomPill: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
+  zoomText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   black: { flex: 1, backgroundColor: '#000' },
   center: { alignItems: 'center', justifyContent: 'center' },
   permTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
