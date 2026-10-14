@@ -192,7 +192,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
   return (
     <Modal visible animationType="fade" presentationStyle="fullScreen" onRequestClose={() => phase.kind !== 'exporting' && onClose()}>
       {phase.kind === 'done' ? (
-        <Done file={phase.file} saved={phase.saved} assetId={phase.assetId} onClose={onClose} />
+        <Done file={phase.file} saved={phase.saved} assetId={phase.assetId} aspect={aspect} onClose={onClose} />
       ) : (
         <Exporting phase={phase} preview={preview} seconds={firstSeconds} onRetry={run} onClose={onClose} />
       )}
@@ -243,7 +243,7 @@ async function postTo(app: 'instagram' | 'tiktok', assetId?: string) {
   Alert.alert(`${name} isn’t installed`, `Your cut is saved in Photos, so you can post it once ${name} is on this phone.`);
 }
 
-function Done({ file, saved, assetId, onClose }: { file: string; saved: boolean; assetId?: string; onClose: () => void }) {
+function Done({ file, saved, assetId, aspect, onClose }: { file: string; saved: boolean; assetId?: string; aspect: number; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const uri = cutFile(file).uri;
   const player = useVideoPlayer(uri, (p) => {
@@ -274,8 +274,9 @@ function Done({ file, saved, assetId, onClose }: { file: string; saved: boolean;
           <Text style={styles.doneLink}>Done</Text>
         </Pressable>
       </View>
-      <Animated.View entering={FadeIn.duration(260)} style={styles.donePlayer}>
-        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+      {/* The video's own shape (9:16 for most), as tall as there's room for; never cropped. */}
+      <Animated.View entering={FadeIn.duration(260)} style={[styles.donePlayer, { aspectRatio: aspect }]}>
+        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="contain" nativeControls={false} />
       </Animated.View>
 
       {rating ? (
@@ -341,7 +342,7 @@ const styles = StyleSheet.create({
   doneHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },
   doneTitle: { fontSize: 17, fontWeight: '700', color: theme.ink },
   doneLink: { fontSize: 16, fontWeight: '600', color: theme.ink },
-  donePlayer: { flex: 1, alignSelf: 'stretch', marginHorizontal: 30, borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
+  donePlayer: { flex: 1, maxWidth: '100%', borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
   postRow: { flexDirection: 'row', gap: 10 },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   rateCard: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 20, alignItems: 'center', gap: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -4 } },
