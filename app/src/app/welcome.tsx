@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, View } from 'react-native';
 import { Backdrop, Button, Logo } from '../components/ui';
 import { theme } from '../lib/theme';
@@ -30,7 +31,8 @@ export default function Welcome() {
               <Text style={styles.appName}>Autocut</Text>
             </View>
             <View style={styles.video}>
-              <Text style={styles.caption}>They dry super quick.</Text>
+              <SymbolView name="person.fill" tintColor="#4A4A50" size={120} />
+              <Text style={styles.caption}>Captions on every word.</Text>
             </View>
             <View style={styles.panel}>
               <View style={styles.row}>
@@ -75,7 +77,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, borderRadius: 34, backgroundColor: '#fff', overflow: 'hidden', padding: 12, gap: 10 },
   appBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
   appName: { fontSize: 13, fontWeight: '800', color: theme.ink },
-  video: { flex: 1, borderRadius: 18, backgroundColor: '#2A2A2E', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 26 },
+  video: { flex: 1, borderRadius: 18, backgroundColor: '#2A2A2E', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 18, gap: 18, overflow: 'hidden' },
   caption: { color: '#fff', fontSize: 15, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 3 },
   panel: { backgroundColor: theme.card, borderRadius: 16, padding: 10, gap: 8 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6 },

@@ -2,7 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Backdrop, Button, ErrorText, Option, StepHeader, Title, type SymbolName } from '../components/ui';
 import { enabledProviders, useAuth } from '../lib/auth';
@@ -148,7 +148,7 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   const labels = ['Day', 'Week', 'Month', 'Year'];
 
   return (
-    <Backdrop footer={<Button title="See my editor vs. Autocut  →" onPress={onNext} />}>
+    <Backdrop footer={<Button title="See my editor vs. Autocut  →" onPress={onNext} disabled={p < 1} />}>
       {header}
       <Title>It adds up.</Title>
       <View style={styles.chartCard}>
@@ -186,19 +186,37 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   );
 }
 
+/** A dot that pops in with a little overshoot, like a counter ticking up. */
+function PopDot() {
+  const [scale] = useState(() => new Animated.Value(0));
+  useEffect(() => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 14 }).start();
+  }, [scale]);
+  return <Animated.View style={[styles.dot, { transform: [{ scale }] }]} />;
+}
+
+const MAX_DOTS = 35;
+
 function Months({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
   const plan = planFor(recommendedPlan(draft.editorCost));
   const months = Math.max(1, Math.floor(editorMonthly(draft.editorCost) / plan.monthly));
-  const p = useProgress(1500);
-  const shown = Math.round(months * p);
-  const dots = Math.min(shown, 36);
+  const [count, setCount] = useState(0);
 
+  // One dot per tick, and the number goes up with it. Short totals tick slower so each pop reads.
+  useEffect(() => {
+    if (count >= months) return;
+    const step = Math.max(60, Math.min(260, 1600 / months));
+    const t = setTimeout(() => setCount((c) => c + 1), count === 0 ? 450 : step);
+    return () => clearTimeout(t);
+  }, [count, months]);
+
+  const done = count >= months;
   return (
-    <Backdrop footer={<Button title="See my plan  →" onPress={onNext} />}>
+    <Backdrop footer={<Button title="See my plan  →" onPress={onNext} disabled={!done} />}>
       {header}
       <Text style={styles.monthsTitle}>
-        One month of your editor pays for{' '}
-        <Text style={styles.monthsCount}>{shown}</Text> month{shown === 1 ? '' : 's'} of Autocut.
+        One month of your editor pays for{'\n'}
+        <Text style={styles.monthsCount}>{count}</Text> month{count === 1 ? '' : 's'} of Autocut.
       </Text>
       <View style={styles.equation}>
         <View style={styles.editorBubble}>
@@ -207,16 +225,16 @@ function Months({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
         </View>
         <Text style={styles.equals}>=</Text>
         <View style={styles.dots}>
-          {Array.from({ length: dots }, (_, i) => (
-            <View key={i} style={styles.dot} />
+          {Array.from({ length: Math.min(count, MAX_DOTS) }, (_, i) => (
+            <PopDot key={i} />
           ))}
         </View>
       </View>
       <View style={styles.legend}>
-        <View style={[styles.dot, { width: 10, height: 10 }]} />
+        <View style={[styles.dot, { width: 10, height: 10, borderRadius: 5 }]} />
         <Text style={[styles.small, { marginTop: 0 }]}>
           1 month of Autocut {plan.name}
-          {months > 36 ? ' (first 36 shown)' : ''}
+          {months > MAX_DOTS ? ` (first ${MAX_DOTS} shown)` : ''}
         </Text>
       </View>
     </Backdrop>
@@ -289,14 +307,14 @@ const styles = StyleSheet.create({
   chartNote: { fontSize: 13, color: theme.muted, textAlign: 'center' },
   small: { fontSize: 13, color: theme.muted, lineHeight: 18, marginTop: 12 },
   monthsTitle: { fontSize: 30, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.6, lineHeight: 38, marginTop: 10 },
-  monthsCount: { fontVariant: ['tabular-nums'], textDecorationLine: 'underline' },
+  monthsCount: { fontVariant: ['tabular-nums'] },
   equation: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 34 },
   editorBubble: { width: 78, height: 78, borderRadius: 39, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   bubbleBig: { fontSize: 13, fontWeight: '800', color: theme.ink },
   bubbleSmall: { fontSize: 10, color: theme.muted },
   equals: { fontSize: 26, fontWeight: '700', color: theme.ink },
-  dots: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  dot: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.ink },
+  dots: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 7, minHeight: 34 },
+  dot: { width: 30, height: 30, borderRadius: 15, backgroundColor: theme.ink, borderWidth: 4, borderColor: '#3A3A3F' },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 18 },
   g: { fontSize: 18, fontWeight: '800', color: '#4285F4' },
   agree: { flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 10 },
