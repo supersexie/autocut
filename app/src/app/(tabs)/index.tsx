@@ -373,7 +373,7 @@ const styles = StyleSheet.create({
   permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 21 },
   top: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
-  brandText: { color: '#fff', fontSize: 15, fontFamily: BRAND_FONT },
+  brandText: { color: '#fff', fontSize: 17, fontFamily: BRAND_FONT },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.cut },
   pillText: { color: '#fff', fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },

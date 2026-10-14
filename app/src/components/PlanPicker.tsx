@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, height: 44 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  brandText: { fontSize: 16, fontFamily: BRAND_FONT, color: theme.ink },
+  brandText: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   switch: { fontSize: 14, fontWeight: '600', color: theme.muted },
   title: { fontSize: 28, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.5, marginTop: 14 },
   sub: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },

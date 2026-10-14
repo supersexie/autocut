@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   meta: { fontSize: 13, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
-  brand: { fontSize: 16, fontFamily: BRAND_FONT, color: theme.ink },
+  brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 80, justifyContent: 'flex-end' },
   exportText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },

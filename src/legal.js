@@ -29,7 +29,7 @@ export async function legalPage(name) {
 <title>${title} · Autocut</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&display=swap" rel="stylesheet">
 <style>
   :root { --ink: #111114; --muted: #6b6b73; --line: #ededf0; --bg: #fff; color-scheme: light dark; }
   @media (prefers-color-scheme: dark) { :root { --ink: #f2f2f4; --muted: #a1a1a8; --line: #2a2a2e; --bg: #111114; } }
@@ -39,7 +39,7 @@ export async function legalPage(name) {
   header { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
   .mark { width: 28px; height: 28px; border-radius: 7px; background: #111114; display: grid; place-items: center; }
   .mark svg { width: 16px; height: 16px; }
-  .brand { font-family: "Syne", -apple-system, sans-serif; font-weight: 800; }
+  .brand { font-family: "Bricolage Grotesque", -apple-system, sans-serif; font-weight: 800; letter-spacing: -0.3px; }
   nav { margin-left: auto; display: flex; gap: 14px; font-size: 14px; }
   nav a { color: var(--muted); text-decoration: none; }
   nav a[aria-current] { color: var(--ink); font-weight: 600; }
