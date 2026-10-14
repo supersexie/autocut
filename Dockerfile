@@ -12,6 +12,7 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY src ./src
 # Caption/text fonts and the style presets shared with the app.
 COPY fonts ./fonts
+COPY legal ./legal
 COPY app/src/lib/styles.json ./app/src/lib/styles.json
 COPY scripts/warm-model.js ./scripts/warm-model.js
 # Bake the Whisper model into the image.

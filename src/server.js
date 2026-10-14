@@ -9,7 +9,7 @@
 //   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, height, fps, bitrate } -> { renderId }
 //   GET  /cuts/:id/video                                                  -> the latest finished render
 //   DELETE /account                                                       -> deletes the user, their takes and cuts
-// Every route but /health needs `Authorization: Bearer <Supabase access token>` (see auth.js).
+// Every route but /health, /privacy and /terms needs `Authorization: Bearer <Supabase access token>` (see auth.js).
 import http from 'node:http';
 import { createReadStream, createWriteStream } from 'node:fs';
 import { copyFile, mkdir, readdir, readFile, rm, writeFile, stat } from 'node:fs/promises';
@@ -18,6 +18,7 @@ import { randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { authEnabled, deleteAuthUser, LOCAL_USER, userIdFrom } from './auth.js';
+import { legalPage } from './legal.js';
 import { joinTakes } from './media.js';
 import { analyze, renderEdit } from './pipeline.js';
 
@@ -359,6 +360,10 @@ const server = http.createServer(async (req, res) => {
     const url = new URL(req.url, 'http://local');
     const [root, id, action] = url.pathname.split('/').filter(Boolean);
     if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, queued: waiting.length, running });
+    if (req.method === 'GET' && (root === 'privacy' || root === 'terms') && !id) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' });
+      return res.end(await legalPage(root));
+    }
 
     const userId = await userIdFrom(req);
     if (!userId || !USER.test(userId)) return send(res, 401, { error: 'Your session ended. Sign in again.' });

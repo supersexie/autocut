@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { autoServerUrl, checkServer } from '../lib/api';
+import { autoServerUrl, checkServer, openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { updateSettings, useSettings } from '../lib/store';
 import { theme } from '../lib/theme';
@@ -107,6 +107,18 @@ export default function SettingsScreen() {
             <Text style={styles.foot}>Leave empty to use the Mac running Expo. Your takes are cut there and come back to this phone.</Text>
           </>
         )}
+
+        <Text style={styles.label}>Legal</Text>
+        <View style={styles.group}>
+          <Pressable style={styles.item} onPress={() => openLegal('privacy')}>
+            <Text style={styles.text}>Privacy Policy</Text>
+            <Text style={styles.value}>›</Text>
+          </Pressable>
+          <Pressable style={[styles.item, styles.last]} onPress={() => openLegal('terms')}>
+            <Text style={styles.text}>Terms of Service</Text>
+            <Text style={styles.value}>›</Text>
+          </Pressable>
+        </View>
 
         <View style={[styles.group, { marginTop: 24 }]}>
           <Pressable style={styles.item} onPress={signOut}>

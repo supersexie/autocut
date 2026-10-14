@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Backdrop, Button, ErrorText, Option, StepHeader, Title, type SymbolName } from '../components/ui';
+import { openLegal } from '../lib/api';
 import { enabledProviders, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
 import { EDITOR_COSTS, editorMonthly, money, planFor, recommendedPlan } from '../lib/plans';
@@ -290,7 +291,16 @@ function Save({ header }: { header: React.ReactNode }) {
         />
         <Pressable style={styles.agree} onPress={() => setAgreed(!agreed)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
           <View style={[styles.box, agreed && styles.boxOn]}>{agreed && <SymbolView name="checkmark" tintColor="#fff" size={11} weight="bold" />}</View>
-          <Text style={styles.agreeText}>I agree to Autocut’s Terms and Conditions and Privacy Policy</Text>
+          <Text style={styles.agreeText}>
+            I agree to Autocut’s{' '}
+            <Text style={styles.agreeLink} onPress={() => openLegal('terms')}>
+              Terms and Conditions
+            </Text>{' '}
+            and{' '}
+            <Text style={styles.agreeLink} onPress={() => openLegal('privacy')}>
+              Privacy Policy
+            </Text>
+          </Text>
         </Pressable>
         {tried && !agreed && <Text style={styles.mustAgree}>Accept the Terms and Privacy Policy to continue.</Text>}
         <ErrorText>{error}</ErrorText>
@@ -321,5 +331,6 @@ const styles = StyleSheet.create({
   box: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   agreeText: { flex: 1, fontSize: 13, color: theme.muted, lineHeight: 18 },
+  agreeLink: { color: theme.ink, fontWeight: '600', textDecorationLine: 'underline' },
   mustAgree: { fontSize: 13, color: '#E0811E' },
 });

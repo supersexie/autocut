@@ -1,5 +1,6 @@
 import Constants from 'expo-constants';
 import { File, UploadType } from 'expo-file-system';
+import { openBrowserAsync } from 'expo-web-browser';
 import { cutsDir, getSettings, type Cut, type Word } from './store';
 import { supabase } from './supabase';
 
@@ -27,6 +28,9 @@ export function autoServerUrl() {
 /** Settings override (development) → EXPO_PUBLIC_API_URL (the deployed server) → the Mac running Expo. */
 export const serverUrl = () =>
   (getSettings().serverUrl.trim() || process.env.EXPO_PUBLIC_API_URL || autoServerUrl()).replace(/\/+$/, '');
+
+/** Opens the privacy policy or terms, which the server hosts at /privacy and /terms. */
+export const openLegal = (page: 'privacy' | 'terms') => openBrowserAsync(`${serverUrl()}/${page}`).catch(() => {});
 
 /** The signed-in user's access token, which the server checks on every request. */
 async function authHeaders(): Promise<Record<string, string>> {

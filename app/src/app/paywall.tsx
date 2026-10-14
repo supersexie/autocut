@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, ErrorText, Logo, Segmented } from '../components/ui';
+import { openLegal } from '../lib/api';
 import { useAuth, type Profile } from '../lib/auth';
 import { clearDraft, getDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
@@ -114,8 +115,12 @@ export default function Paywall() {
         <Text style={styles.notConnected}>Payments aren’t connected yet, so you won’t be charged.</Text>
         <View style={styles.links}>
           <Text style={styles.link}>Restore purchases</Text>
-          <Text style={styles.link}>Terms of Use</Text>
-          <Text style={styles.link}>Privacy Policy</Text>
+          <Text style={styles.link} onPress={() => openLegal('terms')}>
+            Terms of Use
+          </Text>
+          <Text style={styles.link} onPress={() => openLegal('privacy')}>
+            Privacy Policy
+          </Text>
         </View>
       </View>
     </View>
