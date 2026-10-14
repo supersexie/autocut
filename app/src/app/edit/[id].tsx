@@ -3,7 +3,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
 import { CaptionsPanel, FormatPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
@@ -240,9 +241,17 @@ function Editor({ cut }: { cut: CutRecord }) {
       </View>
 
       <View style={styles.bottom}>
-        <Text style={styles.clock}>
-          {mmss(time)} / {mmss(total)}
-        </Text>
+        <View style={styles.clockRow}>
+          <Text style={styles.clock}>
+            {mmss(time)} / {mmss(total)}
+          </Text>
+          {playback.preparing && (
+            <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={styles.preparing}>
+              <ActivityIndicator size="small" color={theme.muted} style={{ transform: [{ scale: 0.7 }] }} />
+              <Text style={styles.preparingText}>Smoothing playback…</Text>
+            </Animated.View>
+          )}
+        </View>
         <View ref={timelineRef} collapsable={false}>
           <Timeline
             clips={clips}
@@ -420,7 +429,10 @@ const styles = StyleSheet.create({
   exportText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
   bottom: { height: 292, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
-  clock: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'], marginLeft: 12, marginTop: 6 },
+  clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
+  clock: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },
+  preparing: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  preparingText: { fontSize: 11, color: theme.muted, fontWeight: '500' },
   toolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line, paddingTop: 8, marginTop: 'auto' },
   toolBack: { paddingHorizontal: 14 },
   tools: { gap: 6, paddingHorizontal: 8 },

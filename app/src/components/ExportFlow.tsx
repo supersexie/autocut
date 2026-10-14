@@ -5,11 +5,11 @@ import * as Sharing from 'expo-sharing';
 import * as StoreReview from 'expo-store-review';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { download, getJob, startRender } from '../lib/api';
+import { download, getJob, ServerUnreachable, startRender } from '../lib/api';
 import { exportBody, totalDuration, type Edit } from '../lib/edit';
 import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type CutRecord } from '../lib/store';
 import { formatTime, sleep, theme } from '../lib/theme';
@@ -21,7 +21,7 @@ const RESOLUTIONS = [720, 1080, 1440, 2160];
 const FRAME_RATES = [24, 30, 60];
 const BITRATES = [8, 12, 20, 30, 60];
 
-type Phase = { kind: 'sheet' } | { kind: 'exporting'; progress: number } | { kind: 'done'; file: string; saved: boolean } | { kind: 'failed'; error: string };
+type Phase = { kind: 'sheet' } | { kind: 'exporting'; progress: number; note?: string } | { kind: 'done'; file: string; saved: boolean } | { kind: 'failed'; error: string };
 
 const stamp = (iso: string) => {
   const d = new Date(iso);
@@ -43,8 +43,26 @@ function ratioLabel(aspect: number) {
   return ratios.reduce((best, r) => (Math.abs(r[1] - aspect) < Math.abs(best[1] - aspect) ? r : best))[0];
 }
 
+/**
+ * Runs `request`, and if the phone can't reach the server, tries again for about half a minute
+ * (calling `onRetry` meanwhile) before giving up. Other errors come straight back.
+ */
+async function patiently<T>(request: () => Promise<T>, onRetry: () => void): Promise<T> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await request();
+    } catch (e) {
+      if (!(e instanceof ServerUnreachable) || attempt >= 15) throw e;
+      onRetry();
+      await sleep(2000);
+    }
+  }
+}
+
 export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edit: Edit; aspect: number; onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'sheet' });
+  // The server's export from an earlier attempt, so Try again picks it up instead of starting over.
+  const renderId = useRef<string | null>(null);
   const [height, setHeight] = useState(1080);
   const [fps, setFps] = useState(30);
   const [bitrate, setBitrate] = useState(12);
@@ -55,19 +73,44 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
   const firstSeconds = (edit.clips[0]?.start ?? 0) + 0.3;
 
   async function run() {
-    setPhase({ kind: 'exporting', progress: 0 });
+    let progress = 0;
+    const show = (p: number, note?: string) => {
+      progress = p;
+      setPhase({ kind: 'exporting', progress: p, note });
+    };
+    const reconnecting = () => show(progress, 'Connection lost. Reconnecting…');
+    show(0);
     try {
-      if (!cut.serverId) throw new Error('This cut was made on another server.');
-      const renderId = await startRender(cut.serverId, exportBody(edit, cut.words, { height, fps, bitrate }));
+      const id = cut.serverId;
+      if (!id) throw new Error('This cut was made on another server.');
+      const job = () => patiently(() => getJob(id), reconnecting);
+
+      let render = (await job()).render;
+      const resumable = render && render.id === renderId.current && render.stage !== 'failed';
+      if (!resumable) {
+        // The server makes one export of a cut at a time: let an older one finish first.
+        while (render && ['queued', 'rendering'].includes(render.stage)) {
+          show(0, 'Finishing your last export of this cut first…');
+          await sleep(1500);
+          render = (await job()).render;
+        }
+        renderId.current = await patiently(() => startRender(id, exportBody(edit, cut.words, { height, fps, bitrate })), reconnecting);
+      }
       while (true) {
-        const r = (await getJob(cut.serverId)).render;
-        if (!r || r.id !== renderId) throw new Error('The export was replaced by another one.');
-        if (r.stage === 'failed') throw new Error(r.error ?? 'The export failed.');
+        const r = (await job()).render;
+        if (!r || r.id !== renderId.current) throw new Error('The export was replaced by another one.');
+        if (r.stage === 'failed') {
+          renderId.current = null;
+          throw new Error(r.error ?? 'The export failed.');
+        }
         if (r.stage === 'ready') break;
-        setPhase({ kind: 'exporting', progress: 0.88 * (r.progress ?? 0) });
+        show(0.88 * (r.progress ?? 0));
         await sleep(500);
       }
-      const file = await download(`/cuts/${cut.serverId}/video`, `${cut.id}-export.mp4`, (f) => setPhase({ kind: 'exporting', progress: 0.88 + 0.12 * f }));
+      const file = await patiently(
+        () => download(`/cuts/${id}/video`, `${cut.id}-export.mp4`, (f) => show(0.88 + 0.12 * f)),
+        reconnecting
+      );
       const permission = await MediaLibrary.requestPermissionsAsync(true);
       let saved = false;
       if (permission.granted) {
@@ -152,7 +195,7 @@ function Exporting({ phase, preview, seconds, onRetry, onClose }: { phase: Phase
       </Pressable>
       <View style={{ alignItems: 'center', gap: 6, marginTop: 10 }}>
         <Text style={styles.bigTitle}>{failed ? 'The export didn’t finish' : 'Exporting your cut…'}</Text>
-        <Text style={styles.sub}>{phase.kind === 'failed' ? phase.error : 'Keep Autocut open while it finishes'}</Text>
+        <Text style={styles.sub}>{phase.kind === 'failed' ? phase.error : phase.kind === 'exporting' && phase.note ? phase.note : 'Keep Autocut open while it finishes'}</Text>
       </View>
       <View style={{ marginTop: 28 }}>
         <ProgressCard uri={preview} seconds={seconds} progress={phase.kind === 'exporting' ? phase.progress : 0} label={phase.kind === 'exporting' ? `${Math.round(phase.progress * 100)}%` : undefined} />

@@ -18,6 +18,8 @@ export type Playback = {
   setScrubbing: (on: boolean) => void;
   /** The video itself, to fill the preview frame. */
   video: ReactNode;
+  /** A smoother version of the playback is on its way (Expo Go, just after an edit). */
+  preparing: boolean;
 };
 
 type Options = { cutId: string; sourceUri: string; clips: ClipEdit[]; muted: boolean };
@@ -70,7 +72,7 @@ function useCompositionPlayback({ sourceUri, clips, muted }: Options): Playback 
       onEnd={() => setTime(0)}
     />
   );
-  return { time, playing, toggle, pause, seek, setScrubbing: (on) => (scrubbing.current = on), video };
+  return { time, playing, toggle, pause, seek, setScrubbing: (on) => (scrubbing.current = on), video, preparing: false };
 }
 
 // ---- Expo Go: the server's stitched preview, with two players in relay until it arrives.
@@ -115,6 +117,7 @@ function useExpoGoPlayback(o: Options): Playback {
 
   const active = shown ? preview : relay;
   return {
+    preparing: !shown && preview.preparing,
     time: active.time,
     playing: active.playing,
     toggle: active.toggle,
@@ -149,6 +152,8 @@ function usePreviewPlayback({ cutId, clips, muted }: Options) {
     p.loop = false;
   });
   const [file, setFile] = useState<{ clips: ClipEdit[]; uri: string } | null>(null);
+  // Which clips the server is (or was) making a preview of, and whether that worked out.
+  const [request, setRequest] = useState<{ clips: ClipEdit[]; failed?: boolean } | null>(null);
   const [loaded, setLoaded] = useState<string | null>(null);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -159,9 +164,14 @@ function usePreviewPlayback({ cutId, clips, muted }: Options) {
   useEffect(() => {
     let alive = true;
     const t = setTimeout(() => {
+      setRequest({ clips });
       previewOf(cutId, clips, () => alive)
-        .then((uri) => alive && uri && setFile({ clips, uri }))
-        .catch(() => {}); // no preview: the relay carries on
+        .then((uri) => {
+          if (!alive) return;
+          if (uri) setFile({ clips, uri });
+          else setRequest({ clips, failed: true });
+        })
+        .catch(() => alive && setRequest({ clips, failed: true })); // no preview: the relay carries on
     }, 400);
     return () => {
       alive = false;
@@ -199,6 +209,7 @@ function usePreviewPlayback({ cutId, clips, muted }: Options) {
   }, [player]);
 
   const ready = !!file && file.clips === clips && loaded === file.uri;
+  const preparing = !ready && request?.clips === clips && !request.failed;
   const seek = (t: number) => {
     const clamped = Math.max(0, Math.min(t, total - 0.01));
     seekTo(player, clamped);
@@ -212,6 +223,7 @@ function usePreviewPlayback({ cutId, clips, muted }: Options) {
   const pause = () => player.pause();
   return {
     ready,
+    preparing,
     matches: (list: ClipEdit[]) => ready && file?.clips === list,
     time,
     playing,
@@ -407,7 +419,7 @@ function useRelayPlayback({ sourceUri, clips, muted }: Options): Playback {
   }
 
   const video = players.map((pl, i) => <RelayVideo key={i} player={pl} index={i} front={front} />);
-  return { time, playing, toggle, pause, seek, setScrubbing: (on) => (live.current.scrubbing = on), video };
+  return { time, playing, toggle, pause, seek, setScrubbing: (on) => (live.current.scrubbing = on), video, preparing: false };
 }
 
 /** One of the two relay players; shown only while it's the front one (switched on the UI thread). */

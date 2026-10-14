@@ -111,10 +111,9 @@ export default function Paywall() {
         <Button title={`Continue with ${chosen.name}  →`} onPress={start} loading={saving} />
         <Text style={styles.terms}>
           {money(monthly)} a month{billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}. Renews automatically. Cancel anytime.
+          {'\n'}Free during the beta: you won’t be charged.
         </Text>
-        <Text style={styles.notConnected}>Payments aren’t connected yet, so you won’t be charged.</Text>
         <View style={styles.links}>
-          <Text style={styles.link}>Restore purchases</Text>
           <Text style={styles.link} onPress={() => openLegal('terms')}>
             Terms of Use
           </Text>
@@ -150,8 +149,7 @@ const styles = StyleSheet.create({
   feature: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   featureText: { fontSize: 12, color: theme.ink },
   footer: { paddingHorizontal: 22, paddingTop: 8, gap: 6, ...column(COLUMN + 44) },
-  terms: { fontSize: 12, color: theme.muted, textAlign: 'center' },
-  notConnected: { fontSize: 12, color: '#9A6B00', textAlign: 'center' },
+  terms: { fontSize: 12, color: theme.muted, textAlign: 'center', lineHeight: 17 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: 16 },
   link: { fontSize: 12, color: theme.faint },
 });
