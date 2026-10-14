@@ -54,12 +54,6 @@ export default function Setup() {
     />
   );
 
-  // A single choice moves on by itself, like tapping through a quiz.
-  const pickAndGo = (patch: Draft) => {
-    updateDraft(patch);
-    setTimeout(() => setStep(steps[Math.min(steps.length - 1, index + 1)]), 280);
-  };
-
   if (step === 'making') {
     return (
       <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.who} />}>
@@ -76,12 +70,12 @@ export default function Setup() {
 
   if (step === 'help') {
     return (
-      <Backdrop>
+      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.goal} />}>
         {header}
         <Title>What would help you most?</Title>
         <View style={{ gap: 10 }}>
           {HELP.map((o) => (
-            <Option key={o.value} label={o.label} icon={o.icon} selected={draft.goal === o.value} onPress={() => pickAndGo({ goal: o.value })} />
+            <Option key={o.value} label={o.label} icon={o.icon} selected={draft.goal === o.value} onPress={() => updateDraft({ goal: o.value })} />
           ))}
         </View>
       </Backdrop>
@@ -90,7 +84,7 @@ export default function Setup() {
 
   if (step === 'volume') {
     return (
-      <Backdrop>
+      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.perWeek} />}>
         {header}
         <Title sub="Roughly is fine.">How many videos do you post a week?</Title>
         <View style={{ gap: 10 }}>
@@ -100,7 +94,7 @@ export default function Setup() {
               label={p.label}
               detail={`About ${Math.round(p.count * 4.3)} a month`}
               selected={draft.perWeek === p.value}
-              onPress={() => pickAndGo({ perWeek: p.value })}
+              onPress={() => updateDraft({ perWeek: p.value })}
             />
           ))}
         </View>
@@ -110,12 +104,12 @@ export default function Setup() {
 
   if (step === 'cost') {
     return (
-      <Backdrop>
+      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.editorCost} />}>
         {header}
         <Title sub="Per month, for editing.">What do you spend on edits now?</Title>
         <View style={{ gap: 10 }}>
           {EDITOR_COSTS.map((c) => (
-            <Option key={c.value} label={c.label} selected={draft.editorCost === c.value} onPress={() => pickAndGo({ editorCost: c.value })} />
+            <Option key={c.value} label={c.label} selected={draft.editorCost === c.value} onPress={() => updateDraft({ editorCost: c.value })} />
           ))}
         </View>
       </Backdrop>
