@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoundButton } from '../../components/list';
 import { Thumb } from '../../components/Thumb';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
-import { Button } from '../../components/ui';
+import { Button, PressableScale } from '../../components/ui';
 import * as Sharing from 'expo-sharing';
 import { coverSource } from '../../lib/edit';
 import { canRetry, retryCut } from '../../lib/jobs';
@@ -303,10 +303,11 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
   const status = cutStatus(cut);
 
   return (
-    <Pressable
+    <PressableScale
+      scaleTo={0.96}
       onPress={selecting ? onToggle : open}
       onLongPress={selecting ? undefined : actions}
-      style={({ pressed }) => [styles.card, { width }, pressed && { opacity: 0.85 }]}
+      style={[styles.card, { width }]}
     >
       <Thumb uri={uri} seconds={seconds} style={[styles.thumb, selected && styles.thumbOn]} flip={flip}>
         {cut.status === 'failed' && (
@@ -335,7 +336,7 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
       <Text style={[styles.meta, cut.status === 'failed' && { color: theme.danger }]} numberOfLines={2}>
         {status}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
 

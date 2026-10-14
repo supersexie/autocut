@@ -6,7 +6,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type Music, type TextOverlay } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
-import type { SymbolName } from '../ui';
+import { PressableScale, type SymbolName } from '../ui';
 
 export const PPS = 56; // points per second of output, before zooming
 const MIN_PPS = 14;
@@ -318,9 +318,9 @@ type HandleProps = {
 /** A square at the left of a lane (captions, audio, text) that does the same as tapping the lane. */
 function LaneButton({ icon, text, label, onPress }: { icon?: SymbolName; text?: string; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} accessibilityLabel={label} style={({ pressed }) => [styles.laneButton, pressed && { opacity: 0.6 }]}>
+    <PressableScale onPress={onPress} accessibilityLabel={label} scaleTo={0.9} style={styles.laneButton}>
       {icon ? <SymbolView name={icon} tintColor={theme.ink} size={16} /> : <Text style={styles.laneButtonText}>{text}</Text>}
-    </Pressable>
+    </PressableScale>
   );
 }
 

@@ -4,16 +4,16 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
-import type { SymbolName } from './ui';
+import { PressableScale, type SymbolName } from './ui';
 
 // Grouped-list pieces for the You, Plan and Settings screens: white cards on the grey page.
 
 /** A round white button with a symbol, like the gear on You and the back arrow on Settings. */
 export function RoundButton({ icon, label, onPress }: { icon: SymbolName; label: string; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} hitSlop={8} accessibilityLabel={label} style={({ pressed }) => [styles.round, pressed && { opacity: 0.7 }]}>
+    <PressableScale onPress={onPress} hitSlop={8} accessibilityLabel={label} scaleTo={0.92} style={styles.round}>
       <SymbolView name={icon} tintColor={theme.ink} size={17} weight="semibold" />
-    </Pressable>
+    </PressableScale>
   );
 }
 

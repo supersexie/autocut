@@ -12,7 +12,7 @@ import { pickSong, useMusic } from '../../components/editor/music';
 import { CoverPicker, Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
-import { Button, type SymbolName } from '../../components/ui';
+import { Button, PressableScale, type SymbolName } from '../../components/ui';
 import {
   captionLines, clipOffset, coverSource, duplicateClip, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
   trimClip, updateClip, type ClipEdit, type Edit, type TextOverlay,
@@ -327,16 +327,17 @@ function Editor({ cut }: { cut: CutRecord }) {
           )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tools, wide && styles.toolsCentered]}>
             {tools.map((t) => (
-              <Pressable
+              <PressableScale
                 key={t.label}
                 onPress={() => runTool(t.id)}
                 disabled={t.disabled}
-                style={({ pressed }) => [styles.tool, t.disabled && { opacity: 0.3 }, pressed && { opacity: 0.6 }]}
+                scaleTo={0.9}
+                style={[styles.tool, t.disabled && { opacity: 0.3 }]}
                 accessibilityLabel={t.label}
               >
                 <SymbolView name={t.icon} tintColor={t.danger ? theme.danger : theme.ink} size={20} />
                 <Text style={[styles.toolText, t.danger && { color: theme.danger }]}>{t.label}</Text>
-              </Pressable>
+              </PressableScale>
             ))}
           </ScrollView>
         </View>

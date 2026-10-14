@@ -9,7 +9,7 @@ import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'r
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Logo } from '../../components/ui';
+import { Button, Logo, PressableScale } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
 import { useAuth } from '../../lib/auth';
 import type { Take } from '../../lib/jobs';
@@ -267,19 +267,20 @@ export default function CreateScreen() {
         <View style={styles.controls}>
           <View style={styles.side}>
             {mode === 'idle' && !takes.length ? (
-              <Pressable onPress={() => setSheet('folder')} style={({ pressed }) => [styles.folder, pressed && { opacity: 0.8 }]} accessibilityLabel="Where new videos are saved">
+              <PressableScale onPress={() => setSheet('folder')} style={styles.folder} accessibilityLabel="Where new videos are saved">
                 <SymbolView name="folder.fill" tintColor={theme.ink} size={16} />
                 <Text style={styles.folderText} numberOfLines={1}>
                   {folderName(saveFolder) ?? 'Cuts'}
                 </Text>
-              </Pressable>
+              </PressableScale>
             ) : null}
           </View>
 
-          <Pressable
+          <PressableScale
             onPress={mode === 'recording' ? pause : record}
             accessibilityLabel={mode === 'recording' ? 'Pause' : mode === 'paused' ? 'Record next take' : 'Record'}
-            style={({ pressed }) => [styles.shutter, pressed && { transform: [{ scale: 0.95 }] }]}
+            scaleTo={0.92}
+            style={styles.shutter}
           >
             <ShutterRing progress={busy ? Math.min(1, total / limit) : 0} dim={busy} />
             {mode === 'recording' ? (
@@ -287,13 +288,13 @@ export default function CreateScreen() {
             ) : (
               <View style={[styles.shutterInner, mode === 'paused' && { backgroundColor: theme.cut }]} />
             )}
-          </Pressable>
+          </PressableScale>
 
           <View style={[styles.side, { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }]}>
             {mode === 'idle' && !takes.length && (
-              <Pressable onPress={() => setSheet('add')} style={({ pressed }) => [styles.importButton, pressed && { opacity: 0.8 }]} accessibilityLabel="Add a video from Photos">
+              <PressableScale onPress={() => setSheet('add')} scaleTo={0.92} style={styles.importButton} accessibilityLabel="Add a video from Photos">
                 <SymbolView name="photo.on.rectangle.angled" tintColor={theme.ink} size={22} />
-              </Pressable>
+              </PressableScale>
             )}
             {mode === 'paused' && <RoundIcon name="xmark" label="Delete last take" onPress={discardLast} />}
             {busy && (
@@ -374,15 +375,16 @@ function ShutterRing({ progress, dim }: { progress: number; dim: boolean }) {
 function RoundIcon({ name, label, onPress, disabled, big }: { name: React.ComponentProps<typeof SymbolView>['name']; label: string; onPress: () => void; disabled?: boolean; big?: boolean }) {
   const size = big ? 48 : 40;
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
       accessibilityLabel={label}
       hitSlop={6}
-      style={({ pressed }) => [styles.round, { width: size, height: size, borderRadius: size / 2, opacity: disabled ? 0.4 : pressed ? 0.7 : 1 }]}
+      scaleTo={0.9}
+      style={[styles.round, { width: size, height: size, borderRadius: size / 2, opacity: disabled ? 0.4 : 1 }]}
     >
       <SymbolView name={name} tintColor="#fff" size={big ? 22 : 18} />
-    </Pressable>
+    </PressableScale>
   );
 }
 

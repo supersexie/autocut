@@ -1,9 +1,10 @@
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, ErrorText, Logo, Segmented } from './ui';
+import { Button, ErrorText, Logo, PressableScale, Segmented } from './ui';
 import { openLegal } from '../lib/api';
 import { useAuth, type Profile } from '../lib/auth';
 import { clearDraft, getDraft } from '../lib/draft';
@@ -95,7 +96,17 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
           {PLANS.map((p) => {
             const on = p.id === plan;
             return (
-              <Pressable key={p.id} onPress={() => setPlan(p.id)} accessibilityRole="radio" accessibilityState={{ selected: on }} style={[styles.plan, on && styles.planOn]}>
+              <PressableScale
+                key={p.id}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setPlan(p.id);
+                }}
+                accessibilityRole="radio"
+                accessibilityState={{ selected: on }}
+                scaleTo={0.98}
+                style={[styles.plan, on && styles.planOn]}
+              >
                 {p.id === best && (
                   <View style={styles.badge}>
                     <Text style={styles.badgeText}>BEST FOR YOU</Text>
@@ -123,7 +134,7 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
                     );
                   })}
                 </View>
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>

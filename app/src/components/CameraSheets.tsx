@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { createFolder, updateSettings, useFolders, useSettings } from '../lib/store';
 import { theme } from '../lib/theme';
 import { Sheet } from './Sheet';
-import type { SymbolName } from './ui';
+import { PressableScale, type SymbolName } from './ui';
 
 /** "Save new videos to": the main Cuts page or a folder, and making a new folder. */
 export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -64,10 +64,10 @@ export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: (
               <Choice key={f.id} icon="folder.fill" label={f.name} on={saveFolder === f.id} onPress={() => pick(f.id)} strong />
             ))}
           </View>
-          <Pressable onPress={() => setNaming(true)} style={({ pressed }) => [styles.newFolder, pressed && { opacity: 0.7 }]}>
+          <PressableScale onPress={() => setNaming(true)} scaleTo={0.98} style={styles.newFolder}>
             <SymbolView name="folder.badge.plus" tintColor={theme.ink} size={20} />
             <Text style={styles.newFolderText}>New folder</Text>
-          </Pressable>
+          </PressableScale>
         </>
       )}
     </Sheet>
@@ -76,7 +76,7 @@ export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: (
 
 function Choice({ icon, label, detail, on, strong, onPress }: { icon: SymbolName; label: string; detail?: string; on: boolean; strong?: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.choice, pressed && { opacity: 0.7 }]} accessibilityState={{ selected: on }}>
+    <PressableScale onPress={onPress} scaleTo={0.98} style={styles.choice} accessibilityState={{ selected: on }}>
       <View style={[styles.choiceIcon, strong && { backgroundColor: theme.ink }]}>
         <SymbolView name={icon} tintColor={strong ? '#fff' : theme.ink} size={18} />
       </View>
@@ -87,7 +87,7 @@ function Choice({ icon, label, detail, on, strong, onPress }: { icon: SymbolName
         {detail && <Text style={styles.choiceDetail}>{detail}</Text>}
       </View>
       {on && <SymbolView name="checkmark" tintColor={theme.ink} size={18} weight="semibold" />}
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -119,7 +119,7 @@ export function AddVideoSheet({ visible, onClose, onPick }: { visible: boolean; 
 
 function Option({ icon, label, detail, dark, onPress }: { icon: SymbolName; label: string; detail: string; dark?: boolean; onPress: () => void }) {
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [styles.option, pressed && { opacity: 0.75 }]}>
+    <PressableScale onPress={onPress} scaleTo={0.98} style={styles.option}>
       <View style={[styles.optionIcon, dark && { backgroundColor: theme.ink }]}>
         <SymbolView name={icon} tintColor={dark ? '#fff' : theme.ink} size={22} />
       </View>
@@ -128,7 +128,7 @@ function Option({ icon, label, detail, dark, onPress }: { icon: SymbolName; labe
         <Text style={styles.optionDetail}>{detail}</Text>
       </View>
       <SymbolView name="chevron.right" tintColor={theme.faint} size={14} weight="semibold" />
-    </Pressable>
+    </PressableScale>
   );
 }
 

@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CuttingSettings } from '../components/CuttingSettings';
+import { PressableScale } from '../components/ui';
 import { Card, Footnote, listStyles, PageHeader, Row, SectionLabel } from '../components/list';
 import { forgetThumbnails } from '../components/Thumb';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
@@ -155,9 +156,9 @@ export default function SettingsScreen() {
           </>
         )}
 
-        <Pressable onPress={signOut} style={({ pressed }) => [styles.signOut, pressed && { opacity: 0.7 }]}>
+        <PressableScale onPress={signOut} scaleTo={0.98} style={styles.signOut}>
           <Text style={styles.signOutText}>Sign out</Text>
-        </Pressable>
+        </PressableScale>
         <Text style={styles.version}>{VERSION}</Text>
         <Pressable onPress={confirmDelete} hitSlop={10} style={{ alignSelf: 'center' }}>
           <Text style={styles.delete}>Delete account</Text>
