@@ -46,8 +46,9 @@ const SNAP_ZOOM = 0.04; // within 4% of 100% snaps to 100%
 const SNAP_CENTRE = 0.015; // within 1.5% of the middle snaps to it
 
 /**
- * Pinch the picture with two fingers to zoom, drag with two to move it, like CutAI. One finger
- * still taps to play and drags text. Zoom snaps to 100% and to the centre, with guides to show it.
+ * Pinch the picture with two fingers to zoom and move it, like CutAI. One finger still taps to
+ * play and drags text. Zoom snaps to 100% and to the centre, with guides that show only while
+ * the fingers are down.
  */
 function useFramingGesture(width: number, height: number, onStart: () => Framing, onFrame: (f: Framing) => void, onEnd: () => void) {
   const latest = useRef({ width, height, onStart, onFrame, onEnd });
@@ -57,66 +58,44 @@ function useFramingGesture(width: number, height: number, onStart: () => Framing
   const [shown, setShown] = useState<{ scale: number; centredX: boolean; centredY: boolean } | null>(null);
   const endedAt = useRef(0);
   // Made once, reading the latest props from a ref, so a re-render mid-gesture doesn't cancel it.
+  // One pinch gesture does both: the spread of the fingers zooms, the point between them moves the
+  // picture. Every way a touch can end (lift, cancel, the gesture ending) lands in finish(), which
+  // runs once; anything arriving after it is ignored.
   // eslint-disable-next-line react-hooks/refs
   const [gesture] = useState(() => {
     let base: Framing = { scale: 1, x: 0, y: 0 };
-    let pinching = false;
-    let panning = false;
-    const live = { scale: 1, dx: 0, dy: 0 };
-    const begin = () => {
-      if (!pinching && !panning) {
-        base = latest.current.onStart();
-        Object.assign(live, { scale: 1, dx: 0, dy: 0 });
-      }
-    };
-    const update = () => {
-      const { width: w, height: h } = latest.current;
-      let f = clampFraming({ scale: base.scale * live.scale, x: base.x + live.dx / w, y: base.y + live.dy / h });
-      if (Math.abs(f.scale - 1) < SNAP_ZOOM) f = { scale: 1, x: 0, y: 0 };
-      if (Math.abs(f.x) < SNAP_CENTRE) f = { ...f, x: 0 };
-      if (Math.abs(f.y) < SNAP_CENTRE) f = { ...f, y: 0 };
-      setShown({ scale: f.scale, centredX: f.x === 0, centredY: f.y === 0 });
-      latest.current.onFrame(f);
-    };
+    let active = false;
+    let focal = { x: 0, y: 0 };
     const finish = () => {
-      if (pinching || panning) return;
+      if (!active) return;
+      active = false;
       endedAt.current = Date.now();
       setShown(null);
       latest.current.onEnd();
     };
-    const pinch = Gesture.Pinch()
+    return Gesture.Pinch()
       .runOnJS(true)
-      .onStart(() => {
-        begin();
-        pinching = true;
+      .onStart((e) => {
+        active = true;
+        focal = { x: e.focalX, y: e.focalY };
+        base = latest.current.onStart();
       })
       .onUpdate((e) => {
-        live.scale = e.scale;
-        update();
+        if (!active) return;
+        const { width: w, height: h } = latest.current;
+        let f = clampFraming({ scale: base.scale * e.scale, x: base.x + (e.focalX - focal.x) / w, y: base.y + (e.focalY - focal.y) / h });
+        if (Math.abs(f.scale - 1) < SNAP_ZOOM) f = { scale: 1, x: 0, y: 0 };
+        if (Math.abs(f.x) < SNAP_CENTRE) f = { ...f, x: 0 };
+        if (Math.abs(f.y) < SNAP_CENTRE) f = { ...f, y: 0 };
+        setShown({ scale: f.scale, centredX: f.x === 0, centredY: f.y === 0 });
+        latest.current.onFrame(f);
       })
-      .onFinalize(() => {
-        if (!pinching) return;
-        pinching = false;
-        finish();
-      });
-    const pan = Gesture.Pan()
-      .minPointers(2)
-      .runOnJS(true)
-      .onStart(() => {
-        begin();
-        panning = true;
+      .onEnd(finish)
+      .onFinalize(finish)
+      .onTouchesUp((e) => {
+        if (e.numberOfTouches === 0) finish();
       })
-      .onUpdate((e) => {
-        live.dx = e.translationX;
-        live.dy = e.translationY;
-        update();
-      })
-      .onFinalize(() => {
-        if (!panning) return;
-        panning = false;
-        finish();
-      });
-    return Gesture.Simultaneous(pinch, pan);
+      .onTouchesCancelled(finish);
   });
   // A pinch shouldn't also count as a tap on the picture (which plays or pauses).
   const justFramed = () => !!shown || Date.now() - endedAt.current < 400;

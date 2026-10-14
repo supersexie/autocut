@@ -58,9 +58,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [choosingCover, setChoosingCover] = useState(false);
-  // Keyframes: the framing mid-pinch, and the keyframe the pinch is shaping (maybe a new one).
-  const [draft, setDraft] = useState<Framing | null>(null);
-  const draftRef = useRef<Framing | null>(null);
+  // The keyframe a pinch is shaping right now.
   const shaping = useRef<Keyframe | null>(null);
   const [exporting, setExporting] = useState(false);
   const [aspect, setAspect] = useState(9 / 16);
@@ -73,7 +71,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   // keyframe at the playhead (a new one, or the one already there); the picture glides between them.
   const keyframes = edit.keyframes;
   const here = keyframeAt(keyframes, time);
-  const framing = draft ?? framingAt(keyframes, time);
+  const framing = framingAt(keyframes, time);
 
   function addKeyframe() {
     playback.pause();
@@ -87,21 +85,26 @@ function Editor({ cut }: { cut: CutRecord }) {
     Haptics.selectionAsync();
   }
 
+  // A pinch writes straight into its keyframe as the fingers move (nothing held aside that could
+  // go stale). The undo point is taken when the pinch starts, so a whole pinch is one undo.
   function startFraming(): Framing {
     playback.pause();
     const k = here ?? { id: newId(), t: time, ...framingAt(keyframes, time) };
+    commit({ ...edit, keyframes: putKeyframe(keyframes, k) }, { keepTime: true });
     shaping.current = k;
     return { scale: k.scale, x: k.x, y: k.y };
   }
 
-  function saveFraming() {
-    const f = draftRef.current;
+  function frameLive(f: Framing) {
     const k = shaping.current;
-    draftRef.current = null;
+    if (!k) return;
+    const next = { ...k, ...f };
+    shaping.current = next;
+    setHistory((h) => ({ ...h, present: { ...h.present, keyframes: putKeyframe(h.present.keyframes, next) } }));
+  }
+
+  function saveFraming() {
     shaping.current = null;
-    setDraft(null);
-    // One undo step, whether it made the keyframe or reshaped one.
-    if (f && k) commit({ ...edit, keyframes: putKeyframe(keyframes, { ...k, ...f }) }, { keepTime: true });
   }
 
 
@@ -119,6 +122,11 @@ function Editor({ cut }: { cut: CutRecord }) {
       .then((t) => t.width && t.height && setAspect(t.width / t.height))
       .catch(() => {});
   }, [sourceUri]);
+
+  useEffect(() => {
+    const t = setTimeout(() => saveEdit(cut.id, edit), 400);
+    return () => clearTimeout(t);
+  }, [cut.id, edit]);
 
   // ---- History: every change is undoable and saved.
   function commit(next: Edit, opts: { keepTime?: boolean } = {}) {
@@ -288,10 +296,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         onCloseFullscreen={() => setFullscreen(false)}
         framing={framing}
         onFrameStart={startFraming}
-        onFrame={(f) => {
-          draftRef.current = f;
-          setDraft(f);
-        }}
+        onFrame={frameLive}
         onFrameEnd={saveFraming}
       />
 
