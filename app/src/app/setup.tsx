@@ -2,7 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Backdrop, Button, ErrorText, Option, StepHeader, Title, type SymbolName } from '../components/ui';
 import { enabledProviders, useAuth } from '../lib/auth';
@@ -186,11 +186,11 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   );
 }
 
-/** A dot that pops in with a little overshoot, like a counter ticking up. */
+/** A dot that grows in as the counter ticks up. */
 function PopDot() {
   const [scale] = useState(() => new Animated.Value(0));
   useEffect(() => {
-    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 16, bounciness: 14 }).start();
+    Animated.timing(scale, { toValue: 1, duration: 220, easing: Easing.out(Easing.cubic), useNativeDriver: true }).start();
   }, [scale]);
   return <Animated.View style={[styles.dot, { transform: [{ scale }] }]} />;
 }

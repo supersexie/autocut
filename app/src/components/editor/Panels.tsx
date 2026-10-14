@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState, type ReactNode } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import Animated, { FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import type { Caps, CaptionLine, CaptionSettings } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { CAPTION_STYLES, StyledText, TEXT_STYLES, type StylePreset } from './StyledText';
@@ -14,7 +14,7 @@ const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${St
 /** Bottom panel that slides up over the timeline, with a header like CutAI's. */
 export function Panel({ title, value, onClose, onDone, children, footer }: { title: string; value?: ReactNode; onClose?: () => void; onDone: () => void; children: ReactNode; footer?: ReactNode }) {
   return (
-    <Animated.View entering={SlideInDown.springify().damping(20).stiffness(220)} exiting={SlideOutDown.duration(180)} style={styles.panel}>
+    <Animated.View entering={SlideInDown.duration(260).easing(Easing.out(Easing.cubic))} exiting={SlideOutDown.duration(200).easing(Easing.in(Easing.cubic))} style={styles.panel}>
       <View style={styles.head}>
         {onClose ? (
           <Pressable onPress={onClose} hitSlop={10} accessibilityLabel="Close" style={styles.headSide}>

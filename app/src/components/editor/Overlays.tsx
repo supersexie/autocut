@@ -6,7 +6,7 @@ import {
   Keyboard, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
   type LayoutChangeEvent, type LayoutRectangle,
 } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moveClip, outDuration, type CaptionLine, type ClipEdit, type TextLook, type TextOverlay } from '../../lib/edit';
 import { TEXT_FONTS } from '../../lib/fonts';
@@ -270,7 +270,7 @@ export function Tour({ steps, index, onNext, onSkip }: { steps: TourStep[]; inde
       <View style={{ position: 'absolute', left: 0, width: Math.max(0, hole.x), top: hole.y, height: hole.h, backgroundColor: dim }} />
       <View style={{ position: 'absolute', left: hole.x + hole.w, right: 0, top: hole.y, height: hole.h, backgroundColor: dim }} />
       <View style={[styles.holeRing, { left: hole.x, top: hole.y, width: hole.w, height: hole.h }]} pointerEvents="none" />
-      <Animated.View key={index} entering={ZoomIn.springify().damping(16)} style={[styles.tourCard, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
+      <Animated.View key={index} entering={FadeIn.duration(220)} style={[styles.tourCard, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
         <View style={styles.between}>
           <Text style={styles.tourTitle}>{s.title}</Text>
           <Text style={styles.tourCount}>

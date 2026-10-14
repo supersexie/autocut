@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProgressCard } from '../../components/ProgressCard';
 import { Backdrop, Button } from '../../components/ui';
@@ -98,7 +98,7 @@ export default function Cutting() {
         <Animated.Text entering={FadeIn.duration(200)} style={styles.title}>
           Your cut is ready
         </Animated.Text>
-        <Animated.View entering={ZoomIn.springify().damping(16)} style={{ marginTop: 24 }}>
+        <Animated.View entering={FadeIn.duration(260)} style={{ marginTop: 24 }}>
           <ProgressCard uri={preview} progress={1} flip={flip} />
         </Animated.View>
       </Backdrop>

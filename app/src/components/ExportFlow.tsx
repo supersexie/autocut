@@ -7,7 +7,7 @@ import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActionSheetIOS, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeInDown, SlideInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { download, getJob, startRender } from '../lib/api';
 import { exportBody, totalDuration, type Edit } from '../lib/edit';
@@ -192,12 +192,12 @@ function Done({ file, saved, onClose }: { file: string; saved: boolean; onClose:
           <Text style={styles.doneLink}>Done</Text>
         </Pressable>
       </View>
-      <Animated.View entering={ZoomIn.springify().damping(18)} style={styles.donePlayer}>
+      <Animated.View entering={FadeIn.duration(260)} style={styles.donePlayer}>
         <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
       </Animated.View>
 
       {rating ? (
-        <Animated.View entering={SlideInDown.springify().damping(20)} style={styles.rateCard}>
+        <Animated.View entering={SlideInDown.duration(280).easing(Easing.out(Easing.cubic))} style={styles.rateCard}>
           <Logo size={52} />
           <Text style={styles.ratePill}>✂ Cut #{getCuts().reduce((t, c) => t + c.exports, 0)} is out</Text>
           <Text style={styles.rateTitle}>How’s Autocut working for you?</Text>
