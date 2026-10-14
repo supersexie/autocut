@@ -22,7 +22,8 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
   const changing = mode === 'change';
   const current = account?.profile.plan;
   const best = recommendedPlan(getDraft().editorCost ?? account?.profile.editorCost, getDraft().perWeek ?? account?.profile.perWeek);
-  const [billing, setBilling] = useState<Billing>(account?.profile.billing ?? 'monthly');
+  // New users start on yearly, the price the setup's savings were worked out with.
+  const [billing, setBilling] = useState<Billing>(account?.profile.billing ?? (changing ? 'monthly' : 'yearly'));
   const [plan, setPlan] = useState<PlanId>(current ?? best);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

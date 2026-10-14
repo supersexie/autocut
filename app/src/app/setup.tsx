@@ -1,3 +1,4 @@
+import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
@@ -7,7 +8,7 @@ import { openLegal } from '../lib/api';
 import { socialOptions, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
 import {
-  AUTOCUT_MINUTES, BY_HAND_MINUTES, EDITOR_COSTS, editorMonthly, hoursBack, money, PER_WEEK, planFor, recommendedPlan, videosPerWeek,
+  AUTOCUT_MINUTES, BY_HAND_MINUTES, EDITOR_COSTS, editorMonthly, hoursBack, money, PER_WEEK, planFor, pricePerMonth, recommendedPlan, videosPerWeek,
 } from '../lib/plans';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { theme } from '../lib/theme';
@@ -260,18 +261,62 @@ function SpendChart({ editorYear, autocutYear, kept, p }: { editorYear: number; 
   );
 }
 
+const ODO_H = 76; // one digit's height in the odometer
+
+/**
+ * The amount spins into place like an odometer: every digit rolls, the right-hand ones fastest,
+ * and they land one after another, left to right, with a tick for each.
+ */
+function Odometer({ text, p }: { text: string; p: number }) {
+  const digits = [...text].filter((c) => /\d/.test(c)).length;
+  let seen = 0;
+  return (
+    <View style={styles.odometer} accessibilityLabel={text}>
+      {[...text].map((c, i) => {
+        if (!/\d/.test(c)) return <Text key={i} style={styles.odoChar}>{c}</Text>;
+        const k = seen++;
+        // Each digit finishes a little after the one before it, and spins more turns the further right it is.
+        const q = clamp01((p - (k / Math.max(1, digits)) * 0.25) / 0.75);
+        const turns = 1 + (digits - k);
+        const at = q * (turns * 10 + Number(c));
+        return (
+          <View key={i} style={styles.odoDigit}>
+            <View style={{ transform: [{ translateY: -(at % 10) * ODO_H }] }}>
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d, j) => (
+                <Text key={j} style={styles.odoChar}>{d}</Text>
+              ))}
+            </View>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
 function MoneyKept({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const p = useProgress(1700);
+  const p = useProgress(2200);
   const plan = planFor(recommendedPlan(draft.editorCost, draft.perWeek));
   const editorYear = editorMonthly(draft.editorCost) * 12;
-  const autocutYear = plan.monthly * 12;
-  const kept = Math.max(0, editorYear - autocutYear);
+  // Autocut at its yearly price: the cheaper way to pay, and one they can pick on the next screen.
+  const autocutYear = pricePerMonth(plan.monthly, 'yearly') * 12;
+  const kept = Math.max(0, Math.round(editorYear - autocutYear));
+  // A tick as each digit lands, and a thud when the whole amount is in.
+  const landed = Math.floor(clamp01(p) * 6);
+  useEffect(() => {
+    if (landed > 0 && landed < 6) Haptics.selectionAsync();
+    if (landed === 6) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [landed]);
+  // A little bump as the last digit lands.
+  const pop = Math.sin(clamp01((p - 0.88) / 0.12) * Math.PI);
   return (
     <Backdrop footer={<Button title="See my plan" onPress={onNext} disabled={p < 1} />}>
       {header}
       <Text style={styles.kicker}>Over a year, you keep</Text>
-      <Text style={styles.huge}>{money(Math.round(kept * p))}</Text>
-      <Text style={styles.lede}>From what you spend on edits now, next to Autocut {plan.name}.</Text>
+      <View style={{ transform: [{ scale: 1 + 0.05 * pop }], transformOrigin: 'left' }}>
+        <Odometer text={money(kept)} p={p} />
+      </View>
+      <Text style={[styles.monthly, { opacity: clamp01((p - 0.8) / 0.2) }]}>That’s {money(Math.round(kept / 12))} back in your pocket every month.</Text>
+      <Text style={styles.lede}>From what you spend on edits now, next to Autocut {plan.name} billed yearly.</Text>
       <View style={styles.card}>
         <SpendChart editorYear={editorYear} autocutYear={autocutYear} kept={kept} p={p} />
       </View>
@@ -370,6 +415,10 @@ const styles = StyleSheet.create({
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   kicker: { fontSize: 17, color: theme.muted, marginTop: 8 },
   huge: { fontSize: 52, fontWeight: '800', color: theme.ink, letterSpacing: -1.5, marginTop: 2, fontVariant: ['tabular-nums'] },
+  odometer: { flexDirection: 'row', height: ODO_H, overflow: 'hidden', marginTop: 2 },
+  odoDigit: { height: ODO_H, overflow: 'hidden' },
+  odoChar: { fontSize: 68, lineHeight: ODO_H, height: ODO_H, fontWeight: '800', color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
+  monthly: { fontSize: 17, fontWeight: '700', color: theme.ink, marginTop: 4 },
   lede: { fontSize: 15, color: theme.muted, lineHeight: 21, marginTop: 8 },
   card: { backgroundColor: theme.card, borderRadius: 22, padding: 18, gap: 18, marginTop: 26 },
   columns: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
