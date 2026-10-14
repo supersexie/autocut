@@ -1,5 +1,5 @@
 import { File } from 'expo-file-system';
-import { createCut, download, getJob, ServerUnreachable, stopJob, uploadTake } from './api';
+import { createCut, download, getJob, getWaveform, ServerUnreachable, stopJob, uploadTake } from './api';
 import { addCut, cutFile, getCut, getCuts, getSettings, updateCut, type CutRecord } from './store';
 import { sleep } from './theme';
 
@@ -116,6 +116,7 @@ export async function track(id: string) {
       if (job.stage === 'ready') {
         updateCut(id, { stage: 'downloading', progress: 0.97 });
         const source = await sourceFor(id, record, record.serverId);
+        const waveform = await getWaveform(record.serverId).catch(() => undefined); // nice to have
         const words = job.words ?? [];
         updateCut(id, {
           status: 'ready',
@@ -127,6 +128,7 @@ export async function track(id: string) {
           clips: (job.segments ?? []).map((s) => [s.start, s.end]),
           title: titleFrom(words),
           source,
+          waveform,
         });
         return;
       }

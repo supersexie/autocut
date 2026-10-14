@@ -28,6 +28,8 @@ export type CutRecord = {
   localSource?: string;
   /** The folder it's filed in; none = the main Cuts page. */
   folderId?: string;
+  /** The source's loudness for the timeline's waveform: 0–100, `rate` points a second. */
+  waveform?: { rate: number; peaks: number[] };
   /** What was sent, so a failed cut can be tried again. */
   retry?: { takes: { uri: string; mime: string; duration: number; flip?: boolean }[]; language: string; blend?: boolean };
   duration: number;

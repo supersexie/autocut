@@ -5,6 +5,7 @@ import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type Layou
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type Keyframe, type Music, type TextOverlay } from '../../lib/edit';
 import { theme } from '../../lib/theme';
+import Svg, { Path } from 'react-native-svg';
 import { Thumb } from '../Thumb';
 import { PressableScale, type SymbolName } from '../ui';
 
@@ -30,6 +31,10 @@ type Props = {
   music?: Music;
   keyframes?: Keyframe[];
   onKeyframe: (k: Keyframe) => void;
+  /** The source's loudness, drawn along the bottom of each clip. */
+  waveform?: { rate: number; peaks: number[] };
+  /** The video's own sound is off: its waveform lies flat. */
+  muted?: boolean;
   lines: CaptionLine[];
   texts: TextOverlay[];
   selectedText: string | null;
@@ -200,6 +205,7 @@ export function Timeline(p: Props) {
                           return <Thumb key={k} uri={p.sourceUri} seconds={at} style={{ width: TILE, height: '100%' }} />;
                         })}
                       </View>
+                      {p.waveform && <Waveform wave={p.waveform} clip={c} width={w} quiet={p.muted || c.volume === 0} />}
                       {c.speed !== 1 && (
                         <View style={styles.badge}>
                           <Text style={styles.badgeText}>{c.speed}x</Text>
@@ -327,6 +333,34 @@ type HandleProps = {
   sourceDuration: number;
 };
 
+const WAVE_H = 18;
+const BAR_STEP = 3; // a 2-point bar every 3 points
+
+/**
+ * A clip's sound as bars along its bottom edge, one path for the whole clip. Each bar is the
+ * loudest moment in its slice of the clip's source, so trims and speed changes line up.
+ */
+function Waveform({ wave, clip, width, quiet }: { wave: { rate: number; peaks: number[] }; clip: ClipEdit; width: number; quiet: boolean }) {
+  const bars = Math.max(1, Math.floor(width / BAR_STEP));
+  const span = (clip.end - clip.start) / bars;
+  let d = '';
+  for (let i = 0; i < bars; i++) {
+    const from = Math.floor((clip.start + i * span) * wave.rate);
+    const to = Math.max(from + 1, Math.floor((clip.start + (i + 1) * span) * wave.rate));
+    let v = 0;
+    for (let k = from; k < to && k < wave.peaks.length; k++) v = Math.max(v, wave.peaks[k]);
+    const h = quiet ? 1.5 : Math.max(1.5, (v / 100) * WAVE_H);
+    d += `M${i * BAR_STEP} ${WAVE_H}V${(WAVE_H - h).toFixed(1)}h2V${WAVE_H}Z`;
+  }
+  return (
+    <View style={styles.wave} pointerEvents="none">
+      <Svg width={width} height={WAVE_H}>
+        <Path d={d} fill={quiet ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.92)'} />
+      </Svg>
+    </View>
+  );
+}
+
 /** A square at the left of a lane (captions, audio, text) that does the same as tapping the lane. */
 function LaneButton({ icon, text, label, onPress }: { icon?: SymbolName; text?: string; label: string; onPress: () => void }) {
   return (
@@ -414,6 +448,7 @@ const styles = StyleSheet.create({
   chipText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   textChip: { backgroundColor: '#E4E4E8' },
   textChipOn: { borderWidth: 2, borderColor: theme.ink },
+  wave: { position: 'absolute', left: 0, right: 0, bottom: 0, height: WAVE_H + 4, paddingTop: 2, backgroundColor: 'rgba(0,0,0,0.28)' },
   keyframe: { position: 'absolute', top: CLIP_H / 2 - KEY / 2, width: KEY, height: KEY, borderRadius: 3, backgroundColor: '#fff', borderWidth: 2, borderColor: theme.ink, transform: [{ rotate: '45deg' }] },
   zoom: { position: 'absolute', top: 0, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   zoomText: { fontSize: 10, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },

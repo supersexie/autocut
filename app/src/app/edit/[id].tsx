@@ -17,7 +17,8 @@ import {
   captionLines, clipOffset, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
   trimClip, updateClip, type ClipEdit, type Edit, type Framing, type Keyframe, type TextOverlay,
 } from '../../lib/edit';
-import { cutFile, editOf, getSettings, saveEdit, updateSettings, useCut, type CutRecord } from '../../lib/store';
+import { getWaveform } from '../../lib/api';
+import { cutFile, editOf, getSettings, saveEdit, updateCut, updateSettings, useCut, type CutRecord } from '../../lib/store';
 import { BRAND_FONT } from '../../lib/fonts';
 import { theme } from '../../lib/theme';
 
@@ -103,6 +104,14 @@ function Editor({ cut }: { cut: CutRecord }) {
     if (f && k) commit({ ...edit, keyframes: putKeyframe(keyframes, { ...k, ...f }) }, { keepTime: true });
   }
 
+
+  // Cuts made before waveforms were saved: fetch it once (the server works it out).
+  useEffect(() => {
+    if (cut.waveform || !cut.serverId) return;
+    getWaveform(cut.serverId)
+      .then((waveform) => updateCut(cut.id, { waveform }))
+      .catch(() => {});
+  }, [cut.id, cut.serverId, cut.waveform]);
 
   // Video shape from a frame (already rotated the way it's shown).
   useEffect(() => {
@@ -330,6 +339,8 @@ function Editor({ cut }: { cut: CutRecord }) {
             captionsOn={edit.captions.enabled}
             music={edit.music}
             keyframes={keyframes}
+            waveform={cut.waveform}
+            muted={edit.muted}
             onKeyframe={(k) => {
               playback.pause();
               playback.seek(k.t);

@@ -7,6 +7,32 @@ import { remapWords, toSrt } from './captions.js';
 
 const round = (n) => +n.toFixed(3);
 
+export const WAVEFORM_RATE = 20; // points per second of source
+
+/**
+ * A small picture of the sound for the editor's timeline: WAVEFORM_RATE loudness points a second,
+ * each 0–100, from the quiet of the room (0) to the loudest moment (100).
+ */
+export function waveformOf({ db, frameSec }) {
+  const per = Math.max(1, Math.round(1 / WAVEFORM_RATE / frameSec));
+  const peaks = [];
+  for (let f = 0; f < db.length; f += per) {
+    let m = -120;
+    for (let k = f; k < Math.min(db.length, f + per); k++) m = Math.max(m, db[k]);
+    peaks.push(m);
+  }
+  const sorted = [...peaks].sort((a, b) => a - b);
+  const low = sorted[Math.floor(sorted.length * 0.05)] ?? -60;
+  const high = sorted[sorted.length - 1] ?? 0;
+  const span = Math.max(6, high - low);
+  return peaks.map((p) => Math.round(Math.max(0, Math.min(1, (p - low) / span)) * 100));
+}
+
+/** The waveform of a video file (for cuts made before waveforms were saved). */
+export async function waveformOfFile(input) {
+  return waveformOf(loudness(await decodeAudio(input)));
+}
+
 // Finds the cuts. Reports (stage, fraction 0–1 across the whole analysis).
 export async function analyze(input, { plan: planOpts = {}, model, language, onProgress = () => {} } = {}) {
   onProgress('reading', 0.02);
@@ -42,6 +68,7 @@ export async function analyze(input, { plan: planOpts = {}, model, language, onP
     segments: plan.segments.map((s) => ({ start: round(s.start), end: round(s.end), text: s.words.map((w) => w.text).join(' ') })),
     cuts: plan.cuts,
     words,
+    waveform: waveformOf(level),
   };
 }
 

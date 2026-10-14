@@ -108,6 +108,9 @@ export async function createCut(uploadIds: string[], flips: boolean[], language:
 export const deleteAccountOnServer = () => call('/account', { method: 'DELETE' });
 
 export const getJob = (id: string): Promise<Job> => call(`/cuts/${id}`);
+
+/** The take's loudness for the timeline: `peaks` (0–100), `rate` of them a second. */
+export const getWaveform = (id: string): Promise<{ rate: number; peaks: number[] }> => call(`/cuts/${id}/waveform`);
 export const stopJob = (id: string): Promise<Job> => call(`/cuts/${id}/stop`, { method: 'POST' });
 
 export async function startRender(id: string, body: object) {

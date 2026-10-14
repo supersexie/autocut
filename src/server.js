@@ -11,6 +11,7 @@
 //   GET  /cuts/:id/video                                                  -> the latest finished render
 //   POST /cuts/:id/preview             { clips }                          -> { key, stage }  (a small stitched preview of the edit)
 //   GET  /cuts/:id/preview?key=K[&status=1]                               -> the preview video, or { stage } while it renders
+//   GET  /cuts/:id/waveform                                               -> { rate, peaks }: loudness 0–100, `rate` points a second
 //   DELETE /account                                                       -> deletes the user, their takes and cuts
 // Every route but /health, /privacy and /terms needs `Authorization: Bearer <Supabase access token>` (see auth.js).
 import http from 'node:http';
@@ -23,7 +24,7 @@ import path from 'node:path';
 import { authEnabled, deleteAuthUser, LOCAL_USER, userIdFrom } from './auth.js';
 import { legalPage } from './legal.js';
 import { joinTakes, render } from './media.js';
-import { analyze, renderEdit } from './pipeline.js';
+import { analyze, renderEdit, WAVEFORM_RATE, waveformOfFile } from './pipeline.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA = path.resolve(process.env.AUTOCUT_DATA ?? new URL('../data', import.meta.url).pathname);
@@ -62,7 +63,8 @@ const send = (res, status, body) => {
 };
 
 function publicJob(job) {
-  const { dir, source, userId, ...rest } = job;
+  // The waveform is fetched once, from its own route, not with every progress check.
+  const { dir, source, userId, waveform, ...rest } = job;
   return { ...rest, render: job.render && { ...job.render, output: undefined } };
 }
 
@@ -483,6 +485,14 @@ const server = http.createServer(async (req, res) => {
         return await sendFile(req, res, job.source, job.source.endsWith('.mp4') ? 'video/mp4' : 'video/quicktime');
       }
       if (req.method === 'POST' && action === 'preview') return await createPreview(req, res, job);
+      if (req.method === 'GET' && action === 'waveform') {
+        if (job.stage !== 'ready') return send(res, 409, { error: 'Not ready yet.' });
+        if (!job.waveform) {
+          job.waveform = await waveformOfFile(job.source);
+          await saveJob(job);
+        }
+        return send(res, 200, { rate: WAVEFORM_RATE, peaks: job.waveform });
+      }
       if (req.method === 'GET' && action === 'preview') {
         const key = url.searchParams.get('key') ?? '';
         if (!PREVIEW_KEY.test(key)) return send(res, 400, { error: 'Bad preview key.' });
