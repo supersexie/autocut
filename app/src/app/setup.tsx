@@ -9,6 +9,7 @@ import { updateDraft, useDraft, type Draft } from '../lib/draft';
 import {
   AUTOCUT_MINUTES, BY_HAND_MINUTES, EDITOR_COSTS, editorMonthly, hoursBack, money, PER_WEEK, planFor, recommendedPlan, videosPerWeek,
 } from '../lib/plans';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { theme } from '../lib/theme';
 
 type Choice = { value: string; label: string; icon: SymbolName };
@@ -138,23 +139,38 @@ function useProgress(ms: number, delay = 250) {
   return p;
 }
 
-/** A labelled bar that grows to `fraction` of the track as `p` goes 0 → 1. */
-function Bar({ label, value, fraction, p, strong }: { label: string; value: string; fraction: number; p: number; strong?: boolean }) {
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+
+/**
+ * Two columns side by side, like Cal AI's "Without / With": the hours cutting by hand fill a tall
+ * grey column, the time with Autocut a short black one. They rise one after the other.
+ */
+function Columns({ byHand, withAutocut, p }: { byHand: number; withAutocut: number; p: number }) {
+  const H = 230; // column height
+  const TOP = 64; // room for the label and value
+  const MIN = 58; // a fill never gets too small to hold its icon
+  const fillH = (fraction: number, q: number) => (MIN + (H - TOP - MIN) * fraction) * q;
+  const hand = clamp01(p * 1.6);
+  const auto = clamp01((p - 0.35) * 1.6);
+  const column = (label: string, value: string, fraction: number, q: number, strong: boolean) => (
+    <View style={[styles.column, { height: H }]}>
+      <Text style={styles.columnLabel}>{label}</Text>
+      <Text style={[styles.columnValue, { opacity: q }]}>{value}</Text>
+      <View style={[styles.columnFill, { height: fillH(fraction, q), backgroundColor: strong ? theme.ink : '#E4E4E8' }]}>
+        {q > 0.6 && <SymbolView name={strong ? 'bolt.fill' : 'clock'} tintColor={strong ? '#fff' : theme.ink} size={20} style={{ opacity: (q - 0.6) / 0.4 }} />}
+      </View>
+    </View>
+  );
   return (
-    <View style={{ gap: 8 }}>
-      <View style={styles.between}>
-        <Text style={[styles.barLabel, strong && { color: theme.ink, fontWeight: '700' }]}>{label}</Text>
-        <Text style={[styles.barValue, strong && { color: theme.ink }]}>{value}</Text>
-      </View>
-      <View style={styles.track}>
-        <View style={[styles.fill, { width: `${Math.max(2, fraction * p * 100)}%`, backgroundColor: strong ? theme.ink : '#C9C9CF' }]} />
-      </View>
+    <View style={styles.columns}>
+      {column('Cutting by hand', duration(byHand), 1, hand, false)}
+      {column('With Autocut', duration(withAutocut), withAutocut / byHand, auto, true)}
     </View>
   );
 }
 
 function TimeBack({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const p = useProgress(1300);
+  const p = useProgress(1500);
   const videos = videosPerWeek(draft.perWeek) || 2;
   const byHand = (videos * BY_HAND_MINUTES) / 60;
   const withAutocut = (videos * AUTOCUT_MINUTES) / 60;
@@ -166,9 +182,8 @@ function TimeBack({ header, draft, onNext }: { header: React.ReactNode; draft: D
       <Text style={styles.huge}>{duration(saved * p)}</Text>
       <Text style={styles.lede}>That’s the cutting you do now: pauses, ums, retakes. Autocut does it while you film the next one.</Text>
       <View style={styles.card}>
-        <Bar label="Cutting by hand" value={duration(byHand)} fraction={1} p={p} />
-        <Bar label="With Autocut" value={duration(withAutocut)} fraction={withAutocut / byHand} p={p} strong />
-        <Text style={styles.note}>
+        <Columns byHand={byHand} withAutocut={withAutocut} p={p} />
+        <Text style={[styles.note, { textAlign: 'center' }]}>
           For about {Math.round(videos)} videos a week, at {BY_HAND_MINUTES} minutes each by hand.
         </Text>
       </View>
@@ -176,8 +191,77 @@ function TimeBack({ header, draft, onNext }: { header: React.ReactNode; draft: D
   );
 }
 
+/**
+ * What a year of editing costs, month by month, like Cal AI's trend chart: the editor's bill
+ * climbs, Autocut stays low, and the gap between them (what you keep) fills in as they draw.
+ */
+function SpendChart({ editorYear, autocutYear, kept, p }: { editorYear: number; autocutYear: number; kept: number; p: number }) {
+  const [w, setW] = useState(0);
+  const H = 170;
+  const PAD = 10; // room for the end dots
+  const x = (f: number) => PAD + f * (w - PAD * 2);
+  const top = Math.max(1, editorYear, autocutYear);
+  const y = (amount: number) => PAD + (1 - amount / top) * (H - PAD * 2);
+  // Both start at nothing in month 1 and add up over the year; drawn as far as p.
+  const steps = 24;
+  const pts = (yearly: number) => Array.from({ length: Math.max(2, Math.ceil(steps * p) + 1) }, (_, i) => Math.min(p, i / steps)).map((f) => [x(f), y(yearly * f)] as const);
+  const line = (yearly: number) => pts(yearly).map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
+  const editor = pts(editorYear);
+  const autocut = pts(autocutYear);
+  // The gap between the two lines: what you keep.
+  const gap = `${editor.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')} ${[...autocut].reverse().map(([a, b]) => `L${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')} Z`;
+  const done = clamp01((p - 0.85) / 0.15);
+  return (
+    <View style={{ gap: 10 }}>
+      <Text style={styles.chartTitle}>What a year of edits costs</Text>
+      <View style={{ height: H }} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        {w > 0 && (
+          <Svg width={w} height={H}>
+            <Defs>
+              <LinearGradient id="kept" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={theme.cut} stopOpacity="0.22" />
+                <Stop offset="1" stopColor={theme.cut} stopOpacity="0.04" />
+              </LinearGradient>
+            </Defs>
+            {[0.33, 0.66].map((f) => (
+              <Line key={f} x1={PAD} x2={w - PAD} y1={PAD + f * (H - PAD * 2)} y2={PAD + f * (H - PAD * 2)} stroke="#D1D1D6" strokeWidth={1} strokeDasharray="3 4" />
+            ))}
+            <Line x1={PAD} x2={w - PAD} y1={H - PAD} y2={H - PAD} stroke={theme.ink} strokeWidth={1.5} />
+            <Path d={gap} fill="url(#kept)" />
+            <Path d={line(editorYear)} stroke={theme.cut} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d={line(autocutYear)} stroke={theme.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Circle cx={x(0)} cy={y(0)} r={6} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
+            {done > 0 && (
+              <>
+                <Circle cx={x(1)} cy={y(editorYear)} r={6 * done} fill="#fff" stroke={theme.cut} strokeWidth={2.5} />
+                <Circle cx={x(1)} cy={y(autocutYear)} r={6 * done} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
+              </>
+            )}
+          </Svg>
+        )}
+        {w > 0 && done > 0 && (
+          <>
+            {/* Above the red line (top left is clear of it), just above the black one, and the pill in the gap. */}
+            <Text style={[styles.chartTag, { left: PAD + 2, top: PAD, opacity: done, color: theme.cut }]}>Editing now · {money(editorYear)}</Text>
+            <Text style={[styles.chartTag, { right: PAD + 2, top: y(autocutYear) - 24, opacity: done }]}>Autocut · {money(Math.round(autocutYear))}</Text>
+            {kept > 0 && (
+              <View style={[styles.keptPill, { left: x(0.45) - 62, top: (y(editorYear * 0.45) + y(autocutYear * 0.45)) / 2 - 12, opacity: done }]}>
+                <Text style={styles.keptText}>You keep {money(Math.round(kept))}</Text>
+              </View>
+            )}
+          </>
+        )}
+      </View>
+      <View style={styles.between}>
+        <Text style={styles.axis}>Month 1</Text>
+        <Text style={styles.axis}>Month 12</Text>
+      </View>
+    </View>
+  );
+}
+
 function MoneyKept({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const p = useProgress(1300);
+  const p = useProgress(1700);
   const plan = planFor(recommendedPlan(draft.editorCost, draft.perWeek));
   const editorYear = editorMonthly(draft.editorCost) * 12;
   const autocutYear = plan.monthly * 12;
@@ -188,20 +272,8 @@ function MoneyKept({ header, draft, onNext }: { header: React.ReactNode; draft: 
       <Text style={styles.kicker}>Over a year, you keep</Text>
       <Text style={styles.huge}>{money(Math.round(kept * p))}</Text>
       <Text style={styles.lede}>From what you spend on edits now, next to Autocut {plan.name}.</Text>
-      <View style={styles.receipt}>
-        <View style={styles.between}>
-          <Text style={styles.receiptLabel}>Editing now</Text>
-          <Text style={styles.receiptValue}>{money(editorYear)} / yr</Text>
-        </View>
-        <View style={styles.between}>
-          <Text style={styles.receiptLabel}>Autocut {plan.name}</Text>
-          <Text style={styles.receiptValue}>{money(Math.round(autocutYear))} / yr</Text>
-        </View>
-        <View style={styles.perforation} />
-        <View style={styles.between}>
-          <Text style={[styles.receiptLabel, { color: theme.ink, fontWeight: '700' }]}>You keep</Text>
-          <Text style={[styles.receiptValue, { color: theme.ink, fontWeight: '800' }]}>{money(Math.round(kept))}</Text>
-        </View>
+      <View style={styles.card}>
+        <SpendChart editorYear={editorYear} autocutYear={autocutYear} kept={kept} p={p} />
       </View>
     </Backdrop>
   );
@@ -300,15 +372,17 @@ const styles = StyleSheet.create({
   huge: { fontSize: 52, fontWeight: '800', color: theme.ink, letterSpacing: -1.5, marginTop: 2, fontVariant: ['tabular-nums'] },
   lede: { fontSize: 15, color: theme.muted, lineHeight: 21, marginTop: 8 },
   card: { backgroundColor: theme.card, borderRadius: 22, padding: 18, gap: 18, marginTop: 26 },
-  track: { height: 12, borderRadius: 6, backgroundColor: '#fff', overflow: 'hidden' },
-  fill: { height: 12, borderRadius: 6 },
-  barLabel: { fontSize: 14, color: theme.muted },
-  barValue: { fontSize: 14, color: theme.muted, fontVariant: ['tabular-nums'] },
+  columns: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
+  column: { flex: 1, maxWidth: 150, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', paddingTop: 14, overflow: 'hidden' },
+  columnLabel: { fontSize: 14, fontWeight: '700', color: theme.ink, textAlign: 'center' },
+  columnValue: { fontSize: 13, color: theme.muted, marginTop: 3, fontVariant: ['tabular-nums'] },
+  columnFill: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 22, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 18 },
+  chartTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
+  chartTag: { position: 'absolute', fontSize: 12, fontWeight: '700', color: theme.ink },
+  keptPill: { position: 'absolute', width: 124, alignItems: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
+  keptText: { color: '#fff', fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
+  axis: { fontSize: 13, color: theme.muted },
   note: { fontSize: 12, color: theme.muted, lineHeight: 17 },
-  receipt: { backgroundColor: theme.card, borderRadius: 22, padding: 20, gap: 14, marginTop: 26 },
-  receiptLabel: { fontSize: 15, color: theme.muted },
-  receiptValue: { fontSize: 15, color: theme.muted, fontVariant: ['tabular-nums'] },
-  perforation: { borderTopWidth: 1.5, borderStyle: 'dashed', borderColor: '#D1D1D6', marginVertical: 2 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   pointIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   pointText: { flex: 1, fontSize: 15, color: theme.ink, lineHeight: 20 },
