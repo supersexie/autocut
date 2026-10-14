@@ -8,7 +8,6 @@ import { Card } from '../../components/list';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Thumb } from '../../components/Thumb';
 import { Button } from '../../components/ui';
-import { useAuth } from '../../lib/auth';
 import { coverSource } from '../../lib/edit';
 import { startCut } from '../../lib/jobs';
 import { cutFile, cutProgress, cutStatus, useCuts, type CutRecord } from '../../lib/store';
@@ -19,7 +18,6 @@ const MAX = 10;
 export default function BatchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { account } = useAuth();
   const cuts = useCuts();
   const [started, setStarted] = useState<string[]>([]);
   const batch = started.map((id) => cuts.find((c) => c.id === id)).filter((c): c is CutRecord => !!c);
@@ -29,7 +27,7 @@ export default function BatchScreen() {
   async function pick() {
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsMultipleSelection: true, selectionLimit: MAX, quality: 1 });
     if (result.canceled || !result.assets.length) return;
-    const language = account?.profile.language ?? 'en';
+    const language = 'en';
     const ids = result.assets.slice(0, MAX).map((a) =>
       startCut([{ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }], language)
     );

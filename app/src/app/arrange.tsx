@@ -8,7 +8,6 @@ import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
-import { useAuth } from '../lib/auth';
 import { startCut, type Take } from '../lib/jobs';
 import { formatTime, theme } from '../lib/theme';
 
@@ -24,7 +23,6 @@ const MAX = 20;
  */
 export default function Arrange() {
   const insets = useSafeAreaInsets();
-  const { account } = useAuth();
   const params = useLocalSearchParams<{ takes?: string }>();
   const [takes, setTakes] = useState<Take[]>(() => {
     try {
@@ -63,7 +61,7 @@ export default function Arrange() {
   function combine() {
     if (!takes.length) return;
     setSending(true);
-    const id = startCut(takes, account?.profile.language ?? 'en', { blend });
+    const id = startCut(takes, 'en', { blend });
     router.replace({ pathname: '/cut/[id]', params: { id } });
   }
 

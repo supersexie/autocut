@@ -3,42 +3,29 @@ import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
 import * as StoreReview from 'expo-store-review';
 import { useState } from 'react';
-import { ActionSheetIOS, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CuttingSettings } from '../components/CuttingSettings';
 import { Card, Footnote, listStyles, PageHeader, Row, SectionLabel } from '../components/list';
 import { forgetThumbnails } from '../components/Thumb';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
-import { displayName, initialsOf, useAuth, type Language } from '../lib/auth';
+import { displayName, initialsOf, useAuth } from '../lib/auth';
 import { cacheBytes, clearCache, updateSettings, useSettings } from '../lib/store';
 import { column, COLUMN, theme } from '../lib/theme';
 import { useUsage } from '../lib/usage';
 
-const LANGUAGES: { value: Language; label: string }[] = [
-  { value: 'en', label: 'English' },
-  { value: 'es', label: 'Español' },
-];
 const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
 const VERSION = `v${Constants.expoConfig?.version ?? '1.0.0'}${Constants.expoConfig?.ios?.buildNumber ? ` (${Constants.expoConfig.ios.buildNumber})` : ''}`;
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { account, signOut, updateProfile, deleteAccount } = useAuth();
+  const { account, signOut, deleteAccount } = useAuth();
   const { plan } = useUsage();
-  const profile = account?.profile ?? {};
   const settings = useSettings();
   const [cache, setCache] = useState(cacheBytes);
   const [serverStatus, setServerStatus] = useState<string | null>(null);
   const name = displayName(account);
   const initials = initialsOf(name);
-  const language = LANGUAGES.find((l) => l.value === profile.language) ?? LANGUAGES[0];
-
-  function pickLanguage() {
-    ActionSheetIOS.showActionSheetWithOptions(
-      { title: 'I record in', options: [...LANGUAGES.map((l) => l.label), 'Cancel'], cancelButtonIndex: LANGUAGES.length },
-      (i) => i < LANGUAGES.length && updateProfile({ language: LANGUAGES[i].value })
-    );
-  }
 
   async function rate() {
     if (await StoreReview.hasAction()) await StoreReview.requestReview();
@@ -118,7 +105,6 @@ export default function SettingsScreen() {
 
         <SectionLabel>Preferences</SectionLabel>
         <Card>
-          <Row icon="waveform" label="I record in" value={language.label} picker onPress={pickLanguage} />
           <Row
             icon="person.crop.square"
             label="Mirror selfie videos"

@@ -6,6 +6,7 @@ import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Logo } from '../../components/ui';
@@ -261,21 +262,7 @@ export default function CreateScreen() {
       )}
 
       <View style={[styles.bottom, { bottom, left: frameX, right: frameX }]}>
-        {mode === 'idle' && !takes.length && (
-          <View style={styles.lengths}>
-            {LENGTHS.map((l) => (
-              <Pressable
-                key={l.label}
-                onPress={() => setLimit(l.seconds)}
-                style={[styles.length, limit === l.seconds && styles.lengthOn]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: limit === l.seconds }}
-              >
-                <Text style={[styles.lengthText, limit === l.seconds && { color: theme.ink }]}>{l.label}</Text>
-              </Pressable>
-            ))}
-          </View>
-        )}
+        {mode === 'idle' && !takes.length && <LengthPicker value={limit} onChange={setLimit} />}
 
         <View style={styles.controls}>
           <View style={styles.side}>
@@ -320,6 +307,39 @@ export default function CreateScreen() {
       <FolderSheet visible={sheet === 'folder'} onClose={() => setSheet(null)} />
       <AddVideoSheet visible={sheet === 'add'} onClose={() => setSheet(null)} onPick={importVideo} />
     </View>
+  );
+}
+
+const LENGTH_W = 52; // each option, so the picker can slide the chosen one over the shutter
+const LENGTH_PAD = 3;
+
+/** 60s / 3m / 10m / 20m. It slides so the chosen length sits right above the record button. */
+function LengthPicker({ value, onChange }: { value: number; onChange: (seconds: number) => void }) {
+  const index = Math.max(0, LENGTHS.findIndex((l) => l.seconds === value));
+  // Centred as a whole, then moved so option `index` lines up with the middle.
+  const offset = (i: number) => ((LENGTHS.length - 1) / 2 - i) * LENGTH_W;
+  const x = useSharedValue(offset(index));
+  useEffect(() => {
+    x.value = withTiming(offset(index), { duration: 260, easing: Easing.out(Easing.cubic) });
+  }, [index, x]);
+  const slide = useAnimatedStyle(() => ({ transform: [{ translateX: x.value }] }));
+  return (
+    <Animated.View style={[styles.lengths, slide]}>
+      {LENGTHS.map((l) => (
+        <Pressable
+          key={l.label}
+          onPress={() => {
+            Haptics.selectionAsync();
+            onChange(l.seconds);
+          }}
+          style={[styles.length, value === l.seconds && styles.lengthOn]}
+          accessibilityRole="button"
+          accessibilityState={{ selected: value === l.seconds }}
+        >
+          <Text style={[styles.lengthText, value === l.seconds && { color: theme.ink }]}>{l.label}</Text>
+        </Pressable>
+      ))}
+    </Animated.View>
   );
 }
 
@@ -379,11 +399,11 @@ const styles = StyleSheet.create({
   pillText: { color: '#fff', fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
   round: { backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', alignItems: 'center', gap: 16 },
-  lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: 3, alignSelf: 'flex-end', marginRight: 24 },
+  lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: LENGTH_PAD },
   folder: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', maxWidth: 150, backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
   folderText: { fontSize: 15, fontWeight: '600', color: theme.ink, flexShrink: 1 },
   importButton: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  length: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
+  length: { width: LENGTH_W, alignItems: 'center', paddingVertical: 7, borderRadius: 999 },
   lengthOn: { backgroundColor: '#fff' },
   lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '700' },
   controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, width: '100%' },

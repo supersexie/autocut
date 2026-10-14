@@ -9,7 +9,6 @@ import { Alert, PanResponder, Pressable, StyleSheet, Switch, Text, useWindowDime
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
-import { useAuth } from '../lib/auth';
 import { startCut, type Take } from '../lib/jobs';
 import { updateSettings, useSettings } from '../lib/store';
 import { COLUMN, formatTime, theme } from '../lib/theme';
@@ -30,7 +29,6 @@ export default function Review() {
       return [];
     }
   }, [params.takes]);
-  const { account } = useAuth();
   const settings = useSettings();
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -91,7 +89,7 @@ export default function Review() {
   function send() {
     setSending(true);
     player.pause();
-    const id = startCut(takes, account?.profile.language ?? 'en');
+    const id = startCut(takes, 'en');
     router.replace({ pathname: '/cut/[id]', params: { id } });
   }
 
