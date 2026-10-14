@@ -143,7 +143,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
 }
 
 /** Round back button + thin progress line, as used across the setup questions. */
-export function StepHeader({ progress, onBack }: { progress?: number; onBack?: () => void }) {
+export function StepHeader({ progress, onBack, right }: { progress?: number; onBack?: () => void; right?: ReactNode }) {
   return (
     <View style={styles.stepHeader}>
       <Pressable onPress={onBack ?? (() => router.back())} hitSlop={10} accessibilityLabel="Back" style={styles.back}>
@@ -154,6 +154,8 @@ export function StepHeader({ progress, onBack }: { progress?: number; onBack?: (
           <View style={[styles.progressFill, { width: `${Math.max(4, Math.min(100, progress * 100))}%` }]} />
         </View>
       )}
+      {progress == null && <View style={{ flex: 1 }} />}
+      {right}
     </View>
   );
 }

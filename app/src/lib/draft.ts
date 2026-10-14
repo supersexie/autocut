@@ -7,11 +7,9 @@ import type { Language } from './auth';
  * until the account exists, then get saved to the profile.
  */
 export type Draft = {
-  creates?: string;
-  perWeek?: string;
-  heardFrom?: string;
-  editTime?: string;
-  blockers?: string[];
+  who?: string;
+  goal?: string;
+  editorCost?: string; // an EDITOR_COSTS value
   language?: Language;
   firstName?: string;
   lastName?: string;

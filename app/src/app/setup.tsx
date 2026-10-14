@@ -2,273 +2,224 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { Backdrop, Button, ErrorText, Field, Option, StepHeader, Title, type SymbolName } from '../components/ui';
+import { Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+import { Backdrop, Button, ErrorText, Option, StepHeader, Title, type SymbolName } from '../components/ui';
 import { enabledProviders, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
-import { updateSettings, useSettings } from '../lib/store';
+import { EDITOR_COSTS, editorMonthly, money, planFor, recommendedPlan } from '../lib/plans';
 import { theme } from '../lib/theme';
 
-type Choice = { value: string; label: string; detail?: string; icon?: SymbolName };
-type Step =
-  | { kind: 'choice'; key: keyof Draft; title: string; sub?: string; options: Choice[] }
-  | { kind: 'multi'; key: 'blockers'; title: string; sub?: string; options: Choice[] }
-  | { kind: 'compare' | 'name' | 'handle' | 'loading' | 'result' | 'save' };
+type Choice = { value: string; label: string; icon: SymbolName };
 
-const STEPS: Step[] = [
-  {
-    kind: 'choice', key: 'creates', title: 'What do you film?', sub: 'Autocut tunes its cuts to the kind of videos you make.',
-    options: [
-      { value: 'ugc', label: 'UGC ads', icon: 'bag.fill' },
-      { value: 'shortform', label: 'TikToks and Reels', icon: 'play.rectangle.fill' },
-      { value: 'youtube', label: 'YouTube videos', icon: 'play.tv.fill' },
-      { value: 'talking', label: 'Podcasts and talking heads', icon: 'mic.fill' },
-    ],
-  },
-  {
-    kind: 'choice', key: 'perWeek', title: 'How many videos do you film per week?', sub: 'This sets up your plan.',
-    options: [
-      { value: '0-2', label: '0–2', detail: 'Now and then', icon: 'circle.fill' },
-      { value: '3-5', label: '3–5', detail: 'A few every week', icon: 'circle.grid.2x1.fill' },
-      { value: '6+', label: '6+', detail: 'Almost every day', icon: 'circle.grid.3x3.fill' },
-    ],
-  },
-  {
-    kind: 'choice', key: 'heardFrom', title: 'Where did you hear about us?',
-    options: [
-      { value: 'tiktok', label: 'TikTok', icon: 'music.note' },
-      { value: 'instagram', label: 'Instagram', icon: 'camera.fill' },
-      { value: 'youtube', label: 'YouTube', icon: 'play.rectangle.fill' },
-      { value: 'friend', label: 'Friend or family', icon: 'person.2.fill' },
-      { value: 'appstore', label: 'App Store', icon: 'apps.iphone' },
-      { value: 'other', label: 'Somewhere else', icon: 'ellipsis' },
-    ],
-  },
-  {
-    kind: 'choice', key: 'editTime', title: 'How long does editing one video take you now?', sub: 'Cutting out the pauses, flubs and retakes by hand.',
-    options: [
-      { value: '15', label: 'Under 15 minutes', icon: 'hare.fill' },
-      { value: '40', label: '15 minutes to an hour', icon: 'clock.fill' },
-      { value: '75', label: 'More than an hour', icon: 'tortoise.fill' },
-    ],
-  },
-  { kind: 'compare' },
-  {
-    kind: 'multi', key: 'blockers', title: 'What slows you down the most?', sub: 'Pick all that apply.',
-    options: [
-      { value: 'time', label: 'Editing takes too long', icon: 'clock.fill' },
-      { value: 'retakes', label: 'Flubbed lines and retakes', icon: 'arrow.counterclockwise' },
-      { value: 'pauses', label: 'Awkward pauses', icon: 'pause.fill' },
-      { value: 'captions', label: 'Adding captions', icon: 'captions.bubble.fill' },
-      { value: 'consistency', label: 'Posting consistently', icon: 'calendar' },
-    ],
-  },
-  {
-    kind: 'choice', key: 'language', title: 'What language do you record in?', sub: 'Autocut listens for every word, so it needs to know.',
-    options: [
-      { value: 'en', label: 'English', icon: 'textformat' },
-      { value: 'es', label: 'Español', icon: 'textformat' },
-    ],
-  },
-  { kind: 'name' },
-  { kind: 'handle' },
-  { kind: 'loading' },
-  { kind: 'result' },
-  { kind: 'save' },
+const WHO: Choice[] = [
+  { value: 'shop', label: 'TikTok Shop creator', icon: 'bag' },
+  { value: 'ugc', label: 'UGC creator', icon: 'video' },
+  { value: 'influencer', label: 'Influencer', icon: 'star' },
+  { value: 'me', label: 'Just me', icon: 'person' },
 ];
 
-// Steps that show the progress line (everything before the "setting up" screen).
-const QUESTIONS = STEPS.findIndex((s) => s.kind === 'loading');
-const minutesFor = (editTime?: string) => Number(editTime ?? 40);
-const videosFor = (perWeek?: string) => (perWeek === '6+' ? 7 : perWeek === '3-5' ? 4 : 1);
+const GOALS: Choice[] = [
+  { value: 'more', label: 'Post more videos', icon: 'chart.line.uptrend.xyaxis' },
+  { value: 'time', label: 'Save time', icon: 'clock' },
+  { value: 'freedom', label: 'Have more freedom', icon: 'sun.max' },
+  { value: 'editor', label: 'Fire my editor', icon: 'person.crop.circle.badge.xmark' },
+];
+
+type StepId = 'who' | 'goal' | 'cost' | 'adds' | 'months' | 'save';
+const STEPS: StepId[] = ['who', 'goal', 'cost', 'adds', 'months', 'save'];
 
 export default function Setup() {
   const draft = useDraft();
-  const [step, setStep] = useState(0);
-  const current = STEPS[step];
-  const next = () => setStep((s) => Math.min(STEPS.length - 1, s + 1));
-  const back = () => (step === 0 ? router.back() : setStep(step - 1));
-  const header = current.kind === 'loading' ? null : <StepHeader progress={step < QUESTIONS ? (step + 1) / QUESTIONS : undefined} onBack={back} />;
+  const [step, setStep] = useState<StepId>('who');
+  // Without an editor there's nothing to compare, so the money screens are skipped.
+  const steps = editorMonthly(draft.editorCost) === 0 && draft.editorCost ? STEPS.filter((s) => s !== 'adds' && s !== 'months') : STEPS;
+  const index = steps.indexOf(step);
+  const next = () => setStep(steps[Math.min(steps.length - 1, index + 1)]);
+  const back = () => (index === 0 ? router.back() : setStep(steps[index - 1]));
+  const header = (
+    <StepHeader
+      progress={(index + 1) / steps.length}
+      onBack={back}
+      right={
+        <Text style={styles.signIn} onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })}>
+          Sign in
+        </Text>
+      }
+    />
+  );
 
-  if (current.kind === 'choice' || current.kind === 'multi') {
-    const multi = current.kind === 'multi';
-    const single = draft[current.key];
-    const picked: string[] = multi ? draft.blockers ?? [] : typeof single === 'string' ? [single] : [];
-    const toggle = (v: string) => {
-      if (!multi) return updateDraft({ [current.key]: v } as Draft);
-      updateDraft({ blockers: picked.includes(v) ? picked.filter((x) => x !== v) : [...picked, v] });
-    };
+  // A single choice moves on by itself, like tapping through a quiz.
+  const pickAndGo = (patch: Draft) => {
+    updateDraft(patch);
+    const skip = patch.editorCost !== undefined && editorMonthly(patch.editorCost) === 0;
+    setTimeout(() => setStep(skip ? 'save' : STEPS[STEPS.indexOf(step) + 1]), 280);
+  };
+
+  if (step === 'who') {
     return (
-      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!picked.length} />}>
+      <Backdrop footer={<Button title="Next  →" onPress={next} disabled={!draft.who} />}>
         {header}
-        <Title sub={current.sub}>{current.title}</Title>
+        <Title>Who are you?</Title>
         <View style={{ gap: 10 }}>
-          {current.options.map((o) => (
-            <Option key={o.value} label={o.label} detail={o.detail} icon={o.icon} multi={multi} selected={picked.includes(o.value)} onPress={() => toggle(o.value)} />
+          {WHO.map((o) => (
+            <Option key={o.value} label={o.label} icon={o.icon} selected={draft.who === o.value} onPress={() => updateDraft({ who: o.value })} />
           ))}
         </View>
       </Backdrop>
     );
   }
 
-  if (current.kind === 'compare') return <Compare header={header} minutes={minutesFor(draft.editTime)} onNext={next} />;
-  if (current.kind === 'name') return <NameStep header={header} onNext={next} />;
-  if (current.kind === 'handle') return <HandleStep header={header} onNext={next} />;
-  if (current.kind === 'loading') return <Loading onDone={next} />;
-  if (current.kind === 'result') return <Result header={header} draft={draft} onNext={next} />;
+  if (step === 'goal') {
+    return (
+      <Backdrop>
+        {header}
+        <Title>What’s your goal?</Title>
+        <View style={{ gap: 10 }}>
+          {GOALS.map((o) => (
+            <Option key={o.value} label={o.label} icon={o.icon} selected={draft.goal === o.value} onPress={() => pickAndGo({ goal: o.value })} />
+          ))}
+        </View>
+      </Backdrop>
+    );
+  }
+
+  if (step === 'cost') {
+    return (
+      <Backdrop>
+        {header}
+        <Title sub="Per month.">How much are you currently paying for your editor?</Title>
+        <View style={{ gap: 10 }}>
+          {EDITOR_COSTS.map((c) => (
+            <Option
+              key={c.value}
+              label={c.label}
+              icon={c.bars ? 'chart.bar' : 'person.fill.checkmark'}
+              selected={draft.editorCost === c.value}
+              onPress={() => pickAndGo({ editorCost: c.value })}
+            />
+          ))}
+        </View>
+      </Backdrop>
+    );
+  }
+
+  if (step === 'adds') return <AddsUp header={header} draft={draft} onNext={next} />;
+  if (step === 'months') return <Months header={header} draft={draft} onNext={next} />;
   return <Save header={header} />;
 }
 
-function Compare({ header, minutes, onNext }: { header: React.ReactNode; minutes: number; onNext: () => void }) {
-  return (
-    <Backdrop footer={<Button title="Continue" onPress={onNext} />}>
-      {header}
-      <Title sub="Autocut finds the dead air, ums and retakes for you, so you only check the cut.">Spend your time filming, not trimming</Title>
-      <View style={styles.chart}>
-        <Text style={styles.chartTitle}>Time to edit one video</Text>
-        <View style={styles.bars}>
-          <Bar label="By hand" value={`${minutes} min`} height={1} dark={false} />
-          <Bar label="With Autocut" value="~1 min" height={Math.max(0.08, 1 / minutes)} dark />
-        </View>
-        <Text style={styles.chartNote}>Based on your answer. Autocut timing depends on the length of your take.</Text>
-      </View>
-    </Backdrop>
-  );
-}
-
-function Bar({ label, value, height, dark }: { label: string; value: string; height: number; dark: boolean }) {
-  return (
-    <View style={styles.barCol}>
-      <Text style={styles.barValue}>{value}</Text>
-      <View style={[styles.bar, { height: `${height * 100}%`, backgroundColor: dark ? theme.ink : '#E4E4E8' }]} />
-      <Text style={styles.barLabel}>{label}</Text>
-    </View>
-  );
-}
-
-function NameStep({ header, onNext }: { header: React.ReactNode; onNext: () => void }) {
-  const draft = useDraft();
-  return (
-    <Backdrop footer={<Button title="Continue" onPress={onNext} disabled={!draft.firstName?.trim()} />}>
-      {header}
-      <Title sub="So your cuts land with your name on them.">What should we call you?</Title>
-      <View style={{ gap: 14 }}>
-        <Field placeholder="First name" value={draft.firstName ?? ''} onChangeText={(firstName) => updateDraft({ firstName })} autoComplete="given-name" textContentType="givenName" autoFocus />
-        <Field placeholder="Last name (optional)" value={draft.lastName ?? ''} onChangeText={(lastName) => updateDraft({ lastName })} autoComplete="family-name" textContentType="familyName" />
-      </View>
-    </Backdrop>
-  );
-}
-
-function HandleStep({ header, onNext }: { header: React.ReactNode; onNext: () => void }) {
-  const draft = useDraft();
-  const clean = (s: string) => s.replace(/^@+/, '').replace(/[^a-zA-Z0-9._]/g, '').slice(0, 24);
-  return (
-    <Backdrop
-      footer={
-        <>
-          <Button title="Continue" onPress={onNext} disabled={(draft.handle ?? '').length < 2} />
-          <Button kind="text" title="Skip for now" onPress={onNext} />
-        </>
-      }
-    >
-      {header}
-      <Title sub="Your TikTok handle. It's how your studio signs its work.">Your @handle</Title>
-      <Field prefix="@" placeholder="yourhandle" value={draft.handle ?? ''} onChangeText={(t) => updateDraft({ handle: clean(t) })} autoCapitalize="none" autoCorrect={false} autoFocus accessibilityLabel="TikTok handle" />
-    </Backdrop>
-  );
-}
-
-const SETUP_ITEMS = ['Dead air', 'Retakes', 'Ums and uhs', 'Captions', 'Your pace'];
-const SETUP_STATUS = ['Learning your style…', 'Tuning pause length…', 'Setting up retakes…', 'Finalizing results…'];
-
-function Loading({ onDone }: { onDone: () => void }) {
-  const [pct, setPct] = useState(0);
+/** Eases 0 → 1 over `ms`, for the chart and counter animations. */
+function useProgress(ms: number) {
+  const [p, setP] = useState(0);
   useEffect(() => {
-    if (pct >= 100) {
-      const t = setTimeout(onDone, 500);
-      return () => clearTimeout(t);
-    }
-    // Uneven steps so it reads as work being done rather than a timer.
-    const t = setTimeout(() => setPct((p) => Math.min(100, p + 3 + Math.round(Math.random() * 6))), 90);
-    return () => clearTimeout(t);
-  }, [pct, onDone]);
+    const start = Date.now();
+    let frame = 0;
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / ms);
+      setP(1 - Math.pow(1 - t, 3));
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [ms]);
+  return p;
+}
+
+function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
+  const { width } = useWindowDimensions();
+  const plan = planFor(recommendedPlan(draft.editorCost));
+  const saved = Math.max(0, editorMonthly(draft.editorCost) - plan.monthly); // per month
+  const p = useProgress(1600);
+
+  const W = width - 44 - 32;
+  const H = 210;
+  const pad = { top: 34, bottom: 30, side: 26 };
+  const values = [saved / 30, (saved * 7) / 30, saved, saved * 12].map((v) => v * p);
+  const max = saved * 12 || 1;
+  const xs = [0, 1 / 3, 2 / 3, 1].map((f) => pad.side + f * (W - pad.side * 2));
+  const ys = values.map((v) => H - pad.bottom - (v / max) * (H - pad.top - pad.bottom));
+  let line = `M ${xs[0]} ${ys[0]}`;
+  for (let i = 1; i < xs.length; i++) {
+    const cx = (xs[i - 1] + xs[i]) / 2;
+    line += ` C ${cx} ${ys[i - 1]}, ${cx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
+  }
+  const area = `${line} L ${xs[3]} ${H - pad.bottom} L ${xs[0]} ${H - pad.bottom} Z`;
+  const labels = ['Day', 'Week', 'Month', 'Year'];
+
   return (
-    <Backdrop scroll={false}>
-      <View style={{ flex: 1, justifyContent: 'center', gap: 18 }}>
-        <Text style={styles.pct}>{pct}%</Text>
-        <Text style={styles.loadingTitle}>We’re setting everything up for you</Text>
-        <View style={styles.loadTrack}>
-          <View style={[styles.loadFill, { width: `${pct}%` }]} />
+    <Backdrop footer={<Button title="See my editor vs. Autocut  →" onPress={onNext} />}>
+      {header}
+      <Title>It adds up.</Title>
+      <View style={styles.chartCard}>
+        <View style={{ width: W, height: H }}>
+          <Svg width={W} height={H}>
+            <Defs>
+              <LinearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor={theme.ink} stopOpacity={0.14} />
+                <Stop offset="1" stopColor={theme.ink} stopOpacity={0} />
+              </LinearGradient>
+            </Defs>
+            <Path d={area} fill="url(#fill)" />
+            <Path d={line} stroke={theme.ink} strokeWidth={3} fill="none" />
+            {xs.map((x, i) => (
+              <Circle key={i} cx={x} cy={ys[i]} r={5} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
+            ))}
+          </Svg>
+          {xs.map((x, i) => (
+            <Text key={`v${i}`} style={[styles.pointValue, { left: x - 45, top: ys[i] - 26 }]}>
+              {money(Math.round(values[i]))}
+            </Text>
+          ))}
+          {xs.map((x, i) => (
+            <Text key={`l${i}`} style={[styles.axis, { left: x - 30, top: H - pad.bottom + 10 }]}>
+              {labels[i]}
+            </Text>
+          ))}
         </View>
-        <Text style={styles.loadStatus}>{SETUP_STATUS[Math.min(SETUP_STATUS.length - 1, Math.floor(pct / 26))]}</Text>
-        <View style={styles.checklist}>
-          <Text style={styles.checkTitle}>Your cut style for</Text>
-          {SETUP_ITEMS.map((item, i) => {
-            const done = pct >= ((i + 1) / SETUP_ITEMS.length) * 100 - 4;
-            return (
-              <View key={item} style={styles.checkRow}>
-                <Text style={styles.checkItem}>• {item}</Text>
-                {done && <SymbolView name="checkmark.circle.fill" tintColor={theme.ink} size={18} />}
-              </View>
-            );
-          })}
-        </View>
+        <Text style={styles.chartNote}>What you keep by switching to Autocut {plan.name}.</Text>
       </View>
+      <Text style={styles.small}>
+        From your answer: about {money(editorMonthly(draft.editorCost))} a month on an editor, versus {money(plan.monthly)} a month for Autocut {plan.name}.
+      </Text>
     </Backdrop>
   );
 }
 
-function Result({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const settings = useSettings();
-  const hours = Math.round((videosFor(draft.perWeek) * Math.max(0, minutesFor(draft.editTime) - 1) * 4.3) / 60);
+function Months({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
+  const plan = planFor(recommendedPlan(draft.editorCost));
+  const months = Math.max(1, Math.floor(editorMonthly(draft.editorCost) / plan.monthly));
+  const p = useProgress(1500);
+  const shown = Math.round(months * p);
+  const dots = Math.min(shown, 36);
+
   return (
-    <Backdrop footer={<Button title="Let’s get started!" onPress={onNext} />}>
+    <Backdrop footer={<Button title="See my plan  →" onPress={onNext} />}>
       {header}
-      <View style={{ alignItems: 'center', gap: 10, marginBottom: 22 }}>
-        <View style={styles.okBadge}>
-          <SymbolView name="checkmark" tintColor="#fff" size={14} weight="bold" />
+      <Text style={styles.monthsTitle}>
+        One month of your editor pays for{' '}
+        <Text style={styles.monthsCount}>{shown}</Text> month{shown === 1 ? '' : 's'} of Autocut.
+      </Text>
+      <View style={styles.equation}>
+        <View style={styles.editorBubble}>
+          <Text style={styles.bubbleBig}>1 month</Text>
+          <Text style={styles.bubbleSmall}>Your editor</Text>
         </View>
-        <Text style={styles.resultTitle}>
-          {draft.firstName ? `${draft.firstName}, your` : 'Your'} cut style is ready
+        <Text style={styles.equals}>=</Text>
+        <View style={styles.dots}>
+          {Array.from({ length: dots }, (_, i) => (
+            <View key={i} style={styles.dot} />
+          ))}
+        </View>
+      </View>
+      <View style={styles.legend}>
+        <View style={[styles.dot, { width: 10, height: 10 }]} />
+        <Text style={[styles.small, { marginTop: 0 }]}>
+          1 month of Autocut {plan.name}
+          {months > 36 ? ' (first 36 shown)' : ''}
         </Text>
       </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>Time you could get back</Text>
-        <Text style={styles.big}>~{Math.max(1, hours)} hours</Text>
-        <Text style={styles.cardSub}>a month, from your answers ({videosFor(draft.perWeek)} video{videosFor(draft.perWeek) === 1 ? '' : 's'} a week). An estimate.</Text>
-      </View>
-
-      <View style={[styles.card, { marginTop: 12 }]}>
-        <Text style={styles.cardTitle}>Your cut settings</Text>
-        <Text style={styles.cardSub}>You can change these anytime.</Text>
-        <View style={styles.settingRow}>
-          <Text style={styles.settingLabel}>Longest pause</Text>
-          <View style={styles.stepper}>
-            <Pressable onPress={() => updateSettings({ maxGap: Math.max(0.15, +(settings.maxGap - 0.05).toFixed(2)) })} hitSlop={8} accessibilityLabel="Shorter pauses">
-              <SymbolView name="minus" tintColor={theme.ink} size={14} />
-            </Pressable>
-            <Text style={styles.stepValue}>{settings.maxGap.toFixed(2)}s</Text>
-            <Pressable onPress={() => updateSettings({ maxGap: Math.min(0.8, +(settings.maxGap + 0.05).toFixed(2)) })} hitSlop={8} accessibilityLabel="Longer pauses">
-              <SymbolView name="plus" tintColor={theme.ink} size={14} />
-            </Pressable>
-          </View>
-        </View>
-        <SettingSwitch label="Remove ums and uhs" value={settings.removeFillers} onChange={(v) => updateSettings({ removeFillers: v })} />
-        <SettingSwitch label="Keep only my last take" value={settings.removeRetakes} onChange={(v) => updateSettings({ removeRetakes: v })} />
-        <SettingSwitch label="Captions" value={settings.captions} onChange={(v) => updateSettings({ captions: v })} />
-      </View>
     </Backdrop>
-  );
-}
-
-function SettingSwitch({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
-  return (
-    <View style={styles.settingRow}>
-      <Text style={styles.settingLabel}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: theme.ink }} />
-    </View>
   );
 }
 
@@ -301,10 +252,11 @@ function Save({ header }: { header: React.ReactNode }) {
     }
   }
 
+  const social = providers.apple || providers.google;
   return (
     <Backdrop>
       {header}
-      <Title>Save your progress</Title>
+      <Title sub="Create your account to see your plan.">Save your progress</Title>
       <View style={{ flex: 1, justifyContent: 'center', gap: 12 }}>
         {providers.apple && (
           <Button title="Sign in with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => go('apple')} />
@@ -313,9 +265,9 @@ function Save({ header }: { header: React.ReactNode }) {
           <Button kind="outline" title="Sign in with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => go('google')} />
         )}
         <Button
-          kind={providers.apple || providers.google ? 'outline' : 'primary'}
+          kind={social ? 'outline' : 'primary'}
           title="Continue with email"
-          icon={<SymbolView name="envelope" tintColor={providers.apple || providers.google ? theme.ink : '#fff'} size={17} />}
+          icon={<SymbolView name="envelope" tintColor={social ? theme.ink : '#fff'} size={17} />}
           onPress={() => go('email')}
         />
         <Pressable style={styles.agree} onPress={() => setAgreed(!agreed)} accessibilityRole="checkbox" accessibilityState={{ checked: agreed }}>
@@ -330,33 +282,22 @@ function Save({ header }: { header: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  chart: { backgroundColor: theme.card, borderRadius: 22, padding: 20, gap: 14 },
-  chartTitle: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  bars: { flexDirection: 'row', height: 220, gap: 22, alignItems: 'flex-end', paddingHorizontal: 20 },
-  barCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 8, height: '100%' },
-  bar: { width: '100%', borderRadius: 14, maxHeight: '78%' },
-  barValue: { fontSize: 15, fontWeight: '700', color: theme.ink },
-  barLabel: { fontSize: 13, color: theme.muted },
-  chartNote: { fontSize: 12, color: theme.faint, textAlign: 'center' },
-  pct: { fontSize: 56, fontWeight: '700', color: theme.ink, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  loadingTitle: { fontSize: 26, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.4 },
-  loadTrack: { height: 6, borderRadius: 3, backgroundColor: theme.line, overflow: 'hidden', marginHorizontal: 10 },
-  loadFill: { height: 6, borderRadius: 3, backgroundColor: theme.ink },
-  loadStatus: { fontSize: 14, color: theme.muted, textAlign: 'center' },
-  checklist: { backgroundColor: theme.card, borderRadius: 18, padding: 18, gap: 10, marginTop: 8 },
-  checkTitle: { fontSize: 15, fontWeight: '600', color: theme.ink, marginBottom: 2 },
-  checkRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 22 },
-  checkItem: { fontSize: 15, color: theme.ink },
-  okBadge: { width: 28, height: 28, borderRadius: 14, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
-  resultTitle: { fontSize: 26, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.4 },
-  card: { backgroundColor: theme.card, borderRadius: 20, padding: 18, gap: 4 },
-  cardTitle: { fontSize: 15, fontWeight: '700', color: theme.ink },
-  cardSub: { fontSize: 13, color: theme.muted, lineHeight: 18 },
-  big: { fontSize: 36, fontWeight: '800', color: theme.ink, marginTop: 4, fontVariant: ['tabular-nums'] },
-  settingRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 14, paddingVertical: 10, marginTop: 8 },
-  settingLabel: { fontSize: 15, color: theme.ink, fontWeight: '500' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  stepValue: { fontSize: 15, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'], minWidth: 48, textAlign: 'center' },
+  signIn: { fontSize: 15, fontWeight: '600', color: theme.ink, paddingLeft: 4 },
+  chartCard: { backgroundColor: theme.card, borderRadius: 22, padding: 16, gap: 10, alignItems: 'center' },
+  pointValue: { position: 'absolute', width: 90, textAlign: 'center', fontSize: 12, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
+  axis: { position: 'absolute', width: 60, textAlign: 'center', fontSize: 12, color: theme.muted },
+  chartNote: { fontSize: 13, color: theme.muted, textAlign: 'center' },
+  small: { fontSize: 13, color: theme.muted, lineHeight: 18, marginTop: 12 },
+  monthsTitle: { fontSize: 30, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.6, lineHeight: 38, marginTop: 10 },
+  monthsCount: { fontVariant: ['tabular-nums'], textDecorationLine: 'underline' },
+  equation: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 34 },
+  editorBubble: { width: 78, height: 78, borderRadius: 39, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  bubbleBig: { fontSize: 13, fontWeight: '800', color: theme.ink },
+  bubbleSmall: { fontSize: 10, color: theme.muted },
+  equals: { fontSize: 26, fontWeight: '700', color: theme.ink },
+  dots: { flex: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  dot: { width: 26, height: 26, borderRadius: 13, backgroundColor: theme.ink },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: 8, justifyContent: 'center', marginTop: 18 },
   g: { fontSize: 18, fontWeight: '800', color: '#4285F4' },
   agree: { flexDirection: 'row', gap: 10, alignItems: 'center', marginTop: 10 },
   box: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
