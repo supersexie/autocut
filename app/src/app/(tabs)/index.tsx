@@ -154,12 +154,19 @@ export default function CreateScreen() {
 
   /** One video to cut, or several (in the order they're tapped) joined into one cut. */
   async function importVideo(kind: 'single' | 'multiple' = 'single') {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['videos'],
-      videoExportPreset: ImagePicker.VideoExportPreset.H264_1920x1080,
-      quality: 1,
-      ...(kind === 'multiple' && { allowsMultipleSelection: true, selectionLimit: 20, orderedSelection: true }),
-    });
+    // The video as it is: converting it while picking (an export preset) can take minutes with
+    // nothing on screen, which looks like the tap did nothing.
+    let result: ImagePicker.ImagePickerResult;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['videos'],
+        quality: 1,
+        ...(kind === 'multiple' && { allowsMultipleSelection: true, selectionLimit: 20, orderedSelection: true }),
+      });
+    } catch (e) {
+      Alert.alert('Couldn’t open that video', e instanceof Error ? e.message : String(e));
+      return;
+    }
     if (result.canceled || !result.assets.length) return;
     review(result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 })));
   }
