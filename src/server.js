@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // HTTP API the mobile app talks to.
 //   POST /uploads                      body: raw video bytes              -> { id }
-//   POST /cuts?uploads=a,b&maxGap=0.3&fillers=1&retakes=1&lang=en           -> { id }   (joins takes, finds cuts)
+//   POST /cuts?uploads=a,b&flips=1,0&maxGap=0.3&fillers=1&retakes=1&lang=en -> { id }   (joins takes, un-mirrors selfies, finds cuts)
 //   POST /cuts?...                     body: raw video bytes (one take)    -> { id }
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
@@ -162,16 +162,18 @@ async function createCut(req, res, url, userId) {
     if (job.stage === 'stopped') return;
     const log = (stage) => job.stage !== stage && console.log(`[${id.slice(0, 8)}] ${stage}`);
     try {
-      if (takes.length > 1) {
+      const flips = (q.get('flips') ?? '').split(',').map((f) => f === '1');
+      const joined = takes.length > 1 || flips[0];
+      if (joined) {
         log('joining');
         job.stage = 'joining';
         job.source = path.join(dir, 'source.mp4');
-        await joinTakes(takes, job.source, { onProgress: (f) => (job.progress = 0.15 * f) });
+        await joinTakes(takes, job.source, { flips, onProgress: (f) => (job.progress = 0.15 * f) });
       } else {
         job.source = path.join(dir, `source${path.extname(takes[0])}`);
         await copyFile(takes[0], job.source);
       }
-      const base = takes.length > 1 ? 0.15 : 0;
+      const base = joined ? 0.15 : 0;
       const result = await analyze(job.source, {
         ...options,
         onProgress: (stage, f) => {

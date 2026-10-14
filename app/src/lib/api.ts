@@ -82,10 +82,11 @@ export async function uploadTake(uri: string, mime: string, onProgress: (fractio
   return body.id;
 }
 
-export async function createCut(uploadIds: string[], language: string): Promise<string> {
+export async function createCut(uploadIds: string[], flips: boolean[], language: string): Promise<string> {
   const s = getSettings();
   const query = [
     `uploads=${uploadIds.join(',')}`,
+    `flips=${flips.map((f) => (f ? 1 : 0)).join(',')}`,
     `maxGap=${s.maxGap}`,
     `fillers=${s.removeFillers ? 1 : 0}`,
     `retakes=${s.removeRetakes ? 1 : 0}`,

@@ -27,7 +27,7 @@ export default function CreateScreen() {
   const navigation = useNavigation();
   const { account } = useAuth();
   const cuts = useCuts();
-  const { mirrorFront } = useSettings();
+  const { mirrorSelfie } = useSettings();
   const [camPermission, requestCam] = useCameraPermissions();
   const [micPermission, requestMic] = useMicrophonePermissions();
   const camera = useRef<CameraView>(null);
@@ -87,7 +87,9 @@ export default function CreateScreen() {
       result = undefined;
     }
     const duration = (Date.now() - startedAt.current) / 1000;
-    const next = result?.uri && duration >= 0.5 ? [...takes, { uri: result.uri, mime: 'video/quicktime', duration }] : takes;
+    // iOS always records the front camera mirrored; unless the user wants that, the server flips it back.
+    const flip = facing === 'front' && !mirrorSelfie;
+    const next = result?.uri && duration >= 0.5 ? [...takes, { uri: result.uri, mime: 'video/quicktime', duration, flip }] : takes;
     setTakes(next);
     setElapsed(0);
     if (finishWhenStopped.current || recorded + duration >= limit - 0.5) {
@@ -159,8 +161,6 @@ export default function CreateScreen() {
           facing={facing}
           enableTorch={torch}
           videoQuality="1080p"
-          // iOS saves front-camera video mirrored by default; `mirror` reverses that.
-          mirror={!mirrorFront}
           onCameraReady={() => setReady(true)}
         />
       )}

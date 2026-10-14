@@ -107,7 +107,7 @@ export default function Review() {
       <View style={styles.previewArea} onLayout={(e: LayoutChangeEvent) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
         {frameW > 0 && (
           <Pressable style={[styles.preview, { width: frameW, height: frameH }]} onPress={() => (playing ? player.pause() : player.play())}>
-            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+            <VideoView player={player} style={[StyleSheet.absoluteFill, current.flip && { transform: [{ scaleX: -1 }] }]} contentFit="cover" nativeControls={false} />
             {!playing && (
               <View style={styles.playOverlay} pointerEvents="none">
                 <SymbolView name="play.fill" tintColor="rgba(255,255,255,0.9)" size={44} />
@@ -129,7 +129,7 @@ export default function Review() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.strip}>
         {takes.map((t, i) => (
           <Pressable key={t.uri} onPress={() => choose(i)} accessibilityLabel={`Take ${i + 1}`}>
-            <Thumb uri={t.uri} seconds={Math.min(0.5, t.duration / 2)} style={[styles.take, i === index && styles.takeOn]}>
+            <Thumb uri={t.uri} seconds={Math.min(0.5, t.duration / 2)} flip={t.flip} style={[styles.take, i === index && styles.takeOn]}>
               <Text style={styles.takeLabel}>
                 {takes.length > 1 ? `Take ${i + 1} · ` : ''}
                 {formatTime(t.duration)}

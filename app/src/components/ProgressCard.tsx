@@ -38,7 +38,7 @@ const LENGTH = 2 * (W - STROKE - 2 * RR) + 2 * (H - STROKE - 2 * RR) + 2 * Math.
 const PATH = outline(W, H, R, STROKE / 2);
 
 /** The take's thumbnail with the percentage in the middle and progress running round the border. */
-export function ProgressCard({ uri, seconds = 0.5, progress, label }: { uri?: string; seconds?: number; progress: number; label?: string }) {
+export function ProgressCard({ uri, seconds = 0.5, progress, label, flip }: { uri?: string; seconds?: number; progress: number; label?: string; flip?: boolean }) {
   const p = useSharedValue(0);
   useEffect(() => {
     p.value = withTiming(Math.max(0, Math.min(1, progress)), { duration: 600, easing: Easing.out(Easing.cubic) });
@@ -47,7 +47,7 @@ export function ProgressCard({ uri, seconds = 0.5, progress, label }: { uri?: st
 
   return (
     <View style={styles.wrap}>
-      <Thumb uri={uri} seconds={seconds} style={styles.card}>
+      <Thumb uri={uri} seconds={seconds} style={styles.card} flip={flip}>
         <View style={styles.shade} />
         {label !== undefined && <Text style={styles.percent}>{label}</Text>}
       </Thumb>

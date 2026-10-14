@@ -22,6 +22,8 @@ export type CutRecord = {
   takes: number;
   /** First raw take on this phone, for the thumbnail while cutting. */
   previewUri?: string;
+  /** The raw preview is a mirrored selfie take; show it flipped until the server's version arrives. */
+  previewFlip?: boolean;
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally
@@ -37,13 +39,14 @@ export type Settings = {
   removeRetakes: boolean;
   captions: boolean;
   /** Keep iOS's default of flipping front-camera videos like a mirror. */
-  mirrorFront: boolean;
+  /** Keep selfie (front camera) videos mirrored, like the camera preview. Off = as others see you. */
+  mirrorSelfie: boolean;
   tourDone: boolean;
   ratingAsked: boolean;
   serverUrl: string; // empty = use the Mac running the dev server
 };
 
-const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorFront: true, tourDone: false, ratingAsked: false, serverUrl: '' };
+const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, ratingAsked: false, serverUrl: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
 const indexFile = new File(cutsDir, 'index-v2.json');

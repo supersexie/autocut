@@ -89,6 +89,7 @@ export default function Cutting() {
   const uploading = cut.status === 'uploading';
   const percent = Math.round(100 * (uploading ? cut.progress * 0.25 : 0.25 + 0.75 * cut.progress));
   const preview = cut.previewUri ?? (cut.source ? cutFile(cut.source).uri : undefined);
+  const flip = !!cut.previewUri && !!cut.previewFlip;
 
   if (cut.status === 'ready') {
     return (
@@ -98,7 +99,7 @@ export default function Cutting() {
           Your cut is ready
         </Animated.Text>
         <Animated.View entering={ZoomIn.springify().damping(16)} style={{ marginTop: 24 }}>
-          <ProgressCard uri={preview} progress={1} />
+          <ProgressCard uri={preview} progress={1} flip={flip} />
         </Animated.View>
       </Backdrop>
     );
@@ -136,7 +137,7 @@ export default function Cutting() {
       <Text style={styles.subtitle}>{uploading ? 'Keep Autocut open.' : 'You’re free to go. Your cut will be waiting in Cuts.'}</Text>
 
       <View style={{ marginTop: 22 }}>
-        <ProgressCard uri={preview} progress={percent / 100} label={`${percent}%`} />
+        <ProgressCard uri={preview} progress={percent / 100} label={`${percent}%`} flip={flip} />
       </View>
 
       <View style={styles.tip}>

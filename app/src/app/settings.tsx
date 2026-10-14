@@ -73,14 +73,14 @@ export default function SettingsScreen() {
 
         <Text style={styles.label}>Recording</Text>
         <View style={styles.group}>
-          <Row label="Mirror front camera videos" value={settings.mirrorFront} onChange={(v) => updateSettings({ mirrorFront: v })} />
+          <Row label="Mirror selfie videos" value={settings.mirrorSelfie} onChange={(v) => updateSettings({ mirrorSelfie: v })} />
           <Pressable style={[styles.item, styles.last]} onPress={() => updateProfile({ language: profile.language === 'es' ? 'en' : 'es' })}>
             <Text style={styles.text}>I record in</Text>
             <Text style={[styles.value, { color: theme.accent }]}>{profile.language === 'es' ? 'Español' : 'English'}</Text>
           </Pressable>
         </View>
 
-        <Text style={styles.foot}>Off: selfie videos save the way others see you, so text on your shirt reads the right way round.</Text>
+        <Text style={styles.foot}>Off: selfie videos come out the way others see you, so text reads the right way round. On: they stay mirrored like the camera preview.</Text>
 
         {__DEV__ && (
           <>

@@ -24,11 +24,11 @@ export function useThumbnail(uri: string | undefined, seconds = 0.3) {
   return uri ? (thumb ?? cache.get(key)) : undefined;
 }
 
-export function Thumb({ uri, seconds, style, children }: { uri?: string; seconds?: number; style?: StyleProp<ViewStyle>; children?: ReactNode }) {
+export function Thumb({ uri, seconds, style, children, flip }: { uri?: string; seconds?: number; style?: StyleProp<ViewStyle>; children?: ReactNode; flip?: boolean }) {
   const thumb = useThumbnail(uri, seconds);
   return (
     <View style={[styles.box, style]}>
-      {thumb && <Image source={{ uri: thumb }} style={StyleSheet.absoluteFill} resizeMode="cover" />}
+      {thumb && <Image source={{ uri: thumb }} style={[StyleSheet.absoluteFill, flip && { transform: [{ scaleX: -1 }] }]} resizeMode="cover" />}
       {children}
     </View>
   );

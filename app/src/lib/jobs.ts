@@ -2,7 +2,8 @@ import { createCut, download, getJob, stopJob, uploadTake } from './api';
 import { addCut, getCut, getCuts, updateCut, type CutRecord } from './store';
 import { sleep } from './theme';
 
-export type Take = { uri: string; mime: string; duration: number };
+/** `flip`: a front-camera take, which iOS records mirrored; the server flips it back. */
+export type Take = { uri: string; mime: string; duration: number; flip?: boolean };
 
 const tracking = new Set<string>();
 const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
@@ -22,6 +23,7 @@ export function startCut(takes: Take[], language: string): string {
     progress: 0,
     takes: takes.length,
     previewUri: takes[0]?.uri,
+    previewFlip: !!takes[0]?.flip,
     duration: takes.reduce((t, k) => t + k.duration, 0),
     words: [],
     cuts: [],
@@ -52,7 +54,7 @@ function uploadAll(id: string, takes: Take[]) {
 async function run(id: string, takes: Take[], language: string) {
   try {
     const ids = await uploadAll(id, takes);
-    const serverId = await createCut(ids, language);
+    const serverId = await createCut(ids, takes.map((t) => !!t.flip), language);
     updateCut(id, { serverId, status: 'processing', stage: 'queued', progress: 0 });
     await track(id);
   } catch (e) {

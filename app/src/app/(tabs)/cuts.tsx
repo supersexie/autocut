@@ -63,6 +63,7 @@ function Grid({ cuts }: { cuts: CutRecord[] }) {
 
 function Card({ cut }: { cut: CutRecord }) {
   const uri = cut.source ? cutFile(cut.source).uri : cut.previewUri;
+  const flip = !cut.source && !!cut.previewFlip;
   const seconds = (cut.clips[0]?.[0] ?? 0) + 0.3;
   const open = () => router.push({ pathname: cut.status === 'ready' ? '/edit/[id]' : '/cut/[id]', params: { id: cut.id } });
   const remove = () =>
@@ -80,7 +81,7 @@ function Card({ cut }: { cut: CutRecord }) {
 
   return (
     <Pressable onPress={open} onLongPress={remove} style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}>
-      <Thumb uri={uri} seconds={seconds} style={styles.thumb}>
+      <Thumb uri={uri} seconds={seconds} style={styles.thumb} flip={flip}>
         {cut.status === 'failed' && (
           <View style={styles.badge}>
             <SymbolView name="exclamationmark" tintColor="#fff" size={10} weight="bold" />
