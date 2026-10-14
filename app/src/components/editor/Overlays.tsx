@@ -15,6 +15,7 @@ import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
 import Slider from '@react-native-community/slider';
+import Svg, { Path } from 'react-native-svg';
 import { OverlayItem, type OverlayGuide } from './OverlayLayer';
 import { Transformable, type Placement } from './Transform';
 import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
@@ -509,26 +510,37 @@ export function CoverPicker({ clips, sourceUri, value, onDone, onCancel }: { cli
   );
 }
 
-export type TourStep = { title: string; body: string; target?: LayoutRectangle; cta: string };
+/** `round`: the spotlight is a circle (for round buttons) instead of a rounded square. */
+export type TourStep = { title: string; body: string; target?: LayoutRectangle; cta: string; round?: boolean };
+
+const roundedRect = (x: number, y: number, w: number, h: number, r: number) =>
+  `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
 
 /** First-run coach marks: dims everything except the part being explained. */
 export function Tour({ steps, index, onNext, onSkip }: { steps: TourStep[]; index: number; onNext: () => void; onSkip: () => void }) {
   const { width, height } = useWindowDimensions();
   const s = steps[index];
   const r = s.target ?? { x: 0, y: height / 2, width, height: 0 };
-  const pad = 6;
-  const hole = { x: r.x - pad, y: r.y - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
+  const pad = s.round ? 8 : 6;
+  let hole = { x: r.x - pad, y: r.y - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
+  if (s.round) {
+    const d = Math.max(hole.w, hole.h);
+    hole = { x: hole.x + (hole.w - d) / 2, y: hole.y + (hole.h - d) / 2, w: d, h: d };
+  }
+  const radius = s.round ? hole.w / 2 : Math.min(14, hole.h / 2);
   const cardAbove = hole.y > height / 2;
   const dim = 'rgba(0,0,0,0.45)';
-  const side = Math.max(16, (width - 440) / 2); // a phone-width card, centred on iPad
+  // A phone-width card, as close above or below its target as it fits (centred on it where it can).
+  const cardW = Math.min(440, width - 32);
+  const cardLeft = Math.max(16, Math.min(width - 16 - cardW, hole.x + hole.w / 2 - cardW / 2));
   return (
     <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={StyleSheet.absoluteFill}>
-      <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: Math.max(0, hole.y), backgroundColor: dim }} />
-      <View style={{ position: 'absolute', left: 0, right: 0, top: hole.y + hole.h, bottom: 0, backgroundColor: dim }} />
-      <View style={{ position: 'absolute', left: 0, width: Math.max(0, hole.x), top: hole.y, height: hole.h, backgroundColor: dim }} />
-      <View style={{ position: 'absolute', left: hole.x + hole.w, right: 0, top: hole.y, height: hole.h, backgroundColor: dim }} />
-      <View style={[styles.holeRing, { left: hole.x, top: hole.y, width: hole.w, height: hole.h }]} pointerEvents="none" />
-      <Animated.View key={index} entering={FadeIn.duration(220)} style={[styles.tourCard, { left: side, right: side }, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
+      {/* Everything dimmed but a cut-out the shape of the thing being explained. */}
+      <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
+        <Path fill={dim} fillRule="evenodd" d={`M0 0H${width}V${height}H0Z ${roundedRect(hole.x, hole.y, hole.w, hole.h, radius)}`} />
+      </Svg>
+      <View style={[styles.holeRing, { left: hole.x, top: hole.y, width: hole.w, height: hole.h, borderRadius: radius }]} pointerEvents="none" />
+      <Animated.View key={index} entering={FadeIn.duration(220)} style={[styles.tourCard, { left: cardLeft, width: cardW }, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
         <View style={styles.between}>
           <Text style={styles.tourTitle}>{s.title}</Text>
           <Text style={styles.tourCount}>

@@ -50,6 +50,8 @@ export type Settings = {
   /** Keep selfie (front camera) videos mirrored, like the camera preview. Off = as others see you. */
   mirrorSelfie: boolean;
   tourDone: boolean;
+  /** The camera's two-step tour (record, import) has been seen. */
+  cameraTourDone: boolean;
   ratingAsked: boolean;
   serverUrl: string; // empty = use the Mac running the dev server
   /** Folder new cuts are filed in, chosen on the camera; empty = the main Cuts page. */
@@ -58,7 +60,7 @@ export type Settings = {
 
 export type Folder = { id: string; name: string; createdAt: string };
 
-const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, ratingAsked: false, serverUrl: '', saveFolder: '' };
+const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, cameraTourDone: false, ratingAsked: false, serverUrl: '', saveFolder: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
 /** The editor's stitched previews (see previewOf in api.ts), named `<cut id>-<key>.mp4`. */

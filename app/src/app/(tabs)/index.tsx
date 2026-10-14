@@ -5,15 +5,15 @@ import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Logo, PressableScale } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
-import { useAuth } from '../../lib/auth';
 import type { Take } from '../../lib/jobs';
-import { folderName, useCuts, useFolders, useSettings } from '../../lib/store';
+import { folderName, updateSettings, useFolders, useSettings } from '../../lib/store';
+import { Tour } from '../../components/editor/Overlays';
 import { AddVideoSheet, FolderSheet } from '../../components/CameraSheets';
 import { BRAND_FONT } from '../../lib/fonts';
 import { formatTime, theme } from '../../lib/theme';
@@ -31,9 +31,7 @@ export default function CreateScreen() {
   const insets = useSafeAreaInsets();
   const screen = useWindowDimensions();
   const navigation = useNavigation();
-  const { account } = useAuth();
-  const cuts = useCuts();
-  const { mirrorSelfie, saveFolder } = useSettings();
+  const { mirrorSelfie, saveFolder, cameraTourDone } = useSettings();
   const [camPermission, requestCam] = useCameraPermissions();
   const [micPermission, requestMic] = useMicrophonePermissions();
   const camera = useRef<CameraView>(null);
@@ -48,7 +46,11 @@ export default function CreateScreen() {
   const [mode, setMode] = useState<Mode>('idle');
   const [takes, setTakes] = useState<Take[]>([]);
   const [elapsed, setElapsed] = useState(0);
-  const [showTip, setShowTip] = useState(true);
+  // First visit: a two-step tour of the record and import buttons.
+  const shutterRef = useRef<View>(null);
+  const importRef = useRef<View>(null);
+  const [tour, setTour] = useState(-1);
+  const [tourTargets, setTourTargets] = useState<(LayoutRectangle | undefined)[]>([]);
   const [sheet, setSheet] = useState<'folder' | 'add' | null>(null);
   useFolders(); // re-render when a folder is renamed
 
@@ -176,6 +178,25 @@ export default function CreateScreen() {
     else review(picked);
   }
 
+  // Once the camera is up and nothing else is open, measure the two buttons and start the tour.
+  useEffect(() => {
+    if (cameraTourDone || !ready || !focused || sheet || mode !== 'idle' || tour >= 0) return;
+    const t = setTimeout(() => {
+      const measure = (ref: React.RefObject<View | null>) =>
+        new Promise<LayoutRectangle | undefined>((resolve) => (ref.current ? ref.current.measureInWindow((x, y, width, height) => resolve({ x, y, width, height })) : resolve(undefined)));
+      Promise.all([measure(shutterRef), measure(importRef)]).then((targets) => {
+        if (!targets[0]) return;
+        setTourTargets(targets);
+        setTour(0);
+      });
+    }, 600);
+    return () => clearTimeout(t);
+  }, [cameraTourDone, ready, focused, sheet, mode, tour]);
+  function endTour() {
+    setTour(-1);
+    updateSettings({ cameraTourDone: true });
+  }
+
   if (!camPermission) return <View style={styles.black} />;
   if (!camPermission.granted) {
     return (
@@ -208,7 +229,6 @@ export default function CreateScreen() {
     mode === 'recording'
       ? `Take ${takes.length + 1} · ${formatTime(elapsed)}`
       : `${takes.length} take${takes.length === 1 ? '' : 's'} · ${formatTime(recorded)}  Paused`;
-  const firstTime = account?.profile.tour && cuts.length === 0 && showTip && mode === 'idle';
 
   return (
     <View style={styles.black}>
@@ -254,12 +274,6 @@ export default function CreateScreen() {
         </View>
       </View>
 
-      {firstTime && (
-        <Pressable style={[styles.tip, { bottom: bottom + 150, left: frameX + 24, right: frameX + 24 }]} onPress={() => setShowTip(false)}>
-          <Text style={styles.tipText}>Tap the button to record. Flub a line? Just say it again, Autocut keeps your last take.</Text>
-          <Text style={styles.tipDismiss}>Got it</Text>
-        </Pressable>
-      )}
 
       <View style={[styles.bottom, { bottom, left: frameX, right: frameX }]}>
         {mode === 'idle' && !takes.length && <LengthPicker value={limit} onChange={setLimit} />}
@@ -276,6 +290,7 @@ export default function CreateScreen() {
             ) : null}
           </View>
 
+          <View ref={shutterRef} collapsable={false}>
           <PressableScale
             onPress={mode === 'recording' ? pause : record}
             accessibilityLabel={mode === 'recording' ? 'Pause' : mode === 'paused' ? 'Record next take' : 'Record'}
@@ -289,12 +304,15 @@ export default function CreateScreen() {
               <View style={[styles.shutterInner, mode === 'paused' && { backgroundColor: theme.cut }]} />
             )}
           </PressableScale>
+          </View>
 
           <View style={[styles.side, { flexDirection: 'row', gap: 12, justifyContent: 'flex-end' }]}>
             {mode === 'idle' && !takes.length && (
-              <PressableScale onPress={() => setSheet('add')} scaleTo={0.92} style={styles.importButton} accessibilityLabel="Add a video from Photos">
-                <SymbolView name="photo.on.rectangle.angled" tintColor={theme.ink} size={22} />
-              </PressableScale>
+              <View ref={importRef} collapsable={false}>
+                <PressableScale onPress={() => setSheet('add')} scaleTo={0.92} style={styles.importButton} accessibilityLabel="Add a video from Photos">
+                  <SymbolView name="photo.on.rectangle.angled" tintColor={theme.ink} size={22} />
+                </PressableScale>
+              </View>
             )}
             {mode === 'paused' && <RoundIcon name="xmark" label="Delete last take" onPress={discardLast} />}
             {busy && (
@@ -307,6 +325,28 @@ export default function CreateScreen() {
       </View>
       <FolderSheet visible={sheet === 'folder'} onClose={() => setSheet(null)} />
       <AddVideoSheet visible={sheet === 'add'} onClose={() => setSheet(null)} onPick={importVideo} />
+      {tour >= 0 && (
+        <Tour
+          steps={[
+            {
+              title: 'Flub it, keep going',
+              body: 'Tap to record. Stumble on a line? Just say it again. Autocut keeps your best take and cuts the rest.',
+              target: tourTargets[0],
+              round: true,
+              cta: 'Next',
+            },
+            {
+              title: 'Already filmed it?',
+              body: 'Pick a video from your camera roll and it gets the same cut.',
+              target: tourTargets[1],
+              cta: 'Got it',
+            },
+          ]}
+          index={tour}
+          onNext={() => (tour < 1 ? setTour(1) : endTour())}
+          onSkip={endTour}
+        />
+      )}
     </View>
   );
 }
@@ -413,7 +453,4 @@ const styles = StyleSheet.create({
   shutter: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
   done: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  tip: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, gap: 6 },
-  tipText: { fontSize: 14, color: theme.ink, lineHeight: 20 },
-  tipDismiss: { fontSize: 14, fontWeight: '700', color: theme.accent, alignSelf: 'flex-end' },
 });
