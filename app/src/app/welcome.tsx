@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, View } from 'react-native';
 import { Backdrop, Button, Logo } from '../components/ui';
+import { clearDraft } from '../lib/draft';
 import { theme } from '../lib/theme';
 
 // Raw take (seconds) and what Autocut removed, drawn on the mock phone.
@@ -13,7 +14,13 @@ export default function Welcome() {
     <Backdrop
       footer={
         <>
-          <Button title="Get Started" onPress={() => router.push('/setup')} />
+          <Button
+            title="Get Started"
+            onPress={() => {
+              clearDraft(); // a fresh start: no answers left over from an earlier run through setup
+              router.push('/setup');
+            }}
+          />
           <Text style={styles.signIn}>
             Already have an account?{' '}
             <Text style={styles.signInLink} onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })}>
