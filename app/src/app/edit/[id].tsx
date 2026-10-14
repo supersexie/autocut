@@ -8,7 +8,7 @@ import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View, type La
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
 import { CaptionsPanel, FormatPanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
-import { Preview, ReorderStrip, TextComposer, Tour, type TourStep } from '../../components/editor/Overlays';
+import { Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { Button, type SymbolName } from '../../components/ui';
 import {
@@ -61,7 +61,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [panel, setPanel] = useState<PanelId>(null);
   const [focusLine, setFocusLine] = useState<string | undefined>();
-  const [composer, setComposer] = useState<{ id?: string; text: string; style: string } | null>(null);
+  const [composer, setComposer] = useState<(TextDraft & { id?: string }) | null>(null);
   const [reorderFrom, setReorderFrom] = useState<number | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -186,8 +186,8 @@ function Editor({ cut }: { cut: CutRecord }) {
   const text = edit.texts.find((t) => t.id === selectedText);
   const updateText = (id: string, patch: Partial<TextOverlay>) => commit({ ...edit, texts: edit.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)) }, { keepTime: true });
 
-  function addText(value: string, style: string) {
-    const t: TextOverlay = { id: newId(), text: value, style, start: time, end: Math.min(total, time + 3), x: 0.5, y: 0.3, scale: 1 };
+  function addText(d: TextDraft) {
+    const t: TextOverlay = { ...d, id: newId(), start: time, end: Math.min(total, time + 3), x: 0.5, y: 0.3, scale: 1 };
     commit({ ...edit, texts: [...edit.texts, t] }, { keepTime: true });
     setSelectedText(t.id);
   }
@@ -256,7 +256,7 @@ function Editor({ cut }: { cut: CutRecord }) {
     else if (tool === 'speed') setPanel('speed');
     else if (tool === 'restore') setRestoring(true);
     else if (!text) return;
-    else if (tool === 'textEdit') setComposer({ id: text.id, text: text.text, style: text.style });
+    else if (tool === 'textEdit') setComposer({ id: text.id, text: text.text, style: text.style, font: text.font, color: text.color, box: text.box, align: text.align });
     else if (tool === 'textStyle') setPanel('textStyle');
     else if (tool === 'textStart') updateText(text.id, { start: Math.min(time, text.end - 0.2) });
     else if (tool === 'textEnd') updateText(text.id, { end: Math.max(time, text.start + 0.2) });
@@ -444,12 +444,13 @@ function Editor({ cut }: { cut: CutRecord }) {
 
       {composer && (
         <TextComposer
-          initial={composer.text}
-          styleId={composer.style}
+          initial={composer}
+          sourceUri={sourceUri}
+          seconds={locate(clips, time)[1]}
           onCancel={() => setComposer(null)}
-          onDone={(value, style) => {
-            if (composer.id) updateText(composer.id, { text: value, style });
-            else addText(value, style);
+          onDone={(d) => {
+            if (composer.id) updateText(composer.id, d);
+            else addText(d);
             setComposer(null);
           }}
         />

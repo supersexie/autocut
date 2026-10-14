@@ -6,7 +6,7 @@ const line = { start: 0, end: 1.5, words: [{ text: 'make', start: 0, end: 0.4 },
 const dialogues = (ass) => ass.split('\n').filter((l) => l.startsWith('Dialogue:'));
 
 test('every caption and text style uses a bundled font', () => {
-  const bundled = ['Montserrat ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];
+  const bundled = ['Inter', 'Inter ExtraBold', 'Inter Black', 'Montserrat ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];
   for (const s of [...STYLES.captions, ...STYLES.texts]) assert.ok(bundled.includes(s.font), `${s.id} uses ${s.font}`);
 });
 
@@ -32,4 +32,12 @@ test('text overlays are positioned and user markup is neutralised', () => {
   const d = dialogues(buildAss({ width: 1080, height: 1920, texts: [{ text: 'hi {\\b1} there', style: 'loud', start: 0, end: 2, x: 0.5, y: 0.25 }] }));
   assert.match(d[0], /\\pos\(540,480\)/);
   assert.match(d[0], /HI B1 THERE$/);
+});
+
+test('a text can switch font, colour, background box and alignment', () => {
+  const d = dialogues(buildAss({ width: 1080, height: 1920, texts: [{ text: 'hey', style: 'classic', start: 0, end: 1, x: 0.2, y: 0.5, font: 'Anton', color: '#FF0000', box: true, align: 'left' }] }));
+  assert.match(d[0], /\\an4\\pos\(216,960\)/);
+  const ass = buildAss({ width: 1080, height: 1920, texts: [{ text: 'hey', style: 'classic', start: 0, end: 1, font: 'Anton', color: '#FF0000', box: true }] });
+  assert.match(ass, /Style: Text0,Anton,\d+,&H000000FF,&H000000FF,&H00FFFFFF,/);
+  assert.match(ass.split('\n').find((l) => l.startsWith('Style: Text0')), /,3,14,0,5,/);
 });

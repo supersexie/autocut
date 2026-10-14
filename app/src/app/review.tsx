@@ -2,8 +2,9 @@ import { File } from 'expo-file-system';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
@@ -41,6 +42,22 @@ export default function Review() {
     ];
     return () => subs.forEach((s) => s.remove());
   }, [player]);
+
+  // Size the player to the video's real shape (e.g. 9:16), read from a frame.
+  const [aspect, setAspect] = useState(9 / 16);
+  const [box, setBox] = useState({ w: 0, h: 0 });
+  useEffect(() => {
+    if (!takes[index]) return;
+    VideoThumbnails.getThumbnailAsync(takes[index].uri, { time: 100 })
+      .then((t) => t.width && t.height && setAspect(t.width / t.height))
+      .catch(() => {});
+  }, [takes, index]);
+  let frameW = box.w;
+  let frameH = frameW / aspect;
+  if (frameH > box.h) {
+    frameH = box.h;
+    frameW = frameH * aspect;
+  }
 
   const total = takes.reduce((t, k) => t + k.duration, 0);
   const bytes = takes.reduce((t, k) => t + (new File(k.uri).size ?? 0), 0);
@@ -87,14 +104,18 @@ export default function Review() {
         </View>
       </View>
 
-      <Pressable style={styles.preview} onPress={() => (playing ? player.pause() : player.play())}>
-        <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
-        {!playing && (
-          <View style={styles.playOverlay} pointerEvents="none">
-            <SymbolView name="play.fill" tintColor="rgba(255,255,255,0.9)" size={44} />
-          </View>
+      <View style={styles.previewArea} onLayout={(e: LayoutChangeEvent) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+        {frameW > 0 && (
+          <Pressable style={[styles.preview, { width: frameW, height: frameH }]} onPress={() => (playing ? player.pause() : player.play())}>
+            <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+            {!playing && (
+              <View style={styles.playOverlay} pointerEvents="none">
+                <SymbolView name="play.fill" tintColor="rgba(255,255,255,0.9)" size={44} />
+              </View>
+            )}
+          </Pressable>
         )}
-      </Pressable>
+      </View>
 
       <View style={styles.transport}>
         <Pressable onPress={() => (playing ? player.pause() : player.play())} hitSlop={10} accessibilityLabel={playing ? 'Pause' : 'Play'}>
@@ -155,7 +176,8 @@ const styles = StyleSheet.create({
   back: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   info: { backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
   infoText: { fontSize: 12, color: theme.muted, fontWeight: '600', fontVariant: ['tabular-nums'] },
-  preview: { flex: 1, borderRadius: 22, overflow: 'hidden', backgroundColor: '#000', marginHorizontal: 24 },
+  previewArea: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  preview: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
   playOverlay: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center' },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4 },
   meta: { fontSize: 13, color: theme.muted, fontVariant: ['tabular-nums'] },

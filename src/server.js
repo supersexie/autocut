@@ -254,6 +254,10 @@ async function createRender(req, res, job) {
     x: Math.min(1, Math.max(0, Number(t.x ?? 0.5))),
     y: Math.min(1, Math.max(0, Number(t.y ?? 0.5))),
     scale: Math.min(3, Math.max(0.3, Number(t.scale) || 1)),
+    font: typeof t.font === 'string' ? t.font.slice(0, 60) : undefined,
+    color: /^#[0-9a-f]{6}$/i.test(t.color ?? '') ? t.color : undefined,
+    box: typeof t.box === 'boolean' ? t.box : undefined,
+    align: ['left', 'center', 'right'].includes(t.align) ? t.align : undefined,
   }));
 
   const renderId = randomUUID();

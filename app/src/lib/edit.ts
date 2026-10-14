@@ -13,7 +13,10 @@ export type CaptionSettings = {
   /** Text the user typed over a line, keyed by the line's first word (source time, cs). */
   edits: Record<string, string>;
 };
-export type TextOverlay = { id: string; text: string; style: string; start: number; end: number; x: number; y: number; scale: number };
+export type TextAlign = 'left' | 'center' | 'right';
+/** Per-text changes made on top of its style (font, colour, background box, alignment). */
+export type TextLook = { font?: string; color?: string; box?: boolean; align?: TextAlign };
+export type TextOverlay = { id: string; text: string; style: string; start: number; end: number; x: number; y: number; scale: number } & TextLook;
 export type Edit = { clips: ClipEdit[]; muted: boolean; captions: CaptionSettings; texts: TextOverlay[] };
 
 const MIN = 0.1; // shortest clip worth keeping, in seconds
@@ -151,7 +154,7 @@ export function exportBody(edit: Edit, words: Word[], opts: { height?: number; f
     captions: edit.captions.enabled
       ? { style: edit.captions.style, lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => ({ start, end, words: w })) }
       : undefined,
-    texts: edit.texts.map(({ text, style, start, end, x, y, scale }) => ({ text, style, start, end, x, y, scale })),
+    texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, align }) => ({ text, style, start, end, x, y, scale, font, color, box, align })),
     ...opts,
   };
 }

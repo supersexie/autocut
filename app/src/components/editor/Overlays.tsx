@@ -3,12 +3,14 @@ import { SymbolView } from 'expo-symbols';
 import { VideoView, type VideoPlayer } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
 import {
-  KeyboardAvoidingView, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
+  Keyboard, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
   type LayoutChangeEvent, type LayoutRectangle,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moveClip, outDuration, type CaptionLine, type ClipEdit, type TextOverlay } from '../../lib/edit';
+import { moveClip, outDuration, type CaptionLine, type ClipEdit, type TextLook, type TextOverlay } from '../../lib/edit';
+import { TEXT_FONTS } from '../../lib/fonts';
+import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
 import { captionStyle, StyledText, TEXT_STYLES, textStyle } from './StyledText';
@@ -96,49 +98,103 @@ function DraggableText({ text, frameW, frameH, selected, onTap, onMove }: { text
       onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
       style={[styles.textItem, { left, top, opacity: size.w ? 1 : 0 }, selected && styles.textSelected, drag && { transform: [{ scale: 1.04 }] }]}
     >
-      <StyledText preset={textStyle(text.style)} words={text.text.split(' ')} frameWidth={frameW} scale={text.scale} />
+      <StyledText preset={textStyle(text.style)} look={text} words={text.text.split(' ')} frameWidth={frameW} scale={text.scale} />
     </View>
   );
 }
 
-/** Typing a text overlay: the text sits on the video, styles scroll above the keyboard. */
-export function TextComposer({ initial, styleId, onDone, onCancel }: { initial: string; styleId: string; onDone: (text: string, style: string) => void; onCancel: () => void }) {
+/** What the text editor hands back: the words, the style, and any font/colour/box/align changes. */
+export type TextDraft = { text: string; style: string } & TextLook;
+
+type Tray = 'styles' | 'fonts' | 'colors';
+const COLORS = ['#FFFFFF', '#111114', '#F2545B', '#FF9F1C', '#FFE14D', '#2FB463', '#58C4FF', '#7B61FF', '#FF6EF0'];
+
+/**
+ * Typing a text overlay, like CutAI: the current frame fills the screen, the text sits in the
+ * middle with a cursor, and a row of styles (or fonts / colours) rides on top of the keyboard.
+ */
+export function TextComposer({ initial, sourceUri, seconds, onDone, onCancel }: { initial: TextDraft; sourceUri: string; seconds: number; onDone: (d: TextDraft) => void; onCancel: () => void }) {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const [value, setValue] = useState(initial);
-  const [style, setStyle] = useState(styleId);
+  const [draft, setDraft] = useState<TextDraft>(initial);
+  const [tray, setTray] = useState<Tray>('styles');
+  const [keyboard, setKeyboard] = useState(0);
+  const input = useRef<TextInput>(null);
+
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardWillShow', (e) => setKeyboard(e.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardWillHide', () => setKeyboard(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const set = (patch: Partial<TextDraft>) => {
+    Haptics.selectionAsync();
+    setDraft((d) => ({ ...d, ...patch }));
+  };
+  const cycleAlign = () => set({ align: draft.align === 'left' ? 'right' : draft.align === 'right' ? 'center' : 'left' });
+  const preset = textStyle(draft.style);
+  const boxOn = draft.box ?? !!preset.box;
+  const look: TextLook = { font: draft.font, color: draft.color, box: draft.box, align: draft.align };
+  const TRAY_H = 62;
+  const top = insets.top + 52;
+  const bottom = (keyboard || insets.bottom) + TRAY_H;
+
+  const tools: { icon: SymbolName; label: string; on?: boolean; onPress: () => void }[] = [
+    { icon: 'sparkles', label: 'Styles', on: tray === 'styles', onPress: () => setTray('styles') },
+    { icon: 'textformat', label: 'Font', on: tray === 'fonts', onPress: () => setTray('fonts') },
+    { icon: 'paintpalette.fill', label: 'Colour', on: tray === 'colors', onPress: () => setTray('colors') },
+    { icon: boxOn ? 'a.square.fill' : 'a.square', label: 'Background', onPress: () => set({ box: !boxOn }) },
+    { icon: draft.align === 'left' ? 'text.alignleft' : draft.align === 'right' ? 'text.alignright' : 'text.aligncenter', label: 'Align', onPress: cycleAlign },
+  ];
+
   return (
-    <Animated.View entering={FadeIn.duration(160)} exiting={FadeOut.duration(140)} style={[StyleSheet.absoluteFill, styles.composer]}>
-      <KeyboardAvoidingView behavior="padding" style={{ flex: 1, paddingTop: insets.top }}>
-        <View style={styles.composerTop}>
-          <Pressable onPress={onCancel} hitSlop={10}>
-            <Text style={styles.composerCancel}>Cancel</Text>
+    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)} style={[StyleSheet.absoluteFill, styles.composer]}>
+      <Thumb uri={sourceUri} seconds={seconds} style={StyleSheet.absoluteFill} />
+      <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.18)' }]} />
+
+      <View style={[styles.composerTop, { paddingTop: insets.top + 6 }]}>
+        {tools.map((t) => (
+          <Pressable key={t.label} onPress={t.onPress} hitSlop={8} accessibilityLabel={t.label} style={[styles.topTool, t.on && styles.topToolOn]}>
+            <SymbolView name={t.icon} tintColor={t.on ? theme.ink : '#fff'} size={19} />
           </Pressable>
-          <Pressable onPress={() => (value.trim() ? onDone(value.trim(), style) : onCancel())} hitSlop={10}>
-            <Text style={styles.composerDone}>Done</Text>
-          </Pressable>
+        ))}
+        <View style={{ flex: 1 }} />
+        <Pressable onPress={() => (draft.text.trim() ? onDone({ ...draft, text: draft.text.trim() }) : onCancel())} hitSlop={10}>
+          <Text style={styles.composerDone}>Done</Text>
+        </Pressable>
+      </View>
+
+      <Pressable onPress={() => input.current?.focus()} style={[styles.composerStage, { top, bottom }]}>
+        <View style={{ alignSelf: 'stretch', paddingHorizontal: 18, opacity: draft.text ? 1 : 0.55 }}>
+          <StyledText preset={preset} look={look} words={(draft.text || 'Type something').split(' ')} frameWidth={width} />
         </View>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 }}>
-          <View>
-            <StyledText preset={textStyle(style)} words={(value || 'Type something').split(' ')} frameWidth={width * 0.9} />
-            <TextInput value={value} onChangeText={setValue} autoFocus multiline style={styles.hiddenInput} accessibilityLabel="Text" />
-          </View>
-        </View>
+        <TextInput ref={input} value={draft.text} onChangeText={(text) => setDraft((d) => ({ ...d, text }))} autoFocus multiline style={styles.hiddenInput} accessibilityLabel="Text" />
+      </Pressable>
+
+      <View style={[styles.tray, { bottom: keyboard || insets.bottom, height: TRAY_H }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={styles.chips}>
-          {TEXT_STYLES.map((s) => (
-            <Pressable
-              key={s.id}
-              onPress={() => {
-                Haptics.selectionAsync();
-                setStyle(s.id);
-              }}
-              style={[styles.styleChip, style === s.id && styles.styleChipOn]}
-            >
-              <StyledText preset={s} words={[s.name]} frameWidth={120} scale={0.75} numberOfLines={1} />
-            </Pressable>
-          ))}
+          {tray === 'styles' &&
+            TEXT_STYLES.map((s) => (
+              <Pressable key={s.id} onPress={() => set({ style: s.id, box: undefined, color: undefined, font: undefined })} style={[styles.styleChip, draft.style === s.id && styles.styleChipOn]}>
+                <Thumb uri={sourceUri} seconds={seconds} style={StyleSheet.absoluteFill} />
+                <StyledText preset={s} words={[s.name]} frameWidth={130} scale={0.8} numberOfLines={1} />
+              </Pressable>
+            ))}
+          {tray === 'fonts' &&
+            TEXT_FONTS.map((f) => (
+              <Pressable key={f} onPress={() => set({ font: f })} style={[styles.fontChip, (draft.font ?? preset.font) === f && styles.fontChipOn]}>
+                <Text style={[styles.fontChipText, { fontFamily: f }]}>Aa</Text>
+              </Pressable>
+            ))}
+          {tray === 'colors' &&
+            COLORS.map((c) => (
+              <Pressable key={c} onPress={() => set({ color: c })} accessibilityLabel={`Colour ${c}`} style={[styles.swatch, { backgroundColor: c }, (draft.color ?? preset.color).toUpperCase() === c && styles.swatchOn]} />
+            ))}
         </ScrollView>
-      </KeyboardAvoidingView>
+      </View>
     </Animated.View>
   );
 }
@@ -247,14 +303,22 @@ const styles = StyleSheet.create({
   textItem: { position: 'absolute', padding: 4, borderRadius: 8, borderWidth: 1.5, borderColor: 'transparent' },
   textSelected: { borderColor: '#fff', borderStyle: 'dashed' },
   closeFull: { position: 'absolute', right: 16, width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center' },
-  composer: { backgroundColor: 'rgba(17,17,20,0.92)', zIndex: 30 },
-  composerTop: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 18, paddingVertical: 12 },
-  composerCancel: { color: 'rgba(255,255,255,0.75)', fontSize: 16 },
-  composerDone: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  composer: { backgroundColor: '#000', zIndex: 30 },
+  composerTop: { position: 'absolute', left: 0, right: 0, top: 0, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingBottom: 8, zIndex: 2 },
+  topTool: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
+  topToolOn: { backgroundColor: '#fff' },
+  composerDone: { color: '#fff', fontSize: 17, fontWeight: '700', paddingHorizontal: 6 },
+  composerStage: { position: 'absolute', left: 0, right: 0, alignItems: 'center', justifyContent: 'center' },
   hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, color: 'transparent', fontSize: 1 },
-  chips: { gap: 8, paddingHorizontal: 12, paddingVertical: 10 },
-  styleChip: { height: 46, minWidth: 96, paddingHorizontal: 10, borderRadius: 12, backgroundColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
+  tray: { position: 'absolute', left: 0, right: 0, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
+  chips: { gap: 8, paddingHorizontal: 10, alignItems: 'center' },
+  styleChip: { width: 96, height: 46, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: 'transparent' },
   styleChipOn: { borderColor: '#fff' },
+  fontChip: { width: 52, height: 46, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: 'transparent' },
+  fontChipOn: { borderColor: '#fff' },
+  fontChipText: { color: '#fff', fontSize: 20 },
+  swatch: { width: 34, height: 34, borderRadius: 17, borderWidth: 2, borderColor: 'rgba(255,255,255,0.5)' },
+  swatchOn: { borderColor: '#fff', borderWidth: 3.5, transform: [{ scale: 1.1 }] },
   reorder: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, backgroundColor: theme.bg, zIndex: 10, paddingTop: 6 },
   reorderHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, height: 44 },
   reorderTitle: { fontSize: 15, fontWeight: '700', color: theme.ink },

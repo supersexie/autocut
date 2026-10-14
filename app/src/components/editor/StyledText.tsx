@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import type { TextLook } from '../../lib/edit';
 import presets from '../../lib/styles.json';
 
 export type StylePreset = {
@@ -25,6 +26,23 @@ export const TEXT_STYLES = presets.texts as StylePreset[];
 export const captionStyle = (id: string) => CAPTION_STYLES.find((s) => s.id === id) ?? CAPTION_STYLES[0];
 export const textStyle = (id: string) => TEXT_STYLES.find((s) => s.id === id) ?? TEXT_STYLES[0];
 
+const isDark = (hex: string) => {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b < 140;
+};
+
+/** A text's own font/colour/box choices on top of its style (mirrors withLook in src/ass.js). */
+export function withLook(p: StylePreset, look?: TextLook): StylePreset {
+  if (!look) return p;
+  const out = { ...p };
+  if (look.font) out.font = look.font;
+  if (look.color) out.color = look.color;
+  if (look.box === true && !p.box) Object.assign(out, { box: isDark(out.color) ? '#FFFFFF' : '#111114', outlineWidth: 14, shadow: 0 });
+  if (look.box === false && p.box) Object.assign(out, { box: undefined, outline: '#000000', outlineWidth: 2 });
+  return out;
+}
+
 // Same scale as the server (src/ass.js): font size is 8.5% of the video width for size 1,
 // and outline/shadow widths are in that same 1080-wide space.
 const FONT_SCALE = 0.085;
@@ -41,10 +59,13 @@ type Props = {
   scale?: number;
   style?: StyleProp<ViewStyle>;
   numberOfLines?: number;
+  look?: TextLook;
 };
 
 /** Renders text the way the export will: outline, box, glow, tilt and word highlights. */
-export function StyledText({ preset: p, words, active = -1, frameWidth, scale = 1, style, numberOfLines }: Props) {
+export function StyledText({ preset, words, active = -1, frameWidth, scale = 1, style, numberOfLines, look }: Props) {
+  const p = withLook(preset, look);
+  const align = look?.align ?? 'center';
   const fontSize = frameWidth * FONT_SCALE * p.size * scale;
   const unit = fontSize / (ASS_FONT * p.size); // one ASS pixel, in points
   const outline = (p.outlineWidth ?? 0) * unit;
@@ -56,7 +77,7 @@ export function StyledText({ preset: p, words, active = -1, frameWidth, scale = 
     fontFamily: p.font,
     fontSize,
     lineHeight: fontSize * 1.18,
-    textAlign: 'center',
+    textAlign: align,
     color: p.color,
   };
 
@@ -87,7 +108,7 @@ export function StyledText({ preset: p, words, active = -1, frameWidth, scale = 
   return (
     <View
       style={[
-        { alignSelf: 'center', maxWidth: frameWidth * 0.88 },
+        { alignSelf: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center', maxWidth: frameWidth * 0.88 },
         p.rotate ? { transform: [{ rotate: `${-p.rotate}deg` }] } : null,
         p.box ? { backgroundColor: p.box, paddingHorizontal: outline, paddingVertical: outline * 0.35, borderRadius: outline * 0.6 } : null,
         style,

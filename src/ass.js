@@ -49,6 +49,30 @@ function styleLine(name, s, playResY, alignment, marginV) {
 
 const upper = (s, text) => (s.uppercase ? text.toUpperCase() : text);
 
+const isDark = (hex) => {
+  const h = hex.replace('#', '');
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b < 140;
+};
+
+/** A text's own font/colour/box choices on top of its style (mirrors StyledText in the app). */
+export function withLook(s, t = {}) {
+  const out = { ...s };
+  if (t.font) out.font = t.font;
+  if (t.color) out.color = t.color;
+  if (t.box === true && !s.box) {
+    out.box = isDark(out.color) ? '#FFFFFF' : '#111114';
+    out.outlineWidth = 14;
+    out.shadow = 0;
+  }
+  if (t.box === false && s.box) {
+    out.box = undefined;
+    out.outline = '#000000';
+    out.outlineWidth = 2;
+  }
+  return out;
+}
+
 /**
  * captions: { style, lines: [{ start, end, words: [{ text, start, end }] }] } on the output timeline.
  * texts: [{ text, style, start, end, x, y, scale }] with x/y as 0–1 of the frame (centre of the text).
@@ -88,13 +112,14 @@ export function buildAss({ width, height, captions, texts = [] }) {
   }
 
   texts.forEach((t, i) => {
-    const s = STYLES.texts.find((x) => x.id === t.style) ?? STYLES.texts[0];
+    const s = withLook(STYLES.texts.find((x) => x.id === t.style) ?? STYLES.texts[0], t);
     const name = `Text${i}`;
-    styles.push(styleLine(name, { ...s, size: (s.size ?? 1) * (t.scale ?? 1) }, playResY, 5, 0));
+    const an = t.align === 'left' ? 4 : t.align === 'right' ? 6 : 5;
+    styles.push(styleLine(name, { ...s, size: (s.size ?? 1) * (t.scale ?? 1) }, playResY, an, 0));
     const x = Math.round((t.x ?? 0.5) * BASE_WIDTH);
     const y = Math.round((t.y ?? 0.5) * playResY);
     const glow = s.glow ? `\\blur${s.glow}` : '';
-    events.push(`Dialogue: 1,${time(t.start)},${time(t.end)},${name},,0,0,0,,{\\an5\\pos(${x},${y})${glow}}${clean(upper(s, t.text))}`);
+    events.push(`Dialogue: 1,${time(t.start)},${time(t.end)},${name},,0,0,0,,{\\an${an}\\pos(${x},${y})${glow}}${clean(upper(s, t.text))}`);
   });
 
   return [

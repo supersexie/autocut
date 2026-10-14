@@ -7,12 +7,13 @@ import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useState } from 'react';
 import { ActionSheetIOS, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, SlideInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeInDown, SlideInDown, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { download, getJob, startRender } from '../lib/api';
 import { exportBody, totalDuration, type Edit } from '../lib/edit';
 import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type CutRecord } from '../lib/store';
 import { formatTime, sleep, theme } from '../lib/theme';
+import { ProgressCard } from './ProgressCard';
 import { Thumb } from './Thumb';
 import { Button } from './ui';
 
@@ -147,14 +148,9 @@ function Exporting({ phase, preview, seconds, onRetry, onClose }: { phase: Phase
         <Text style={styles.bigTitle}>{failed ? 'The export didn’t finish' : 'Exporting your cut…'}</Text>
         <Text style={styles.sub}>{phase.kind === 'failed' ? phase.error : 'Keep Autocut open while it finishes'}</Text>
       </View>
-      <Thumb uri={preview} seconds={seconds} style={styles.card}>
-        <View style={styles.shade} />
-        {phase.kind === 'exporting' && (
-          <Animated.Text entering={FadeIn} style={styles.percent}>
-            {Math.round(phase.progress * 100)}%
-          </Animated.Text>
-        )}
-      </Thumb>
+      <View style={{ marginTop: 28 }}>
+        <ProgressCard uri={preview} seconds={seconds} progress={phase.kind === 'exporting' ? phase.progress : 0} label={phase.kind === 'exporting' ? `${Math.round(phase.progress * 100)}%` : undefined} />
+      </View>
       {failed && (
         <View style={{ marginTop: 'auto', gap: 6 }}>
           <Button title="Try again" onPress={onRetry} />
@@ -253,11 +249,8 @@ const styles = StyleSheet.create({
   rowLabel: { fontSize: 15, color: theme.ink },
   rowValue: { fontSize: 15, color: theme.muted, fontVariant: ['tabular-nums'] },
   full: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 20 },
-  bigTitle: { fontSize: 20, fontWeight: '700', color: theme.ink, textAlign: 'center' },
+  bigTitle: { fontSize: 18, fontWeight: '600', color: theme.ink, textAlign: 'center' },
   sub: { fontSize: 13, color: theme.muted, textAlign: 'center', lineHeight: 18 },
-  card: { width: 170, height: 300, borderRadius: 20, alignSelf: 'center', marginTop: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 3, borderColor: theme.ink, backgroundColor: '#1C1C1F' },
-  shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.25)' },
-  percent: { color: '#fff', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'] },
   done: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 20, gap: 14, alignItems: 'center' },
   doneHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },
   doneTitle: { fontSize: 17, fontWeight: '700', color: theme.ink },

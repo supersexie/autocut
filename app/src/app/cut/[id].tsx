@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Thumb } from '../../components/Thumb';
+import { ProgressCard } from '../../components/ProgressCard';
 import { Backdrop, Button } from '../../components/ui';
 import { stopCut } from '../../lib/jobs';
 import { cutFile, deleteCut, useCut } from '../../lib/store';
@@ -93,11 +93,12 @@ export default function Cutting() {
   if (cut.status === 'ready') {
     return (
       <Backdrop>
-        <Animated.Text entering={FadeIn.duration(200)} style={[styles.title, { marginTop: 40 }]}>
+        <View style={{ height: 32 }} />
+        <Animated.Text entering={FadeIn.duration(200)} style={styles.title}>
           Your cut is ready
         </Animated.Text>
-        <Animated.View entering={ZoomIn.springify().damping(16)}>
-          <Thumb uri={preview} seconds={0.5} style={[styles.card, styles.cardDone]} />
+        <Animated.View entering={ZoomIn.springify().damping(16)} style={{ marginTop: 24 }}>
+          <ProgressCard uri={preview} progress={1} />
         </Animated.View>
       </Backdrop>
     );
@@ -106,9 +107,11 @@ export default function Cutting() {
   const status = uploading
     ? cut.stage === 'waiting'
       ? 'Waiting for your other videos to upload'
-      : cut.progress === 0
-        ? stalled ? 'Your connection is slow, still trying' : 'Connecting'
-        : stalled ? 'Your connection is slow, still trying' : null
+      : stalled
+        ? 'Your connection is slow, still trying'
+        : cut.progress === 0
+          ? 'Connecting'
+          : null
     : cut.stage === 'queued'
       ? 'Waiting for the last cut to finish'
       : null;
@@ -116,36 +119,35 @@ export default function Cutting() {
   return (
     <Backdrop
       footer={
-        <Button
-          kind="outline"
-          title="Stop"
+        <Pressable
           onPress={() => {
             stopCut(id);
             leave();
           }}
-          style={{ alignSelf: 'center', paddingHorizontal: 36 }}
-        />
+          style={({ pressed }) => [styles.stop, pressed && { opacity: 0.7 }]}
+        >
+          <Text style={styles.stopText}>Stop</Text>
+        </Pressable>
       }
     >
-      <Header onBack={leave} />
+      <Header onBack={uploading ? undefined : leave} />
       <Text style={styles.title}>Cutting</Text>
       {status && <Text style={[styles.subtitle, { color: theme.ink }]}>{status}</Text>}
-      <Text style={styles.subtitle}>
-        {uploading ? 'Keep Autocut open.' : 'You can lock your phone or leave. Your cut will be waiting in Cuts.'}
-      </Text>
+      <Text style={styles.subtitle}>{uploading ? 'Keep Autocut open.' : 'You’re free to go. Your cut will be waiting in Cuts.'}</Text>
 
-      <Thumb uri={preview} seconds={0.5} style={[styles.card, !uploading && styles.cardDone]}>
-        <View style={styles.shade} />
-        <Text style={styles.percent}>{percent}%</Text>
-      </Thumb>
+      <View style={{ marginTop: 22 }}>
+        <ProgressCard uri={preview} progress={percent / 100} label={`${percent}%`} />
+      </View>
 
       <View style={styles.tip}>
         <Pressable onPress={() => setTip((tip + TIPS.length - 1) % TIPS.length)} hitSlop={10} accessibilityLabel="Previous tip">
           <SymbolView name="chevron.left" tintColor={theme.faint} size={13} />
         </Pressable>
-        <View style={{ flex: 1, alignItems: 'center', gap: 4 }}>
+        <View style={{ flex: 1, alignItems: 'center', gap: 6 }}>
           <Text style={styles.tipLabel}>Tip</Text>
-          <Text style={styles.tipText}>{TIPS[tip]}</Text>
+          <Animated.Text key={tip} entering={FadeIn.duration(250)} style={styles.tipText}>
+            {TIPS[tip]}
+          </Animated.Text>
         </View>
         <Pressable onPress={() => setTip((tip + 1) % TIPS.length)} hitSlop={10} accessibilityLabel="Next tip">
           <SymbolView name="chevron.right" tintColor={theme.faint} size={13} />
@@ -155,27 +157,25 @@ export default function Cutting() {
   );
 }
 
-function Header({ onBack }: { onBack: () => void }) {
+function Header({ onBack }: { onBack?: () => void }) {
   return (
-    <Pressable onPress={onBack} hitSlop={12} accessibilityLabel="Back" style={{ width: 32, height: 32, justifyContent: 'center' }}>
+    <Pressable onPress={onBack} disabled={!onBack} hitSlop={12} accessibilityLabel="Back" style={{ width: 32, height: 32, justifyContent: 'center', opacity: onBack ? 1 : 0 }}>
       <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 20, fontWeight: '700', color: theme.ink, textAlign: 'center' },
-  subtitle: { fontSize: 13, color: theme.muted, textAlign: 'center', marginTop: 4, marginHorizontal: 20, lineHeight: 18 },
-  card: {
-    width: 170, height: 300, borderRadius: 20, alignSelf: 'center', marginTop: 24, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: '#D9D9DE', backgroundColor: '#1C1C1F',
+  title: { fontSize: 18, fontWeight: '600', color: theme.ink, textAlign: 'center', letterSpacing: -0.2 },
+  subtitle: { fontSize: 13, color: theme.muted, textAlign: 'center', marginTop: 5, marginHorizontal: 24, lineHeight: 18 },
+  tip: {
+    flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 18, paddingVertical: 16, paddingHorizontal: 14, marginTop: 22,
+    shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
   },
-  cardDone: { borderColor: theme.ink },
-  shade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.25)' },
-  percent: { color: '#fff', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6 },
-  tip: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginTop: 24 },
-  tipLabel: { fontSize: 12, fontWeight: '600', color: theme.faint },
-  tipText: { fontSize: 14, color: theme.ink, textAlign: 'center', lineHeight: 19 },
+  tipLabel: { fontSize: 12, fontWeight: '500', color: theme.faint },
+  tipText: { fontSize: 15, color: theme.ink, textAlign: 'center', lineHeight: 21 },
+  stop: { alignSelf: 'center', backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 22, paddingVertical: 11 },
+  stopText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   failed: { alignItems: 'center', gap: 10, marginTop: 120, paddingHorizontal: 20 },
   failedTitle: { fontSize: 18, fontWeight: '700', color: theme.ink },
   failedBody: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20 },
