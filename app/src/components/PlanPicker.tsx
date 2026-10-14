@@ -10,7 +10,7 @@ import { useAuth, type Profile } from '../lib/auth';
 import { clearDraft, getDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
 import { BRAND_FONT } from '../lib/fonts';
-import { column, COLUMN, theme } from '../lib/theme';
+import { column, COLUMN, midSentence, theme } from '../lib/theme';
 
 /**
  * The plans. `onboarding`: the last step of setup, where picking one saves the setup answers and
@@ -79,7 +79,7 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 22, paddingBottom: 16 }, column(COLUMN + 44)]} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{chosen.name} fits how you post.</Text>
         <Text style={styles.sub}>
-          Everything your editor does, for a fraction of the price: {chosen.edits.toLowerCase()}, {chosen.features.join(' and ').toLowerCase()}.
+          Everything your editor does, for a fraction of the price: {midSentence(chosen.edits)}, {midSentence(chosen.features.join(' and '))}.
         </Text>
 
         <View style={{ alignSelf: 'center', width: 250, marginVertical: 16 }}>

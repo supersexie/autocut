@@ -28,3 +28,9 @@ export const COLUMN = 560;
 export const WIDE_COLUMN = 760;
 /** Centres a screen's content in a column on iPad; on iPhone it just fills the width. */
 export const column = (maxWidth = COLUMN) => ({ width: '100%' as const, maxWidth, alignSelf: 'center' as const });
+
+/**
+ * A label in the middle of a sentence: "Product videos" → "product videos", but words in capitals
+ * and names in mixed case stay as they are ("UGC for brands", "TikTok", "Unlimited AI edits" → "unlimited AI edits").
+ */
+export const midSentence = (text: string) => text.replace(/\b(\p{Lu})(\p{Ll}+)\b/gu, (_, a: string, b: string) => a.toLowerCase() + b);

@@ -11,7 +11,7 @@ import {
   AUTOCUT_MINUTES, BY_HAND_MINUTES, EDITOR_COSTS, editorMonthly, hoursBack, money, PER_WEEK, planFor, pricePerMonth, recommendedPlan, videosPerWeek,
 } from '../lib/plans';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
-import { theme } from '../lib/theme';
+import { midSentence, theme } from '../lib/theme';
 
 type Choice = { value: string; label: string; icon: SymbolName };
 
@@ -359,10 +359,10 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
   }
 
   const points: { icon: SymbolName; text: string }[] = [
-    { icon: 'scissors', text: making && making.value !== 'me' ? `Cuts tuned for ${making.label.toLowerCase()}` : 'Dead air, ums and retakes cut for you' },
+    { icon: 'scissors', text: making && making.value !== 'me' ? `Cuts tuned for ${midSentence(making.label)}` : 'Dead air, ums and retakes cut for you' },
     ...(saved ? [{ icon: 'clock' as SymbolName, text: `About ${duration(saved)} back every week` }] : []),
     { icon: 'captions.bubble', text: 'Captions on every word' },
-    { icon: 'checkmark.seal', text: `${plan.name}: ${plan.edits.toLowerCase()}` },
+    { icon: 'checkmark.seal', text: `${plan.name}: ${midSentence(plan.edits)}` },
   ];
 
   return (
