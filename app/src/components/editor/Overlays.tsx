@@ -301,6 +301,7 @@ export function Tour({ steps, index, onNext, onSkip }: { steps: TourStep[]; inde
   const hole = { x: r.x - pad, y: r.y - pad, w: r.width + pad * 2, h: r.height + pad * 2 };
   const cardAbove = hole.y > height / 2;
   const dim = 'rgba(0,0,0,0.45)';
+  const side = Math.max(16, (width - 440) / 2); // a phone-width card, centred on iPad
   return (
     <Animated.View entering={FadeIn.duration(220)} exiting={FadeOut.duration(160)} style={StyleSheet.absoluteFill}>
       <View style={{ position: 'absolute', left: 0, right: 0, top: 0, height: Math.max(0, hole.y), backgroundColor: dim }} />
@@ -308,7 +309,7 @@ export function Tour({ steps, index, onNext, onSkip }: { steps: TourStep[]; inde
       <View style={{ position: 'absolute', left: 0, width: Math.max(0, hole.x), top: hole.y, height: hole.h, backgroundColor: dim }} />
       <View style={{ position: 'absolute', left: hole.x + hole.w, right: 0, top: hole.y, height: hole.h, backgroundColor: dim }} />
       <View style={[styles.holeRing, { left: hole.x, top: hole.y, width: hole.w, height: hole.h }]} pointerEvents="none" />
-      <Animated.View key={index} entering={FadeIn.duration(220)} style={[styles.tourCard, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
+      <Animated.View key={index} entering={FadeIn.duration(220)} style={[styles.tourCard, { left: side, right: side }, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
         <View style={styles.between}>
           <Text style={styles.tourTitle}>{s.title}</Text>
           <Text style={styles.tourCount}>
@@ -368,7 +369,7 @@ const styles = StyleSheet.create({
   reorderTile: { alignItems: 'center', gap: 4, shadowColor: '#000', shadowOpacity: 0, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
   reorderTime: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },
   holeRing: { position: 'absolute', borderRadius: 14, borderWidth: 2, borderColor: '#fff' },
-  tourCard: { position: 'absolute', left: 16, right: 16, backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 8, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
+  tourCard: { position: 'absolute', backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 8, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   tourTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
   tourCount: { fontSize: 12, color: theme.faint },

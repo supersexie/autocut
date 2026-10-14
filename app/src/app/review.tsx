@@ -5,14 +5,14 @@ import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, PanResponder, Pressable, StyleSheet, Switch, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Alert, PanResponder, Pressable, StyleSheet, Switch, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { startCut, type Take } from '../lib/jobs';
 import { updateSettings, useSettings } from '../lib/store';
-import { formatTime, theme } from '../lib/theme';
+import { COLUMN, formatTime, theme } from '../lib/theme';
 
 const seek = (p: VideoPlayer, t: number) => {
   p.currentTime = t;
@@ -21,6 +21,7 @@ const seek = (p: VideoPlayer, t: number) => {
 /** After recording: watch the take back, scrub it, then Retake or Send — laid out like CutAI. */
 export default function Review() {
   const insets = useSafeAreaInsets();
+  const { width: screenW } = useWindowDimensions();
   const params = useLocalSearchParams<{ takes: string }>();
   const takes = useMemo<Take[]>(() => {
     try {
@@ -105,7 +106,7 @@ export default function Review() {
 
   const flip = current.flip ? { transform: [{ scaleX: -1 as const }] } : null;
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 10 }]}>
+    <View style={[styles.screen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 10, paddingHorizontal: Math.max(18, (screenW - COLUMN) / 2) }]}>
       <View style={styles.header}>
         <Pressable onPress={retake} hitSlop={12} accessibilityLabel="Back" style={styles.back}>
           <SymbolView name="chevron.left" tintColor={theme.ink} size={17} weight="semibold" />
@@ -226,7 +227,7 @@ function Filmstrip({ uri, flip, duration, time, onScrubStart, onScrub }: { uri: 
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 18 },
+  screen: { flex: 1, backgroundColor: theme.bg },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 40 },
   back: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   info: { backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },

@@ -1,12 +1,12 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../../components/Thumb';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
 import { editedDuration, cutFile, deleteCut, useCuts, type CutRecord } from '../../lib/store';
-import { formatTime, theme } from '../../lib/theme';
+import { column, formatTime, theme, WIDE_COLUMN } from '../../lib/theme';
 
 export default function CutsScreen() {
   const cuts = useCuts();
@@ -16,7 +16,7 @@ export default function CutsScreen() {
   const attention = drafts.filter((c) => c.status === 'failed').length;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }}>
+    <ScrollView style={styles.screen} contentContainerStyle={[{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }, column(WIDE_COLUMN + 36)]}>
       <View style={styles.header}>
         <Text style={styles.h1}>Cuts</Text>
         <Pressable onPress={() => router.push('/settings')} hitSlop={10} accessibilityLabel="Settings" style={styles.gear}>
@@ -42,7 +42,7 @@ export default function CutsScreen() {
       )}
       {done.length > 0 && (
         <>
-          <Text style={styles.section}>On this iPhone</Text>
+          <Text style={styles.section}>On this {DEVICE}</Text>
           <Grid cuts={done} />
         </>
       )}
@@ -51,23 +51,31 @@ export default function CutsScreen() {
   );
 }
 
+const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
+const GAP = 12;
+
+/** Three thumbnails a row on iPhone, more on iPad. */
 function Grid({ cuts }: { cuts: CutRecord[] }) {
+  const { width } = useWindowDimensions();
+  const inner = Math.min(width, WIDE_COLUMN + 36) - 36;
+  const columns = Math.max(3, Math.floor((inner + GAP) / 150));
+  const cardW = Math.floor((inner - GAP * (columns - 1)) / columns);
   return (
     <View style={styles.grid}>
       {cuts.map((c) => (
-        <Card key={c.id} cut={c} />
+        <Card key={c.id} cut={c} width={cardW} />
       ))}
     </View>
   );
 }
 
-function Card({ cut }: { cut: CutRecord }) {
+function Card({ cut, width }: { cut: CutRecord; width: number }) {
   const uri = cut.source ? cutFile(cut.source).uri : cut.previewUri;
   const flip = !cut.source && !!cut.previewFlip;
   const seconds = (cut.clips[0]?.[0] ?? 0) + 0.3;
   const open = () => router.push({ pathname: cut.status === 'ready' ? '/edit/[id]' : '/cut/[id]', params: { id: cut.id } });
   const remove = () =>
-    Alert.alert('Delete this cut?', 'It is removed from this phone.', [
+    Alert.alert('Delete this cut?', `It is removed from this ${DEVICE}.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: () => deleteCut(cut.id) },
     ]);
@@ -80,7 +88,7 @@ function Card({ cut }: { cut: CutRecord }) {
   else status = `Cutting ${Math.round(25 + 75 * cut.progress)}%`;
 
   return (
-    <Pressable onPress={open} onLongPress={remove} style={({ pressed }) => [styles.card, pressed && { opacity: 0.8 }]}>
+    <Pressable onPress={open} onLongPress={remove} style={({ pressed }) => [styles.card, { width }, pressed && { opacity: 0.8 }]}>
       <Thumb uri={uri} seconds={seconds} style={styles.thumb} flip={flip}>
         {cut.status === 'failed' && (
           <View style={styles.badge}>
@@ -109,8 +117,8 @@ const styles = StyleSheet.create({
   gear: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   section: { fontSize: 17, fontWeight: '700', color: theme.ink, marginTop: 18, marginBottom: 10 },
   attention: { fontSize: 13, fontWeight: '600', color: '#D93B3B' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  card: { width: '30.5%', gap: 4 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
+  card: { gap: 4 },
   thumb: { aspectRatio: 9 / 16, borderRadius: 12, justifyContent: 'flex-end' },
   duration: { color: '#fff', fontSize: 11, fontWeight: '700', margin: 6, alignSelf: 'flex-end', textShadowColor: '#000', textShadowRadius: 3, fontVariant: ['tabular-nums'] },
   badge: { position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: 9, backgroundColor: '#D93B3B', alignItems: 'center', justifyContent: 'center' },

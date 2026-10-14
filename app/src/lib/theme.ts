@@ -20,3 +20,10 @@ export const formatTime = (t: number) => {
 };
 
 export const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Widest a column of text and controls gets on iPad, so lines stay readable. iPhones are narrower. */
+export const COLUMN = 560;
+/** Wider column for grids of thumbnails. */
+export const WIDE_COLUMN = 760;
+/** Centres a screen's content in a column on iPad; on iPhone it just fills the width. */
+export const column = (maxWidth = COLUMN) => ({ width: '100%' as const, maxWidth, alignSelf: 'center' as const });

@@ -6,11 +6,11 @@ import {
   type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme } from '../lib/theme';
+import { column, theme } from '../lib/theme';
 
 export type SymbolName = ComponentProps<typeof SymbolView>['name'];
 
-/** A plain white screen with an optional footer pinned above the home indicator. */
+/** A plain white screen with an optional footer pinned above the home indicator; a centred column on iPad. */
 export function Backdrop({ children, scroll = true, footer }: { children: ReactNode; scroll?: boolean; footer?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
@@ -22,12 +22,18 @@ export function Backdrop({ children, scroll = true, footer }: { children: ReactN
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            {children}
+            <View style={[column(), { flexGrow: 1 }]}>{children}</View>
           </ScrollView>
         ) : (
-          <View style={{ flex: 1, paddingTop: insets.top + 10, paddingHorizontal: 22 }}>{children}</View>
+          <View style={{ flex: 1, paddingTop: insets.top + 10, paddingHorizontal: 22 }}>
+            <View style={[column(), { flex: 1 }]}>{children}</View>
+          </View>
         )}
-        {footer && <View style={{ paddingHorizontal: 22, paddingBottom: insets.bottom + 10, paddingTop: 8, gap: 10 }}>{footer}</View>}
+        {footer && (
+          <View style={{ paddingHorizontal: 22, paddingBottom: insets.bottom + 10, paddingTop: 8 }}>
+            <View style={[column(), { gap: 10 }]}>{footer}</View>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </View>
   );

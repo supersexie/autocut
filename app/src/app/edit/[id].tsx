@@ -4,7 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, type VideoPlayer } from 'expo-video';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
 import { CaptionsPanel, FormatPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
@@ -49,6 +49,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
 function Editor({ cut }: { cut: CutRecord }) {
   const insets = useSafeAreaInsets();
+  const wide = useWindowDimensions().width >= 700; // iPad
   const sourceUri = cutFile(cut.source!).uri;
   const [history, setHistory] = useState<History>(() => ({ past: [], present: editOf(cut), future: [] }));
   const edit = history.present;
@@ -439,7 +440,7 @@ function Editor({ cut }: { cut: CutRecord }) {
               <SymbolView name="chevron.left" tintColor={theme.ink} size={16} weight="semibold" />
             </Pressable>
           )}
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tools}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tools, wide && styles.toolsCentered]}>
             {tools.map((t) => (
               <Pressable
                 key={t.label}
@@ -568,6 +569,7 @@ const styles = StyleSheet.create({
   toolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line, paddingTop: 8, marginTop: 'auto' },
   toolBack: { paddingHorizontal: 14 },
   tools: { gap: 6, paddingHorizontal: 8 },
+  toolsCentered: { flexGrow: 1, justifyContent: 'center' },
   tool: { alignItems: 'center', gap: 4, minWidth: 58, paddingVertical: 2 },
   toolText: { fontSize: 10, color: theme.ink, fontWeight: '500' },
   sheet: { flex: 1, backgroundColor: '#fff' },

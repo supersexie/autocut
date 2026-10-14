@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { updateSettings, useSettings } from '../lib/store';
-import { theme } from '../lib/theme';
+import { column, COLUMN, theme } from '../lib/theme';
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -18,7 +18,7 @@ export default function SettingsScreen() {
   function confirmDelete() {
     Alert.alert(
       'Delete your account?',
-      'This permanently deletes your account, your takes and your cuts, on our server and on this phone. Videos you already saved to Photos stay there.',
+      'This permanently deletes your account, your takes and your cuts, on our server and on this device. Videos you already saved to Photos stay there.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -48,7 +48,7 @@ export default function SettingsScreen() {
           <Text style={styles.done}>Done</Text>
         </Pressable>
       </View>
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 18, paddingBottom: insets.bottom + 30 }}>
+      <ScrollView contentContainerStyle={[{ paddingHorizontal: 18, paddingBottom: insets.bottom + 30 }, column(COLUMN + 36)]}>
         <Text style={styles.label}>Cutting</Text>
         <View style={styles.group}>
           <View style={[styles.item, { flexDirection: 'column', alignItems: 'stretch', gap: 6 }]}>

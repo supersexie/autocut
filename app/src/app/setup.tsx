@@ -9,7 +9,7 @@ import { openLegal } from '../lib/api';
 import { enabledProviders, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
 import { EDITOR_COSTS, editorMonthly, money, planFor, recommendedPlan } from '../lib/plans';
-import { theme } from '../lib/theme';
+import { COLUMN, theme } from '../lib/theme';
 
 type Choice = { value: string; label: string; icon: SymbolName };
 
@@ -133,7 +133,7 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   const saved = Math.max(0, editorMonthly(draft.editorCost) - plan.monthly); // per month
   const p = useProgress(1600);
 
-  const W = width - 44 - 32;
+  const W = Math.min(width - 44, COLUMN) - 32;
   const H = 210;
   const pad = { top: 34, bottom: 30, side: 26 };
   const values = [saved / 30, (saved * 7) / 30, saved, saved * 12].map((v) => v * p);

@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useEffect } from 'react';
-import type { ColorValue } from 'react-native';
+import { useWindowDimensions, type ColorValue } from 'react-native';
 import { resumeJobs } from '../../lib/jobs';
 import { tabBarStyle } from '../../components/tabBar';
 import { theme } from '../../lib/theme';
@@ -13,13 +13,16 @@ const icon = (name: SymbolViewProps['name']) =>
 
 export default function TabLayout() {
   useEffect(resumeJobs, []);
+  const { width } = useWindowDimensions();
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.accent,
         tabBarInactiveTintColor: '#8A94A6',
-        tabBarStyle,
+        tabBarStyle: tabBarStyle(width),
+        // iPad would put labels beside the icons; keep them underneath like on iPhone.
+        tabBarLabelPosition: 'below-icon',
         tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
       }}
     >

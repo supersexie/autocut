@@ -46,7 +46,7 @@ export default function SignIn() {
       if (!signingUp) return auth.signInWithEmail(email, password);
       const result = await auth.signUpWithEmail(email, password);
       if (result === 'check-email') {
-        setNotice(`We sent a link to ${email.trim()}. Open it on this phone to finish, or confirm it and sign in here.`);
+        setNotice(`We sent a link to ${email.trim()}. Open it on this device to finish, or confirm it and sign in here.`);
         setMode('sign-in');
       }
     });

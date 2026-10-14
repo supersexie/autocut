@@ -62,8 +62,8 @@ export default function CreateScreen() {
   // Hide the tab bar while a take is in progress so the controls own the bottom of the screen.
   const busy = mode !== 'idle' || takes.length > 0;
   useEffect(() => {
-    navigation.setOptions({ tabBarStyle: busy ? { display: 'none' } : tabBarStyle });
-  }, [busy, navigation]);
+    navigation.setOptions({ tabBarStyle: busy ? { display: 'none' } : tabBarStyle(screen.width) });
+  }, [busy, navigation, screen.width]);
 
   useEffect(() => {
     if (mode !== 'recording') return;
@@ -173,8 +173,13 @@ export default function CreateScreen() {
     );
   }
 
-  // The camera shows a 9:16 frame under the status bar — exactly what gets recorded.
-  const frameH = Math.min((screen.width * 16) / 9, screen.height - insets.top);
+  // The camera shows a 9:16 frame under the status bar — exactly what gets recorded. On iPad the
+  // screen is wider than 9:16, so the frame is centred with black either side.
+  // (Phones that are only slightly wide, like the SE, keep a full-width frame instead of thin bars.)
+  const fitW = ((screen.height - insets.top) * 9) / 16;
+  const frameW = fitW < screen.width - 24 ? fitW : screen.width;
+  const frameH = Math.min((frameW * 16) / 9, screen.height - insets.top);
+  const frameX = (screen.width - frameW) / 2;
   const belowFrame = screen.height - insets.top - frameH;
   // Controls sit at a fixed spot near the bottom of the frame, whatever the recording state.
   const bottom = Math.max(belowFrame, 22 + TAB_BAR_HEIGHT + 6) + 22;
@@ -189,7 +194,7 @@ export default function CreateScreen() {
       {focused && (
         <CameraView
           ref={camera}
-          style={{ position: 'absolute', top: insets.top, left: 0, width: screen.width, height: frameH }}
+          style={{ position: 'absolute', top: insets.top, left: frameX, width: frameW, height: frameH }}
           mode="video"
           // 'auto' switches to cinematic stabilisation when recording starts, which crops (zooms) in.
           videoStabilizationMode="off"
@@ -203,10 +208,10 @@ export default function CreateScreen() {
       <Pressable
         onPress={tapPreview}
         accessibilityLabel="Double-tap to switch camera"
-        style={{ position: 'absolute', top: insets.top, left: 0, width: screen.width, height: frameH }}
+        style={{ position: 'absolute', top: insets.top, left: frameX, width: frameW, height: frameH }}
       />
 
-      <View style={[styles.top, { top: insets.top + 8 }]}>
+      <View style={[styles.top, { top: insets.top + 8, left: frameX + 16, right: frameX + 16 }]}>
         <View style={styles.brand}>
           <Logo size={24} />
           <Text style={styles.brandText}>Autocut</Text>
@@ -229,13 +234,13 @@ export default function CreateScreen() {
       </View>
 
       {firstTime && (
-        <Pressable style={[styles.tip, { bottom: bottom + 150 }]} onPress={() => setShowTip(false)}>
+        <Pressable style={[styles.tip, { bottom: bottom + 150, left: frameX + 24, right: frameX + 24 }]} onPress={() => setShowTip(false)}>
           <Text style={styles.tipText}>Tap the button to record. Flub a line? Just say it again, Autocut keeps your last take.</Text>
           <Text style={styles.tipDismiss}>Got it</Text>
         </Pressable>
       )}
 
-      <View style={[styles.bottom, { bottom }]}>
+      <View style={[styles.bottom, { bottom, left: frameX, right: frameX }]}>
         {mode === 'idle' && !takes.length && (
           <View style={styles.lengths}>
             {LENGTHS.map((l) => (
@@ -334,14 +339,14 @@ const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
   permTitle: { color: '#fff', fontSize: 22, fontWeight: '700' },
   permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, textAlign: 'center', lineHeight: 21 },
-  top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  top: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   brandText: { color: '#fff', fontSize: 15, fontWeight: '800' },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.cut },
   pillText: { color: '#fff', fontSize: 13, fontWeight: '600', fontVariant: ['tabular-nums'] },
   round: { backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
-  bottom: { position: 'absolute', left: 0, right: 0, alignItems: 'center', gap: 16 },
+  bottom: { position: 'absolute', alignItems: 'center', gap: 16 },
   lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: 3 },
   length: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
   lengthOn: { backgroundColor: '#fff' },
@@ -351,7 +356,7 @@ const styles = StyleSheet.create({
   shutter: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
   done: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  tip: { position: 'absolute', left: 24, right: 24, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, gap: 6 },
+  tip: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, gap: 6 },
   tipText: { fontSize: 14, color: theme.ink, lineHeight: 20 },
   tipDismiss: { fontSize: 14, fontWeight: '700', color: theme.accent, alignSelf: 'flex-end' },
 });

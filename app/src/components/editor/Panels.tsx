@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState, type ReactNode } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import type { Caps, CaptionLine, CaptionSettings } from '../../lib/edit';
 import { theme } from '../../lib/theme';
@@ -128,6 +128,7 @@ export function CaptionsPanel({
 export function StylePicker({ kind, value, onPick, onClose, onDone }: { kind: 'captions' | 'texts'; value: string; onPick: (id: string) => void; onClose: () => void; onDone: () => void }) {
   const styles_ = kind === 'captions' ? CAPTION_STYLES : TEXT_STYLES;
   const groups = kind === 'captions' ? ['Simple', 'Word by word', 'Fun'] : [''];
+  const cardWidth = useWindowDimensions().width >= 700 ? '23.5%' : '48%'; // four a row on iPad
   return (
     <Panel title="Style" onClose={onClose} onDone={onDone}>
       <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 30 }}>
@@ -136,7 +137,7 @@ export function StylePicker({ kind, value, onPick, onClose, onDone }: { kind: 'c
             {g ? <Text style={styles.group}>{g}</Text> : null}
             <View style={styles.grid}>
               {styles_.filter((s) => !g || s.group === g).map((s) => (
-                <StyleCard key={s.id} preset={s} on={s.id === value} onPress={() => onPick(s.id)} />
+                <StyleCard key={s.id} preset={s} on={s.id === value} width={cardWidth} onPress={() => onPick(s.id)} />
               ))}
             </View>
           </View>
@@ -146,14 +147,14 @@ export function StylePicker({ kind, value, onPick, onClose, onDone }: { kind: 'c
   );
 }
 
-function StyleCard({ preset, on, onPress }: { preset: StylePreset; on: boolean; onPress: () => void }) {
+function StyleCard({ preset, on, width, onPress }: { preset: StylePreset; on: boolean; width: `${number}%`; onPress: () => void }) {
   return (
     <Pressable
       onPress={() => {
         Haptics.selectionAsync();
         onPress();
       }}
-      style={({ pressed }) => [styles.card, on && styles.cardOn, pressed && { transform: [{ scale: 0.97 }] }]}
+      style={({ pressed }) => [styles.card, { width }, on && styles.cardOn, pressed && { transform: [{ scale: 0.97 }] }]}
     >
       <View style={styles.cardPreview}>
         <StyledText preset={preset} words={['Make', 'it', 'pop']} active={1} frameWidth={150} scale={1.05} />
@@ -328,7 +329,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20 },
   group: { fontSize: 13, fontWeight: '600', color: theme.muted, marginBottom: 8, marginTop: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  card: { width: '48%', borderRadius: 14, borderWidth: 2, borderColor: 'transparent', backgroundColor: theme.card, overflow: 'hidden' },
+  card: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent', backgroundColor: theme.card, overflow: 'hidden' },
   cardOn: { borderColor: theme.ink },
   cardPreview: { height: 70, backgroundColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center', margin: 6, borderRadius: 10, overflow: 'hidden' },
   cardName: { fontSize: 11, color: theme.muted, textAlign: 'center', marginBottom: 7 },

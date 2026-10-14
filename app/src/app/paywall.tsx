@@ -7,7 +7,7 @@ import { openLegal } from '../lib/api';
 import { useAuth, type Profile } from '../lib/auth';
 import { clearDraft, getDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
-import { theme } from '../lib/theme';
+import { column, COLUMN, theme } from '../lib/theme';
 
 /** Last step of setup: pick a plan, then the setup answers are saved to the account. */
 export default function Paywall() {
@@ -51,7 +51,7 @@ export default function Paywall() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: 16 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[{ paddingHorizontal: 22, paddingBottom: 16 }, column(COLUMN + 44)]} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{chosen.name} fits how you post.</Text>
         <Text style={styles.sub}>
           Everything your editor does, for a fraction of the price: {chosen.edits.toLowerCase()}, {chosen.features.join(' and ').toLowerCase()}.
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
   features: { flexDirection: 'row', gap: 14, paddingLeft: 34 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   featureText: { fontSize: 12, color: theme.ink },
-  footer: { paddingHorizontal: 22, paddingTop: 8, gap: 6 },
+  footer: { paddingHorizontal: 22, paddingTop: 8, gap: 6, ...column(COLUMN + 44) },
   terms: { fontSize: 12, color: theme.muted, textAlign: 'center' },
   notConnected: { fontSize: 12, color: '#9A6B00', textAlign: 'center' },
   links: { flexDirection: 'row', justifyContent: 'center', gap: 16 },

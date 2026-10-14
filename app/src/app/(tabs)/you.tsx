@@ -6,7 +6,7 @@ import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { useAuth } from '../../lib/auth';
 import { PLANS } from '../../lib/plans';
 import { editedDuration, useCuts } from '../../lib/store';
-import { theme } from '../../lib/theme';
+import { column, COLUMN, theme } from '../../lib/theme';
 
 const LIMITS: Record<string, number> = { starter: 100, pro: 300, ultimate: Infinity };
 
@@ -36,7 +36,7 @@ export default function YouScreen() {
   const savedMinutes = Math.round((footage * 3) / 60);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }}>
+    <ScrollView style={styles.screen} contentContainerStyle={[{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }, column(COLUMN + 36)]}>
       <View style={styles.header}>
         <Text style={styles.h1}>You</Text>
         <Pressable onPress={() => router.push('/settings')} hitSlop={10} accessibilityLabel="Settings" style={styles.gear}>

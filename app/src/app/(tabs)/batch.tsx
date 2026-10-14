@@ -2,19 +2,20 @@ import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
 import { startCut } from '../../lib/jobs';
 import { useCuts } from '../../lib/store';
-import { theme } from '../../lib/theme';
+import { COLUMN, theme } from '../../lib/theme';
 
 const MAX = 10;
 
 export default function BatchScreen() {
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
   const { account } = useAuth();
   const cuts = useCuts();
   const [started, setStarted] = useState<string[]>([]);
@@ -32,7 +33,7 @@ export default function BatchScreen() {
   }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 44 }]}>
+    <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 44, paddingHorizontal: Math.max(18, (width - COLUMN) / 2) }]}>
       <Text style={styles.h1}>Batch</Text>
       <View style={styles.center}>
         <SymbolView name="square.stack.3d.down.right" tintColor={theme.accent} size={40} />
@@ -54,7 +55,7 @@ export default function BatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 18 },
+  screen: { flex: 1, backgroundColor: theme.bg },
   h1: { fontSize: 32, fontWeight: '800', color: theme.ink },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16 },
   title: { fontSize: 18, fontWeight: '700', color: theme.ink, textAlign: 'center' },

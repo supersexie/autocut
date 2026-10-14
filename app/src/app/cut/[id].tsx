@@ -53,7 +53,7 @@ export default function Cutting() {
   if (!cut) {
     return (
       <Backdrop>
-        <Text style={styles.subtitle}>This cut is not on this phone any more.</Text>
+        <Text style={styles.subtitle}>This cut is not on this device any more.</Text>
         <Button kind="text" title="Back" onPress={leave} />
       </Backdrop>
     );
