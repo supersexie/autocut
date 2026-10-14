@@ -146,8 +146,11 @@ function atempo(speed) {
  * `music` = { file, volume } lays a song under the whole video, looped if it's short, fading out at the end.
  * `motion` = { keyframes: [{ t, scale, x, y }], width, height } zooms and pans the picture over time
  * (scale ≥ 1 about the centre, then moved by x·width, y·height), under the captions.
+ * `layers` = { list: [{ file, kind, start, end, from, x, y, width, rotation, volume, hasAudio }], width, height }
+ * lays photos and videos over the picture for their stretch of the output (centre x, y and width as
+ * fractions of the frame, rotation in degrees clockwise), under the captions; a video's sound is mixed in.
  */
-export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, motion, onProgress } = {}) {
+export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, motion, layers, onProgress } = {}) {
   const fade = 0.012;
   const parts = [];
   const labels = [];
@@ -171,7 +174,12 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   const scale = height && `scale=w='if(gt(iw,ih),-2,min(${height},iw))':h='if(gt(iw,ih),min(${height},ih),-2)'`;
   const post = [scale, fps && `fps=${fps}`].filter(Boolean).join(',');
   const moving = motion?.keyframes?.length > 0;
-  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${moving ? 'vm' : post ? 'vr' : 'vc'}][${music ? 'voice' : 'ac'}]`);
+  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[vcat][acat]`);
+  let v = '[vcat]';
+  const extra = []; // inputs after the source
+  const sounds = []; // audio to mix under the edit's own
+  let next = 1;
+
   if (moving) {
     // zoompan turns each input frame into one output frame (d=1) at a fixed rate, so the rate is
     // fixed first. Working at twice the size keeps slow zooms from shimmering on whole pixels.
@@ -182,16 +190,49 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     const y = `ih/2-(ih/2+(${keyframeExpr(k, 'y')})*ih)/zoom`;
     const w = motion.width - (motion.width % 2);
     const h = motion.height - (motion.height % 2);
-    parts.push(`[vm]fps=${rate},scale=${w * 2}:${h * 2}:flags=bicubic,zoompan=z='${z}':x='${x}':y='${y}':d=1:s=${w}x${h}:fps=${rate}[${post ? 'vr' : 'vc'}]`);
+    parts.push(`${v}fps=${rate},scale=${w * 2}:${h * 2}:flags=bicubic,zoompan=z='${z}':x='${x}':y='${y}':d=1:s=${w}x${h}:fps=${rate}[vzoom]`);
+    v = '[vzoom]';
   }
+
   if (music) {
-    // normalize=0 keeps the voice at full volume instead of halving both.
+    const k = next++;
+    extra.push('-stream_loop', '-1', '-i', music.file);
     const vol = Math.min(1, Math.max(0, music.volume ?? 0.5));
     const tail = Math.min(1.5, total / 4);
-    parts.push(`[1:a]aresample=48000,volume=${vol.toFixed(3)},atrim=0:${total.toFixed(3)},afade=t=out:st=${Math.max(0, total - tail).toFixed(3)}:d=${tail.toFixed(3)}[song]`);
-    parts.push(`[voice]aresample=48000[voice48];[voice48][song]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[ac]`);
+    parts.push(`[${k}:a]aresample=48000,volume=${vol.toFixed(3)},atrim=0:${total.toFixed(3)},afade=t=out:st=${Math.max(0, total - tail).toFixed(3)}:d=${tail.toFixed(3)}[song]`);
+    sounds.push('[song]');
   }
-  if (post) parts.push(`[vr]${post}[vc]`);
+
+  // Overlays, bottom to top: each scaled to its width, turned, and shown only for its stretch.
+  (layers?.list ?? []).forEach((o, i) => {
+    const k = next++;
+    const n = (x) => Number(x).toFixed(3);
+    const dur = Math.max(0.05, o.end - o.start);
+    if (o.kind === 'video') extra.push('-ss', n(o.from), '-t', n(dur), '-i', o.file);
+    else extra.push('-i', o.file); // one frame, held for as long as it's shown
+    const px = Math.max(2, Math.round((o.width * layers.width) / 2) * 2);
+    const rad = ((o.rotation || 0) * Math.PI) / 180;
+    const turn = Math.abs(rad) > 0.0001 ? `,rotate=${rad.toFixed(5)}:c=none:ow=rotw(${rad.toFixed(5)}):oh=roth(${rad.toFixed(5)})` : '';
+    const when = o.kind === 'video' ? `setpts=PTS-STARTPTS+${n(o.start)}/TB,` : '';
+    parts.push(`[${k}:v]${when}scale=${px}:-2,format=rgba${turn}[ol${i}]`);
+    const cx = (o.x * layers.width).toFixed(1);
+    const cy = (o.y * layers.height).toFixed(1);
+    parts.push(
+      `${v}[ol${i}]overlay=x='${cx}-overlay_w/2':y='${cy}-overlay_h/2':enable='between(t,${n(o.start)},${n(o.end)})':eof_action=${o.kind === 'video' ? 'pass' : 'repeat'}[lv${i}]`
+    );
+    v = `[lv${i}]`;
+    if (o.kind === 'video' && o.hasAudio && o.volume > 0) {
+      const ms = Math.round(o.start * 1000);
+      parts.push(`[${k}:a]asetpts=PTS-STARTPTS,aresample=48000,volume=${Math.min(2, o.volume).toFixed(3)},adelay=delays=${ms}:all=1[la${i}]`);
+      sounds.push(`[la${i}]`);
+    }
+  });
+
+  if (sounds.length) {
+    // normalize=0 keeps the voice at full volume instead of turning everything down.
+    parts.push(`[acat]aresample=48000[voice];[voice]${sounds.join('')}amix=inputs=${sounds.length + 1}:duration=first:dropout_transition=0:normalize=0[ac]`);
+  } else parts.push('[acat]anull[ac]');
+  parts.push(`${v}${post || 'null'}[vc]`);
   let vOut = '[vc]';
   const esc = (f) => f.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
   if (ass) {
@@ -208,7 +249,7 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     : ['-c:v', 'libx264', '-preset', 'veryfast', ...quality];
   await run([
     '-y', '-i', input,
-    ...(music ? ['-stream_loop', '-1', '-i', music.file] : []),
+    ...extra,
     '-filter_complex', parts.join(';'),
     '-map', vOut, '-map', '[ac]',
     ...video, '-pix_fmt', 'yuv420p',

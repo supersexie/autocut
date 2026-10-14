@@ -6,7 +6,8 @@
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}], height, fps, bitrate } -> { renderId }
+//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}],
+//                                        overlays: [{upload, kind, start, end, from, x, y, width, rotation, volume}], height, fps, bitrate } -> { renderId }
 //                                        (music.upload is an id from POST /uploads with the song's bytes)
 //   GET  /cuts/:id/video                                                  -> the latest finished render
 //   POST /cuts/:id/preview             { clips }                          -> { key, stage }  (a small stitched preview of the edit)
@@ -101,7 +102,9 @@ async function readBody(req, file) {
   return bytes;
 }
 
-const extFor = (type = '') => (type.includes('mp4') ? 'mp4' : 'mov');
+// Saved under a fitting extension so ffmpeg reads photos and songs as what they are.
+const EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/wav': 'wav', 'audio/aac': 'aac' };
+const extFor = (type = '') => EXTENSIONS[type.split(';')[0].trim()] ?? (type.includes('mp4') ? 'mp4' : 'mov');
 
 const uploadsFor = async (userId) => {
   const dir = path.join(UPLOADS, userId);
@@ -122,7 +125,7 @@ async function createUpload(req, res, userId) {
 
 async function findUpload(id, userId) {
   if (!ID.test(id)) return null;
-  for (const ext of ['mov', 'mp4']) {
+  for (const ext of ['mov', 'mp4', ...new Set(Object.values(EXTENSIONS))]) {
     const file = path.join(UPLOADS, userId, `${id}.${ext}`);
     try {
       await stat(file);
@@ -286,6 +289,27 @@ async function createRender(req, res, job) {
     music = { file, volume: Math.min(1, Math.max(0, Number(body.music.volume) || 0.5)) };
   }
 
+  // Photos and videos laid over the picture, each uploaded first like the song.
+  const overlays = [];
+  for (const o of (Array.isArray(body.overlays) ? body.overlays : []).slice(0, 20)) {
+    const file = await findUpload(String(o.upload ?? ''), job.userId ?? LOCAL_USER);
+    if (!file) return send(res, 400, { error: 'An overlay didn’t upload. Try exporting again.' });
+    const start = Math.max(0, Number(o.start) || 0);
+    const end = Math.max(start + 0.05, Number(o.end) || start + 3);
+    overlays.push({
+      file,
+      kind: o.kind === 'video' ? 'video' : 'image',
+      start,
+      end,
+      from: Math.max(0, Number(o.from) || 0),
+      x: Math.min(2, Math.max(-1, Number.isFinite(Number(o.x)) ? Number(o.x) : 0.5)),
+      y: Math.min(2, Math.max(-1, Number.isFinite(Number(o.y)) ? Number(o.y) : 0.5)),
+      width: Math.min(4, Math.max(0.02, Number(o.width) || 0.5)),
+      rotation: Math.max(-360, Math.min(360, Number(o.rotation) || 0)),
+      volume: Math.min(2, Math.max(0, o.volume === undefined ? 1 : Number(o.volume))),
+    });
+  }
+
   const renderId = randomUUID();
   job.render = { id: renderId, stage: 'queued', progress: 0, output: path.join(job.dir, `render-${renderId}.mp4`) };
   await saveJob(job);
@@ -296,7 +320,7 @@ async function createRender(req, res, job) {
     r.stage = 'rendering';
     console.log(`[${job.id.slice(0, 8)}] exporting`);
     try {
-      await renderEdit(job.source, r.output, { clips, captions, texts, music, keyframes, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
+      await renderEdit(job.source, r.output, { clips, captions, texts, music, keyframes, overlays, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
       Object.assign(r, { stage: 'ready', progress: 1, size: (await stat(r.output)).size });
     } catch (err) {
       console.error(err);

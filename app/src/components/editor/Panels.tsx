@@ -318,6 +318,27 @@ export function VolumePanel({
   );
 }
 
+/** A video overlay's own sound: how loud, or off. */
+export function OverlayVolumePanel({ volume, muted, onChange, onMute, onDone }: { volume: number; muted: boolean; onChange: (v: number) => void; onMute: (m: boolean) => void; onDone: () => void }) {
+  const [v, setV] = useState(volume);
+  return (
+    <Panel title="Overlay volume" value={<Text style={styles.valueStrong}>{muted ? 'Muted' : `${Math.round(v * 100)}%`}</Text>} onDone={onDone}>
+      <View style={{ paddingHorizontal: 16, gap: 8 }}>
+        <View style={[styles.sliderRow, muted && { opacity: 0.35 }]}>
+          <SymbolView name="speaker.fill" tintColor={theme.muted} size={14} />
+          <Text style={styles.small}>0%</Text>
+          <Slider style={{ flex: 1 }} disabled={muted} minimumValue={0} maximumValue={2} step={0.05} value={volume} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.ink} />
+          <Text style={styles.small}>200%</Text>
+        </View>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Mute this overlay</Text>
+          <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.ink }} />
+        </View>
+      </View>
+    </Panel>
+  );
+}
+
 /** The song under the video: how loud, swap it, or take it out. */
 export function MusicPanel({
   music, onVolume, onReplace, onRemove, onDone,

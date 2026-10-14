@@ -28,6 +28,34 @@ export type Framing = { scale: number; x: number; y: number };
 /** A framing pinned to a moment of the output; the picture glides between keyframes. */
 export type Keyframe = Framing & { id: string; t: number };
 
+/**
+ * A photo or video laid over the main video for a stretch of it. Position, size and angle are in
+ * frame terms: centre at (x, y) as fractions of the frame, `width` as a fraction of the frame's
+ * width (height follows the media's shape), `rotation` in degrees clockwise.
+ */
+export type Overlay = {
+  id: string;
+  /** File name in the cuts folder. */
+  file: string;
+  kind: 'image' | 'video';
+  mime: string;
+  /** The media's own size in pixels (for its shape). */
+  w: number;
+  h: number;
+  /** Output seconds it's on screen for. */
+  start: number;
+  end: number;
+  /** Video: where in the video it starts, and how long the video is. */
+  from: number;
+  length: number;
+  x: number;
+  y: number;
+  width: number;
+  rotation: number;
+  volume: number;
+  muted?: boolean;
+};
+
 export type Edit = {
   clips: ClipEdit[];
   muted: boolean;
@@ -38,7 +66,47 @@ export type Edit = {
   music?: Music;
   /** Zoom and pan over time, sorted by `t` (output seconds). */
   keyframes?: Keyframe[];
+  /** Photos and videos over the video, drawn in order (later ones on top). */
+  overlays?: Overlay[];
 };
+
+export const MIN_OVERLAY = 0.3; // shortest an overlay can be on screen
+
+/** An overlay's height as a fraction of the frame's height, for a frame of this shape (w / h). */
+export const overlayHeight = (o: Pick<Overlay, 'w' | 'h' | 'width'>, frameAspect: number) => (o.width * frameAspect * o.h) / o.w;
+
+/** Overlays showing at output time `t`, bottom to top. */
+export const overlaysAt = (overlays: Overlay[] | undefined, t: number) => (overlays ?? []).filter((o) => t >= o.start && t < o.end);
+
+/** Splits overlay `id` at `t` into two back-to-back overlays (a video carries on where it was). */
+export function splitOverlay(overlays: Overlay[], id: string, t: number, newId: () => string): Overlay[] {
+  const i = overlays.findIndex((o) => o.id === id);
+  const o = overlays[i];
+  if (!o || t - o.start < MIN_OVERLAY || o.end - t < MIN_OVERLAY) return overlays;
+  const first = { ...o, end: t };
+  const second = { ...o, id: newId(), start: t, from: o.kind === 'video' ? o.from + (t - o.start) : 0 };
+  return [...overlays.slice(0, i), first, second, ...overlays.slice(i + 1)];
+}
+
+/** Moves an overlay's start or end (or both, to slide it), keeping it on the timeline and, for a video, inside its footage. */
+export function retimeOverlay(o: Overlay, change: { start?: number; end?: number }, total: number): Overlay {
+  if (change.start !== undefined && change.end !== undefined) {
+    const span = o.end - o.start;
+    const start = Math.max(0, Math.min(total - span, change.start));
+    return { ...o, start, end: start + span };
+  }
+  if (change.start !== undefined) {
+    // A video's start can't go earlier than its first frame.
+    const earliest = o.kind === 'video' ? o.start - o.from : 0;
+    const start = Math.max(Math.max(0, earliest), Math.min(o.end - MIN_OVERLAY, change.start));
+    return { ...o, start, from: o.kind === 'video' ? o.from + (start - o.start) : 0 };
+  }
+  if (change.end !== undefined) {
+    const latest = o.kind === 'video' ? o.start + (o.length - o.from) : total;
+    return { ...o, end: Math.min(total, latest, Math.max(o.start + MIN_OVERLAY, change.end)) };
+  }
+  return o;
+}
 
 export const NO_FRAMING: Framing = { scale: 1, x: 0, y: 0 };
 export const MAX_ZOOM = 4;
@@ -218,7 +286,14 @@ export function captionLines(words: Word[], clips: ClipEdit[], s: CaptionSetting
  * is what TikTok and Instagram show as the cover, and everything else moves along to make room.
  * `musicUpload` is the song's upload id, when the edit has one.
  */
-export function exportBody(edit: Edit, words: Word[], opts: { height?: number; fps?: number; bitrate?: number }, musicUpload?: string) {
+export function exportBody(
+  edit: Edit,
+  words: Word[],
+  opts: { height?: number; fps?: number; bitrate?: number },
+  musicUpload?: string,
+  /** Overlay id → its upload id. */
+  overlayUploads: Record<string, string> = {}
+) {
   const cover = edit.cover === undefined ? [] : [{ start: locate(edit.clips, edit.cover)[1], speed: 1, volume: 0 }].map((c) => ({ ...c, end: c.start + COVER_FRAME }));
   const shift = cover.length ? COVER_FRAME : 0;
   const later = <T extends { start: number; end: number }>(x: T) => ({ ...x, start: x.start + shift, end: x.end + shift });
@@ -235,6 +310,20 @@ export function exportBody(edit: Edit, words: Word[], opts: { height?: number; f
     texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => later({ text, style, start, end, x, y, scale, font, color, box, outline, align })),
     music: musicUpload && edit.music ? { upload: musicUpload, volume: edit.music.volume } : undefined,
     keyframes: (edit.keyframes ?? []).map(({ t, scale, x, y }) => ({ t: t + shift, scale, x, y })),
+    overlays: (edit.overlays ?? [])
+      .filter((o) => overlayUploads[o.id])
+      .map((o) => ({
+        upload: overlayUploads[o.id],
+        kind: o.kind,
+        start: o.start + shift,
+        end: o.end + shift,
+        from: o.from,
+        x: o.x,
+        y: o.y,
+        width: o.width,
+        rotation: o.rotation,
+        volume: o.muted ? 0 : o.volume,
+      })),
     ...opts,
   };
 }

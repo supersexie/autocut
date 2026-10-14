@@ -1,9 +1,10 @@
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
-import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type Keyframe, type Music, type TextOverlay } from '../../lib/edit';
+import { clipOffset, outDuration, retimeOverlay, type CaptionLine, type ClipEdit, type Keyframe, type Music, type Overlay, type TextOverlay } from '../../lib/edit';
+import { cutFile } from '../../lib/store';
 import { theme } from '../../lib/theme';
 import Svg, { Path } from 'react-native-svg';
 import { Thumb } from '../Thumb';
@@ -49,6 +50,12 @@ type Props = {
   onCaptions: (line?: CaptionLine) => void;
   onSelectText: (id: string) => void;
   onAddText: () => void;
+  overlays: Overlay[];
+  selectedOverlay: string | null;
+  onSelectOverlay: (id: string) => void;
+  /** An overlay's block was dragged: its new start, end, or both (slid). */
+  onRetimeOverlay: (id: string, change: { start?: number; end?: number }) => void;
+  onAddOverlay: () => void;
 };
 
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -67,6 +74,8 @@ export function Timeline(p: Props) {
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [trim, setTrim] = useState<{ i: number; start: number; end: number } | null>(null);
   const [pps, setPps] = useState(PPS);
+  // An overlay block being dragged, shown where it would land.
+  const [overlayDraft, setOverlayDraft] = useState<Overlay | null>(null);
   const zoomed = Math.abs(pps - PPS) / PPS > 0.05;
   // A light tick as the playhead crosses into another clip while scrubbing.
   const lastClip = useRef(-1);
@@ -131,6 +140,7 @@ export function Timeline(p: Props) {
           </View>
         </Pressable>
         <LaneButton icon="captions.bubble" label="Captions" onPress={() => p.onCaptions()} />
+        {p.overlays.length > 0 && <LaneButton icon="photo.on.rectangle" label="Add overlay" onPress={p.onAddOverlay} />}
         <LaneButton icon="music.note" label="Audio" onPress={p.onAudio} />
         <LaneButton text="Aa" label="Text" onPress={p.onAddText} />
       </View>
@@ -278,6 +288,48 @@ export function Timeline(p: Props) {
                 )}
               </Pressable>
 
+              {p.overlays.length > 0 && (
+                <View style={styles.lane}>
+                  {p.overlays.map((base) => {
+                    const o = overlayDraft?.id === base.id ? overlayDraft : base;
+                    const on = p.selectedOverlay === o.id;
+                    const w = Math.max(16, x(o.end - o.start) - 2);
+                    // Dragging an edge (or the whole block) shows it moving; letting go saves it.
+                    const drag = (change: (dt: number) => { start?: number; end?: number }) => ({
+                      pps,
+                      onBegin: () => setScrollEnabled(false),
+                      onMove: (dt: number) => setOverlayDraft(retimeOverlay(base, change(dt), total)),
+                      onEnd: (dt: number) => {
+                        setOverlayDraft(null);
+                        setScrollEnabled(true);
+                        if (dt !== 0) p.onRetimeOverlay(base.id, change(dt));
+                      },
+                      onCancel: () => {
+                        setOverlayDraft(null);
+                        setScrollEnabled(true);
+                      },
+                    });
+                    return (
+                      <Pressable
+                        key={o.id}
+                        onPress={() => p.onSelectOverlay(o.id)}
+                        accessibilityLabel={o.kind === 'video' ? 'Video overlay' : 'Photo overlay'}
+                        style={[styles.overlay, { left: x(o.start), width: w, zIndex: on ? 2 : 1 }, on && styles.overlayOn]}
+                      >
+                        <OverlayTiles overlay={o} width={w} />
+                        {on && (
+                          <>
+                            <Drag {...drag((dt) => ({ start: base.start + dt, end: base.end + dt }))} style={styles.overlayBody} />
+                            <Drag {...drag((dt) => ({ start: base.start + dt }))} style={[styles.overlayHandle, { left: 0 }]} grip />
+                            <Drag {...drag((dt) => ({ end: base.end + dt }))} style={[styles.overlayHandle, { right: 0 }]} grip />
+                          </>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+
               <Pressable onPress={p.onAudio} style={styles.lane}>
                 {p.music ? (
                   <View style={styles.song}>
@@ -357,6 +409,84 @@ function Waveform({ wave, clip, width, quiet }: { wave: { rate: number; peaks: n
       <Svg width={width} height={WAVE_H}>
         <Path d={d} fill={quiet ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.92)'} />
       </Svg>
+    </View>
+  );
+}
+
+const OVERLAY_TILE = ROW_H - 6;
+
+/** An overlay's block on the timeline: its picture (or its video's first frame) repeated along it. */
+function OverlayTiles({ overlay: o, width }: { overlay: Overlay; width: number }) {
+  const tiles = Math.max(1, Math.min(40, Math.ceil(width / OVERLAY_TILE)));
+  const uri = cutFile(o.file).uri;
+  return (
+    <View style={styles.tiles} pointerEvents="none">
+      {Array.from({ length: tiles }, (_, k) =>
+        o.kind === 'video' ? (
+          <Thumb key={k} uri={uri} seconds={o.from} style={{ width: OVERLAY_TILE, height: '100%' }} />
+        ) : (
+          <Image key={k} source={{ uri }} style={{ width: OVERLAY_TILE, height: '100%' }} resizeMode="cover" />
+        )
+      )}
+      {o.kind === 'video' && (
+        <View style={styles.overlayKind}>
+          <SymbolView name={o.muted || o.volume === 0 ? 'speaker.slash.fill' : 'video.fill'} tintColor="#fff" size={9} />
+        </View>
+      )}
+    </View>
+  );
+}
+
+type DragProps = {
+  pps: number;
+  grip?: boolean;
+  style: StyleProp<ViewStyle>;
+  onBegin: () => void;
+  /** How far it's been dragged, in seconds. */
+  onMove: (dt: number) => void;
+  onEnd: (dt: number) => void;
+  onCancel: () => void;
+};
+
+/** A part of a selected overlay block that drags sideways along the timeline. */
+function Drag({ pps, grip, style, onBegin, onMove, onEnd, onCancel }: DragProps) {
+  const latest = useRef({ pps, onBegin, onMove, onEnd, onCancel });
+  useEffect(() => {
+    latest.current = { pps, onBegin, onMove, onEnd, onCancel };
+  });
+  const active = useRef(false);
+  // Removed mid-drag (deselected, undone): let the strip scroll again.
+  useEffect(
+    () => () => {
+      if (active.current) latest.current.onCancel();
+    },
+    []
+  );
+  // eslint-disable-next-line react-hooks/refs
+  const [responder] = useState(() =>
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderTerminationRequest: () => false,
+      onPanResponderGrant: () => {
+        active.current = true;
+        Haptics.selectionAsync();
+        latest.current.onBegin();
+      },
+      onPanResponderMove: (_, g) => latest.current.onMove(g.dx / latest.current.pps),
+      onPanResponderRelease: (_, g) => {
+        active.current = false;
+        latest.current.onEnd(g.dx / latest.current.pps);
+      },
+      onPanResponderTerminate: () => {
+        active.current = false;
+        latest.current.onCancel();
+      },
+    })
+  );
+  return (
+    <View {...responder.panHandlers} hitSlop={grip ? { left: 12, right: 12, top: 6, bottom: 6 } : undefined} style={style}>
+      {grip && <View style={styles.overlayGrip} />}
     </View>
   );
 }
@@ -448,6 +578,12 @@ const styles = StyleSheet.create({
   chipText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   textChip: { backgroundColor: '#E4E4E8' },
   textChipOn: { borderWidth: 2, borderColor: theme.ink },
+  overlay: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, overflow: 'hidden', backgroundColor: '#E4E4E8', borderWidth: 2, borderColor: 'transparent' },
+  overlayOn: { borderColor: theme.ink },
+  overlayBody: { position: 'absolute', top: 0, bottom: 0, left: 12, right: 12 },
+  overlayHandle: { position: 'absolute', top: 0, bottom: 0, width: 12, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  overlayGrip: { width: 2, height: 12, borderRadius: 1, backgroundColor: '#fff' },
+  overlayKind: { position: 'absolute', top: 2, left: 14, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 4, paddingHorizontal: 3, paddingVertical: 2 },
   wave: { position: 'absolute', left: 0, right: 0, bottom: 0, height: WAVE_H + 4, paddingTop: 2, backgroundColor: 'rgba(0,0,0,0.28)' },
   keyframe: { position: 'absolute', top: CLIP_H / 2 - KEY / 2, width: KEY, height: KEY, borderRadius: 3, backgroundColor: '#fff', borderWidth: 2, borderColor: theme.ink, transform: [{ rotate: '45deg' }] },
   zoom: { position: 'absolute', top: 0, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },

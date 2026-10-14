@@ -101,7 +101,14 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
           show(0, 'Adding your song…');
           musicUpload = await patiently(() => uploadTake(cutFile(music.file).uri, music.mime, () => {}), reconnecting);
         }
-        renderId.current = await patiently(() => startRender(id, exportBody(edit, cut.words, { height, fps, bitrate }, musicUpload)), reconnecting);
+        // Overlay photos and videos go up the same way, one by one.
+        const overlayUploads: Record<string, string> = {};
+        const overlays = edit.overlays ?? [];
+        for (const [i, o] of overlays.entries()) {
+          show(0, overlays.length > 1 ? `Adding your overlays (${i + 1} of ${overlays.length})…` : 'Adding your overlay…');
+          overlayUploads[o.id] = await patiently(() => uploadTake(cutFile(o.file).uri, o.mime, () => {}), reconnecting);
+        }
+        renderId.current = await patiently(() => startRender(id, exportBody(edit, cut.words, { height, fps, bitrate }, musicUpload, overlayUploads)), reconnecting);
       }
       while (true) {
         const r = (await job()).render;

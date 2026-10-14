@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   makeClip, splitAt, removeClip, duplicateClip, moveClip, trimClip, restoreCut, isRestored, locate, clipOffset,
   totalDuration, captionLines, applyCaps, exportBody, DEFAULT_CAPTIONS, framingAt, clampFraming,
+  overlayHeight, overlaysAt, splitOverlay, retimeOverlay,
 } from '../src/lib/edit.ts';
 
 const clips = [makeClip(1, 3), makeClip(5, 6), makeClip(8, 10)];
@@ -102,4 +103,54 @@ test('framing never shows the edge of the picture', () => {
   assert.deepEqual(clampFraming({ scale: 0.5, x: 0.3, y: 0 }), { scale: 1, x: 0, y: 0 });
   assert.deepEqual(clampFraming({ scale: 2, x: 0.9, y: -0.9 }), { scale: 2, x: 0.5, y: -0.5 });
   assert.equal(clampFraming({ scale: 9, x: 0, y: 0 }).scale, 4);
+});
+
+const photo = { id: 'p', file: 'c-overlay-1.jpg', kind: 'image', mime: 'image/jpeg', w: 1000, h: 500, start: 1, end: 4, from: 0, length: 0, x: 0.5, y: 0.5, width: 0.8, rotation: 0, volume: 1 };
+const clipO = { ...photo, id: 'v', file: 'c-overlay-2.mov', kind: 'video', mime: 'video/quicktime', start: 2, end: 5, from: 1, length: 6 };
+
+test('overlay shape and which overlays show', () => {
+  // 80% of a 9:16 frame's width, half as tall as wide.
+  assert.equal(overlayHeight(photo, 9 / 16).toFixed(4), (0.8 * (9 / 16) * 0.5).toFixed(4));
+  assert.deepEqual(overlaysAt([photo, clipO], 1.5).map((o) => o.id), ['p']);
+  assert.deepEqual(overlaysAt([photo, clipO], 3).map((o) => o.id), ['p', 'v']);
+  assert.deepEqual(overlaysAt([photo, clipO], 5).map((o) => o.id), []);
+  assert.deepEqual(overlaysAt(undefined, 1), []);
+});
+
+test('splitting an overlay: a video carries on where it was', () => {
+  const [a, b] = splitOverlay([clipO], 'v', 3, () => 'v2');
+  assert.deepEqual([a.start, a.end, a.from], [2, 3, 1]);
+  assert.deepEqual([b.id, b.start, b.end, b.from], ['v2', 3, 5, 2]);
+  // Too close to an end: nothing changes.
+  const same = [clipO];
+  assert.equal(splitOverlay(same, 'v', 2.1, () => 'x'), same);
+});
+
+test('retiming an overlay stays on the timeline and inside its video', () => {
+  // Sliding keeps its length and stops at the ends.
+  assert.deepEqual([retimeOverlay(photo, { start: 8, end: 11 }, 10).start, retimeOverlay(photo, { start: 8, end: 11 }, 10).end], [7, 10]);
+  assert.equal(retimeOverlay(photo, { start: -2, end: 1 }, 10).start, 0);
+  // A video can't start before its first frame, and moving its start moves where it plays from.
+  const early = retimeOverlay(clipO, { start: 0 }, 10);
+  assert.deepEqual([early.start, early.from], [1, 0]);
+  const late = retimeOverlay(clipO, { start: 3 }, 10);
+  assert.deepEqual([late.start, late.from, late.end], [3, 2, 5]);
+  // Nor run past its last frame (6s long, starting 1s in: 5s of it from 2s → ends by 7).
+  assert.equal(retimeOverlay(clipO, { end: 9 }, 10).end, 7);
+  // Never shorter than the minimum.
+  assert.ok(retimeOverlay(photo, { end: 1.1 }, 10).end - 1 >= 0.3 - 1e-9);
+});
+
+test('export sends uploaded overlays, shifted for the cover, muted as silent', () => {
+  const edit = { clips, muted: false, captions: { ...DEFAULT_CAPTIONS, enabled: false }, texts: [], cover: 0.5, overlays: [photo, { ...clipO, muted: true }] };
+  const body = exportBody(edit, words, {}, undefined, { p: 'up-p', v: 'up-v' });
+  assert.equal(body.overlays.length, 2);
+  const [a, b] = body.overlays;
+  assert.equal(a.upload, 'up-p');
+  assert.equal(a.kind, 'image');
+  assert.ok(Math.abs(a.start - (1 + 0.06)) < 1e-9);
+  assert.equal(b.volume, 0);
+  assert.equal(b.from, 1);
+  // One that never uploaded is left out rather than sent broken.
+  assert.equal(exportBody(edit, words, {}, undefined, { p: 'up-p' }).overlays.length, 1);
 });

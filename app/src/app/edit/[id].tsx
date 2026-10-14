@@ -7,15 +7,16 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, Style
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
-import { CaptionsPanel, FormatPanel, MusicPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
+import { CaptionsPanel, FormatPanel, MusicPanel, OverlayVolumePanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
+import { pickOverlay } from '../../components/editor/overlayMedia';
 import { pickSong, useMusic } from '../../components/editor/music';
 import { CoverPicker, Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
 import { Button, PressableScale, type SymbolName } from '../../components/ui';
 import {
-  captionLines, clipOffset, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
-  trimClip, updateClip, type ClipEdit, type Edit, type Framing, type Keyframe, type TextOverlay,
+  captionLines, clipOffset, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
+  restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
 } from '../../lib/edit';
 import { getWaveform } from '../../lib/api';
 import { cutFile, editOf, getSettings, saveEdit, updateCut, updateSettings, useCut, type CutRecord } from '../../lib/store';
@@ -36,9 +37,10 @@ export default function EditScreen() {
   return <Editor cut={cut} />;
 }
 
-type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'music' | 'textStyle' | 'textSize' | null;
+type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'music' | 'textStyle' | 'textSize' | 'overlayVolume' | null;
 type History = { past: Edit[]; present: Edit; future: Edit[] };
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const BOTTOM_H = 330;
 const newId = () => Math.random().toString(36).slice(2, 10);
 
 function Editor({ cut }: { cut: CutRecord }) {
@@ -51,6 +53,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const total = totalDuration(clips);
 
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [selectedOverlay, setSelectedOverlay] = useState<string | null>(null);
   const [panel, setPanel] = useState<PanelId>(null);
   const [focusLine, setFocusLine] = useState<string | undefined>();
   const [composer, setComposer] = useState<(TextDraft & { id?: string }) | null>(null);
@@ -161,6 +164,55 @@ function Editor({ cut }: { cut: CutRecord }) {
   const text = edit.texts.find((t) => t.id === selectedText);
   const updateText = (id: string, patch: Partial<TextOverlay>) => commit({ ...edit, texts: edit.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)) }, { keepTime: true });
 
+  // ---- Overlays: photos and videos over the picture.
+  const overlays = edit.overlays ?? [];
+  const overlay = overlays.find((o) => o.id === selectedOverlay);
+  const visibleOverlays = overlaysAt(overlays, time);
+  const setOverlays = (next: Overlay[]) => commit({ ...edit, overlays: next }, { keepTime: true });
+  const updateOverlay = (id: string, patch: Partial<Overlay>) => setOverlays(overlays.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  const selectOverlay = (id: string | null) => {
+    setSelectedText(null);
+    setSelectedOverlay(id);
+    if (panel === 'overlayVolume' && id !== selectedOverlay) setPanel(null);
+  };
+
+  async function addOverlay() {
+    playback.pause();
+    try {
+      const media = await pickOverlay(cut.id);
+      if (!media) return;
+      const start = Math.max(0, Math.min(time, total - 1));
+      const end = Math.min(total, start + Math.max(MIN_OVERLAY, media.kind === 'video' ? media.length : 3));
+      // Most of the frame's width, but never taller than most of its height.
+      const tall = overlayHeight({ ...media, width: 0.8 }, aspect);
+      const width = tall > 0.7 ? (0.8 * 0.7) / tall : 0.8;
+      const o: Overlay = { ...media, id: newId(), start, end, from: 0, x: 0.5, y: 0.5, width, rotation: 0, volume: 1 };
+      commit({ ...edit, overlays: [...overlays, o] }, { keepTime: true });
+      setPanel(null);
+      selectOverlay(o.id);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    } catch (e) {
+      Alert.alert('Couldn’t add that', e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  // Moving, sizing and turning an overlay with fingers updates it live; the undo point is taken at
+  // its first change, so a tap that only selects it leaves nothing to undo.
+  const overlayMoved = useRef(false);
+  function overlayTouched(id: string) {
+    playback.pause();
+    overlayMoved.current = false;
+    if (id !== selectedOverlay) selectOverlay(id);
+  }
+  function overlayLive(id: string, patch: Partial<Overlay>) {
+    const first = !overlayMoved.current;
+    overlayMoved.current = true;
+    setHistory((h) => {
+      const present = { ...h.present, overlays: (h.present.overlays ?? []).map((o) => (o.id === id ? { ...o, ...patch } : o)) };
+      return first ? { past: [...h.past, h.present].slice(-60), present, future: [] } : { ...h, present };
+    });
+  }
+
   function addText(d: TextDraft) {
     // Near the end, start early enough that the text is on screen for at least a second.
     const start = Math.max(0, Math.min(time, total - 1));
@@ -201,7 +253,8 @@ function Editor({ cut }: { cut: CutRecord }) {
   const selected = locate(clips, Math.min(time, total - 0.01))[0];
   const clip = clips[selected];
   type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'volume' | 'speed' | 'restore'
-    | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete';
+    | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete'
+    | 'overlay' | 'overlaySplit' | 'overlayDuplicate' | 'overlayMute' | 'overlayVolume' | 'overlayFront' | 'overlayDelete';
   type Tool = { id: ToolId; icon: SymbolName; label: string; disabled?: boolean; danger?: boolean };
   const clipTools: Tool[] = [
     { id: 'split', icon: 'square.split.2x1', label: 'Split' },
@@ -209,6 +262,7 @@ function Editor({ cut }: { cut: CutRecord }) {
     { id: 'delete', icon: 'trash', label: 'Delete', disabled: clips.length < 2, danger: true },
     { id: 'text', icon: 'textformat', label: 'Text' },
     { id: 'captions', icon: 'captions.bubble', label: 'Captions' },
+    { id: 'overlay', icon: 'photo.on.rectangle', label: 'Overlay' },
     { id: 'volume', icon: 'speaker.wave.2', label: 'Volume' },
     { id: 'speed', icon: 'gauge.with.dots.needle.67percent', label: 'Speed' },
     { id: 'restore', icon: 'arrow.uturn.backward.circle', label: 'Restore' },
@@ -222,7 +276,21 @@ function Editor({ cut }: { cut: CutRecord }) {
     { id: 'textDuplicate', icon: 'plus.square.on.square', label: 'Duplicate' },
     { id: 'textDelete', icon: 'trash', label: 'Delete', danger: true },
   ];
-  const tools = text ? textTools : clipTools;
+  const overlayIsVideo = overlay?.kind === 'video';
+  const overlayTools: Tool[] = [
+    { id: 'overlay', icon: 'plus', label: 'Add' },
+    { id: 'overlaySplit', icon: 'square.split.2x1', label: 'Split', disabled: !overlay || time - overlay.start < MIN_OVERLAY || overlay.end - time < MIN_OVERLAY },
+    { id: 'overlayDuplicate', icon: 'plus.square.on.square', label: 'Duplicate' },
+    ...(overlayIsVideo
+      ? ([
+          { id: 'overlayMute', icon: overlay?.muted ? 'speaker.slash' : 'speaker.wave.2', label: overlay?.muted ? 'Unmute' : 'Mute' },
+          { id: 'overlayVolume', icon: 'speaker.wave.3', label: 'Volume' },
+        ] satisfies Tool[])
+      : []),
+    { id: 'overlayFront', icon: 'square.3.layers.3d.top.filled', label: 'To front', disabled: overlays.at(-1)?.id === overlay?.id },
+    { id: 'overlayDelete', icon: 'trash', label: 'Delete', danger: true },
+  ];
+  const tools = overlay ? overlayTools : text ? textTools : clipTools;
 
   // ---- Song under the video.
   async function addSong(replace = false) {
@@ -246,7 +314,24 @@ function Editor({ cut }: { cut: CutRecord }) {
     else if (tool === 'volume') setPanel('volume');
     else if (tool === 'speed') setPanel('speed');
     else if (tool === 'restore') setRestoring(true);
-    else if (!text) return;
+    else if (tool === 'overlay') addOverlay();
+    else if (overlay) {
+      if (tool === 'overlaySplit') {
+        const next = splitOverlay(overlays, overlay.id, time, newId);
+        if (next !== overlays) setOverlays(next);
+      } else if (tool === 'overlayDuplicate') {
+        const copy = { ...overlay, id: newId(), x: Math.min(0.95, overlay.x + 0.05), y: Math.min(0.95, overlay.y + 0.05) };
+        setOverlays([...overlays, copy]);
+        setSelectedOverlay(copy.id);
+      } else if (tool === 'overlayMute') updateOverlay(overlay.id, { muted: !overlay.muted });
+      else if (tool === 'overlayVolume') setPanel('overlayVolume');
+      else if (tool === 'overlayFront') setOverlays([...overlays.filter((o) => o.id !== overlay.id), overlay]);
+      else if (tool === 'overlayDelete') {
+        setOverlays(overlays.filter((o) => o.id !== overlay.id));
+        setSelectedOverlay(null);
+        if (panel === 'overlayVolume') setPanel(null);
+      }
+    } else if (!text) return;
     else if (tool === 'textEdit') setComposer({ id: text.id, text: text.text, style: text.style, font: text.font, color: text.color, box: text.box, outline: text.outline, align: text.align, scale: text.scale });
     else if (tool === 'textStyle') setPanel('textStyle');
     else if (tool === 'textSize') setPanel('textSize');
@@ -290,14 +375,26 @@ function Editor({ cut }: { cut: CutRecord }) {
         texts={visibleTexts}
         selectedText={selectedText}
         fullscreen={fullscreen}
-        onTap={() => (selectedText ? setSelectedText(null) : playback.toggle())}
-        onTapText={(id) => setSelectedText(id)}
+        onTap={() => (selectedText || selectedOverlay ? selectOverlay(null) : playback.toggle())}
+        onTapText={(id) => {
+          setSelectedOverlay(null);
+          setSelectedText(id);
+        }}
         onMoveText={(id, x, y) => updateText(id, { x, y })}
         onCloseFullscreen={() => setFullscreen(false)}
         framing={framing}
         onFrameStart={startFraming}
         onFrame={frameLive}
         onFrameEnd={saveFraming}
+        overlays={visibleOverlays}
+        selectedOverlay={selectedOverlay}
+        time={time}
+        playing={playing}
+        onOverlayStart={overlayTouched}
+        onOverlayChange={overlayLive}
+        onOverlayEnd={() => {
+          overlayMoved.current = false;
+        }}
       />
 
       <View style={styles.transport}>
@@ -321,7 +418,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         </View>
       </View>
 
-      <View style={styles.bottom}>
+      <View style={[styles.bottom, overlays.length > 0 && { height: BOTTOM_H + 40 }]}>
         <View style={styles.clockRow}>
           <Text style={styles.clock}>
             {mmss(time)} / {mmss(total)}
@@ -361,7 +458,7 @@ function Editor({ cut }: { cut: CutRecord }) {
             onScrubEnd={() => playback.setScrubbing(false)}
             onSelectClip={(i) => {
               playback.setScrubbing(false);
-              setSelectedText(null);
+              selectOverlay(null);
               if (i !== selected) playback.seek(clipOffset(clips, i) + 0.02);
               Haptics.selectionAsync();
             }}
@@ -383,17 +480,34 @@ function Editor({ cut }: { cut: CutRecord }) {
             }}
             onSelectText={(tid) => {
               playback.setScrubbing(false);
+              setSelectedOverlay(null);
               setSelectedText(tid);
               const t = edit.texts.find((x) => x.id === tid);
               if (t) playback.seek(t.start);
             }}
             onAddText={() => setComposer({ text: '', style: 'classic' })}
+            overlays={overlays}
+            selectedOverlay={selectedOverlay}
+            onSelectOverlay={(oid) => {
+              playback.setScrubbing(false);
+              playback.pause();
+              selectOverlay(oid);
+              const o = overlays.find((x) => x.id === oid);
+              // Onto the overlay, so it shows (unless the playhead is already on it).
+              if (o && (time < o.start || time >= o.end)) playback.seek(o.start + 0.01);
+              Haptics.selectionAsync();
+            }}
+            onRetimeOverlay={(oid, change) => {
+              const o = overlays.find((x) => x.id === oid);
+              if (o) setOverlays(overlays.map((x) => (x.id === oid ? retimeOverlay(o, change, total) : x)));
+            }}
+            onAddOverlay={addOverlay}
           />
         </View>
 
         <View ref={toolbarRef} collapsable={false} style={[styles.toolbar, { paddingBottom: insets.bottom + 4 }]}>
-          {text && (
-            <Pressable onPress={() => setSelectedText(null)} hitSlop={10} style={styles.toolBack} accessibilityLabel="Back to clips">
+          {(text || overlay) && (
+            <Pressable onPress={() => selectOverlay(null)} hitSlop={10} style={styles.toolBack} accessibilityLabel="Back to clips">
               <SymbolView name="chevron.left" tintColor={theme.ink} size={16} weight="semibold" />
             </Pressable>
           )}
@@ -459,6 +573,16 @@ function Editor({ cut }: { cut: CutRecord }) {
               commit({ ...edit, music: undefined }, { keepTime: true });
               setPanel(null);
             }}
+            onDone={() => setPanel(null)}
+          />
+        )}
+        {panel === 'overlayVolume' && overlay && (
+          <OverlayVolumePanel
+            key={overlay.id}
+            volume={overlay.volume}
+            muted={!!overlay.muted}
+            onChange={(volume) => updateOverlay(overlay.id, { volume })}
+            onMute={(muted) => updateOverlay(overlay.id, { muted })}
             onDone={() => setPanel(null)}
           />
         )}
@@ -549,7 +673,7 @@ const styles = StyleSheet.create({
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 80, justifyContent: 'flex-end' },
   exportText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
-  bottom: { height: 330, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
+  bottom: { height: BOTTOM_H, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
   clock: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },
   preparing: { flexDirection: 'row', alignItems: 'center', gap: 2 },

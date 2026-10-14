@@ -91,12 +91,13 @@ export async function renderCut(input, output, segments, words, { captions = fal
 /**
  * Renders an edit from the app: clips with speed/volume, styled captions and text overlays.
  * edit = { clips: [{ start, end, speed, volume }], captions?: { style, lines }, texts?: [...],
- *          music?: { file, volume }, keyframes?: [{ t, scale, x, y }], height?, fps?, bitrate? }
+ *          music?: { file, volume }, keyframes?: [{ t, scale, x, y }],
+ *          overlays?: [{ file, kind, start, end, from, x, y, width, rotation, volume }], height?, fps?, bitrate? }
  * (caption lines, texts and keyframes are on the output timeline)
  */
 export async function renderEdit(input, output, edit, { onProgress } = {}) {
   let ass;
-  const needsSize = edit.captions?.lines?.length || edit.texts?.length || edit.keyframes?.length;
+  const needsSize = edit.captions?.lines?.length || edit.texts?.length || edit.keyframes?.length || edit.overlays?.length;
   const { width, height } = needsSize ? await probe(input) : {};
   if (edit.captions?.lines?.length || edit.texts?.length) {
     ass = output.replace(/\.mp4$/, '') + '.ass';
@@ -110,6 +111,14 @@ export async function renderEdit(input, output, edit, { onProgress } = {}) {
     bitrate: edit.bitrate,
     music: edit.music,
     motion: edit.keyframes?.length ? { keyframes: edit.keyframes, width, height } : undefined,
+    layers: edit.overlays?.length
+      ? {
+          width,
+          height,
+          // A video overlay's sound is mixed in only if it has any.
+          list: await Promise.all(edit.overlays.map(async (o) => (o.kind === 'video' ? { ...o, hasAudio: (await probe(o.file)).hasAudio } : o))),
+        }
+      : undefined,
     onProgress,
   });
 }

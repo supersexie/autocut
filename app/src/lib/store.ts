@@ -143,6 +143,15 @@ export function duplicateCut(id: string) {
   const copyId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
   const source = `${copyId}-source.mp4`;
   cutFile(cut.source).copy(cutFile(source));
+  // Its own copies of the song and overlay files, so deleting one cut never breaks the other.
+  const own = (name: string) => {
+    const copy = name.replace(cut.id, copyId);
+    if (cutFile(name).exists && !cutFile(copy).exists) cutFile(name).copy(cutFile(copy));
+    return copy;
+  };
+  const edit: Edit | undefined = cut.edit && JSON.parse(JSON.stringify(cut.edit));
+  if (edit?.music) edit.music.file = own(edit.music.file);
+  edit?.overlays?.forEach((o) => (o.file = own(o.file)));
   addCut({
     ...cut,
     id: copyId,
@@ -150,7 +159,7 @@ export function duplicateCut(id: string) {
     title: `${cut.title} (copy)`,
     source,
     exports: 0,
-    edit: cut.edit && JSON.parse(JSON.stringify(cut.edit)),
+    edit,
   });
   return copyId;
 }
@@ -164,8 +173,9 @@ export function deleteCut(id: string) {
   const record = getCut(id);
   if (record) removeFiles(record);
   deletePreviews(id);
-  // Songs added in the editor (every one kept, so undo can bring an earlier one back).
-  if (cutsDir.exists) for (const f of cutsDir.list()) if (f instanceof File && f.name.startsWith(`${id}-music-`)) f.delete();
+  // Songs and overlays added in the editor (every one kept, so undo can bring an earlier one back).
+  if (cutsDir.exists)
+    for (const f of cutsDir.list()) if (f instanceof File && (f.name.startsWith(`${id}-music-`) || f.name.startsWith(`${id}-overlay-`))) f.delete();
   state = { ...state, cuts: state.cuts.filter((c) => c.id !== id) };
   persist();
   emit();

@@ -8,13 +8,14 @@ import {
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
-  clampFraming, locate, moveClip, outDuration, totalDuration, type CaptionLine, type ClipEdit, type Framing, type TextLook, type TextOverlay,
+  clampFraming, locate, moveClip, outDuration, totalDuration, type CaptionLine, type ClipEdit, type Framing, type Overlay, type TextLook, type TextOverlay,
 } from '../../lib/edit';
 import { TEXT_FONTS } from '../../lib/fonts';
 import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
 import Slider from '@react-native-community/slider';
+import { OverlayItem, type OverlayGuide } from './OverlayLayer';
 import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
 
 type PreviewProps = {
@@ -39,6 +40,15 @@ type PreviewProps = {
   onFrameStart: () => Framing;
   onFrame: (f: Framing) => void;
   onFrameEnd: () => void;
+  /** Photos and videos over the picture at the playhead. */
+  overlays: Overlay[];
+  selectedOverlay: string | null;
+  time: number;
+  playing: boolean;
+  /** A finger landed on an overlay (the undo point for whatever it does next). */
+  onOverlayStart: (id: string) => void;
+  onOverlayChange: (id: string, patch: Partial<Overlay>) => void;
+  onOverlayEnd: () => void;
 };
 
 const SNAP_ZOOM = 0.04; // within 4% of 100% snaps to 100%
@@ -49,7 +59,7 @@ const SNAP_CENTRE = 0.015; // within 1.5% of the middle snaps to it
  * play and drags text. Zoom snaps to 100% and to the centre, with guides that show only while
  * the fingers are down.
  */
-function useFramingGesture(width: number, height: number, onStart: () => Framing, onFrame: (f: Framing) => void, onEnd: () => void) {
+function useFramingGesture(width: number, height: number, onStart: () => Framing, onFrame: (f: Framing) => void, onEnd: () => void, blocked: () => boolean) {
   const [shown, setShown] = useState<{ scale: number; centredX: boolean; centredY: boolean } | null>(null);
   const pinch = useRef<{ ids: [string, string]; distance: number; mid: { x: number; y: number }; base: Framing } | null>(null);
   const endedAt = useRef(0);
@@ -72,7 +82,8 @@ function useFramingGesture(width: number, height: number, onStart: () => Framing
     onTouchMove: (e: GestureResponderEvent) => {
       const touches = e.nativeEvent.touches as unknown as T[];
       if (!pinch.current) {
-        if (touches.length < 2) return;
+        // Fingers on an overlay move and size the overlay, not the picture under it.
+        if (touches.length < 2 || blocked()) return;
         const [a, b] = touches;
         pinch.current = { ids: [String(a.identifier), String(b.identifier)], ...measure(a, b), base: onStart() };
         return;
@@ -124,7 +135,9 @@ export function Preview(p: PreviewProps) {
     fh = box.h;
     fw = fh * p.aspect;
   }
-  const zoom = useFramingGesture(fw, fh, p.onFrameStart, p.onFrame, p.onFrameEnd);
+  const overlayBusy = useRef(false);
+  const [guide, setGuide] = useState<OverlayGuide | null>(null);
+  const zoom = useFramingGesture(fw, fh, p.onFrameStart, p.onFrame, p.onFrameEnd, () => overlayBusy.current);
   return (
     <View style={p.fullscreen ? [StyleSheet.absoluteFill, styles.full, { paddingTop: insets.top, paddingBottom: insets.bottom }] : styles.previewWrap}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} onLayout={onLayout}>
@@ -138,6 +151,24 @@ export function Preview(p: PreviewProps) {
             >
               {p.video}
             </View>
+            {p.overlays.map((o) => (
+              <OverlayItem
+                key={o.id}
+                overlay={o}
+                frameW={fw}
+                frameH={fh}
+                selected={p.selectedOverlay === o.id}
+                time={p.time}
+                playing={p.playing}
+                onBusy={(busy) => {
+                  overlayBusy.current = busy;
+                }}
+                onGuide={setGuide}
+                onSelect={() => p.onOverlayStart(o.id)}
+                onChange={(patch) => p.onOverlayChange(o.id, patch)}
+                onEnd={p.onOverlayEnd}
+              />
+            ))}
             {p.line && (
               <View style={[styles.captionSpot, { bottom: fh * 0.24 }]} pointerEvents="none">
                 <StyledText preset={captionStyle(p.captionStyleId)} look={p.captionLook} words={p.line.words.map((w) => w.text)} active={p.activeWord} frameWidth={fw} />
@@ -146,6 +177,17 @@ export function Preview(p: PreviewProps) {
             {p.texts.map((t) => (
               <DraggableText key={t.id} text={t} frameW={fw} frameH={fh} selected={p.selectedText === t.id} onTap={() => p.onTapText(t.id)} onMove={(x, y) => p.onMoveText(t.id, x, y)} />
             ))}
+            {guide && (
+              <View style={StyleSheet.absoluteFill} pointerEvents="none">
+                {guide.x && <View style={styles.guideV} />}
+                {guide.y && <View style={styles.guideH} />}
+                {guide.turn !== undefined && (
+                  <View style={styles.zoomBadge}>
+                    <Text style={styles.zoomText}>{Math.round(guide.turn)}°</Text>
+                  </View>
+                )}
+              </View>
+            )}
             {zoom.shown && (
               <View style={StyleSheet.absoluteFill} pointerEvents="none">
                 <View style={[styles.framing, { borderRadius: p.fullscreen ? 0 : 16 }]} />
