@@ -5,7 +5,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProgressCard } from '../../components/ProgressCard';
 import { Backdrop, Button } from '../../components/ui';
-import { stopCut } from '../../lib/jobs';
+import { canRetry, retryCut, stopCut } from '../../lib/jobs';
 import { cutFile, deleteCut, useCut } from '../../lib/store';
 import { theme } from '../../lib/theme';
 
@@ -64,6 +64,7 @@ export default function Cutting() {
       <Backdrop
         footer={
           <>
+            {canRetry(cut) && <Button title="Try again" onPress={() => retryCut(id)} />}
             <Button
               kind="outline"
               title="Delete this draft"
@@ -72,7 +73,7 @@ export default function Cutting() {
                 leave();
               }}
             />
-            <Button title="Back to camera" onPress={() => router.replace('/')} />
+            <Button kind={canRetry(cut) ? 'text' : 'primary'} title="Back to camera" onPress={() => router.replace('/')} />
           </>
         }
       >

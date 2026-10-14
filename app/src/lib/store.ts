@@ -28,6 +28,8 @@ export type CutRecord = {
   localSource?: string;
   /** The folder it's filed in; none = the main Cuts page. */
   folderId?: string;
+  /** What was sent, so a failed cut can be tried again. */
+  retry?: { takes: { uri: string; mime: string; duration: number; flip?: boolean }[]; language: string };
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally

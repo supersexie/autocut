@@ -61,6 +61,7 @@ async function call(path: string, init?: RequestInit) {
     throw new ServerUnreachable(base);
   }
   const body = await res.json().catch(() => null);
+  if (res.status >= 502 && res.status <= 504) throw new ServerUnreachable(base); // restarting or swamped: try again
   if (!res.ok) throw new Error(body?.error ?? `Server error (${res.status}).`);
   return body;
 }
@@ -84,6 +85,8 @@ export async function uploadTake(uri: string, mime: string, onProgress: (fractio
   try {
     body = JSON.parse(result.body);
   } catch {}
+  // 502–504: the server is restarting (a new version going live) or swamped. Worth another go.
+  if (result.status >= 502 && result.status <= 504) throw new ServerUnreachable(base);
   if (result.status !== 201 || !body?.id) throw new Error(body?.error ?? `Upload failed (${result.status}).`);
   return body.id;
 }

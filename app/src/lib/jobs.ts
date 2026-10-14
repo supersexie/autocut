@@ -30,6 +30,7 @@ export function startCut(takes: Take[], language: string): string {
     localSource: takes.length === 1 && !takes[0].flip ? takes[0].uri : undefined,
     // Filed where the camera's folder button says (if that folder still exists).
     folderId: getSettings().saveFolder || undefined,
+    retry: { takes, language },
     duration: takes.reduce((t, k) => t + k.duration, 0),
     words: [],
     cuts: [],
@@ -152,6 +153,43 @@ async function sourceFor(id: string, record: CutRecord, serverId: string) {
   return withRetries(() => download(`/cuts/${serverId}/source`, `${id}-source.mp4`), 4, () => updateCut(id, { stage: 'reconnecting' }));
 }
 
+/** What to send again: what was sent, or for cuts made before that was kept, their single take. */
+function retryTakes(cut: CutRecord): Take[] | undefined {
+  if (cut.retry) return cut.retry.takes;
+  if (cut.takes === 1 && cut.previewUri) return [{ uri: cut.previewUri, mime: 'video/quicktime', duration: cut.duration, flip: cut.previewFlip }];
+}
+
+const stillHere = (takes?: Take[]) => !!takes?.length && takes.every((t) => new File(t.uri).exists);
+
+/** Whether a failed cut can be tried again: the server still has it, or its videos are still here. */
+export function canRetry(cut: CutRecord) {
+  return cut.status === 'failed' && (!!cut.serverId || stillHere(retryTakes(cut)));
+}
+
+/**
+ * Tries a failed cut again. If the server got it, pick up where it is (it may even be done);
+ * otherwise send the videos again.
+ */
+export async function retryCut(id: string) {
+  const record = getCut(id);
+  if (!record || record.status !== 'failed') return;
+  if (record.serverId) {
+    const job = await getJob(record.serverId).catch(() => null);
+    if (job && job.stage !== 'failed' && job.stage !== 'stopped') {
+      updateCut(id, { status: 'processing', stage: job.stage, progress: job.progress ?? 0, error: undefined });
+      track(id);
+      return;
+    }
+  }
+  const takes = retryTakes(record);
+  if (!takes || !stillHere(takes)) {
+    updateCut(id, { error: 'The original video isn’t on this phone any more. Record or import it again.' });
+    return;
+  }
+  updateCut(id, { status: 'uploading', stage: 'waiting', progress: 0, error: undefined, serverId: undefined });
+  run(id, takes, record.retry?.language ?? 'en');
+}
+
 export async function stopCut(id: string) {
   const record = getCut(id);
   updateCut(id, { status: 'failed', error: 'You stopped this cut.' });
@@ -162,7 +200,7 @@ export async function stopCut(id: string) {
 export function resumeJobs() {
   for (const c of getCuts()) {
     if (c.status === 'processing') track(c.id);
-    if (c.status === 'uploading') updateCut(c.id, { status: 'failed', error: 'The upload was interrupted. Send the take again.' });
+    if (c.status === 'uploading') updateCut(c.id, { status: 'failed', error: 'The upload was interrupted. Tap Try again.' });
   }
 }
 

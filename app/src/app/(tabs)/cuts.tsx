@@ -10,6 +10,7 @@ import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
 import * as Sharing from 'expo-sharing';
 import { coverSource } from '../../lib/edit';
+import { canRetry, retryCut } from '../../lib/jobs';
 import {
   createFolder, cutFile, cutProgress, cutStatus, deleteCut, deleteFolder, duplicateCut, editedDuration, exportFile, getFolders, moveCuts, renameFolder, updateCut,
   useCuts, useFolders, type CutRecord, type Folder,
@@ -264,7 +265,19 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
   const uri = cut.source ? cutFile(cut.source).uri : cut.previewUri;
   const flip = !cut.source && !!cut.previewFlip;
   const seconds = cut.edit ? coverSource(cut.edit) : (cut.clips[0]?.[0] ?? 0) + 0.3;
-  const open = () => router.push({ pathname: cut.status === 'ready' ? '/edit/[id]' : '/cut/[id]', params: { id: cut.id } });
+  const open = () => {
+    // A failed cut: straight to what can be done about it.
+    if (cut.status === 'failed') {
+      const retry = canRetry(cut);
+      return sheet(
+        cut.error ?? "The edit didn't finish.",
+        [...(retry ? ['Try again'] : []), 'Delete'],
+        (i) => (retry && i === 0 ? retryCut(cut.id) : deleteCut(cut.id)),
+        retry ? 1 : 0
+      );
+    }
+    router.push({ pathname: cut.status === 'ready' ? '/edit/[id]' : '/cut/[id]', params: { id: cut.id } });
+  };
 
   function actions() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -273,6 +286,7 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
       { label: 'Rename', run: () => Alert.prompt('Rename cut', undefined, (title) => title.trim() && updateCut(cut.id, { title: title.trim() }), 'plain-text', cut.title) },
       ...(exported.exists ? [{ label: 'Share', run: () => Sharing.shareAsync(exported.uri, { mimeType: 'video/mp4', UTI: 'public.mpeg-4' }) }] : []),
       ...(cut.status === 'ready' && cut.source ? [{ label: 'Duplicate', run: () => duplicateCut(cut.id) }] : []),
+      ...(canRetry(cut) ? [{ label: 'Try again', run: () => retryCut(cut.id) }] : []),
       { label: 'Move to folder…', run: () => moveToFolder([cut.id], getFolders()) },
       {
         label: 'Delete',
