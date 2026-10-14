@@ -3,16 +3,18 @@ import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type TextOverlay } from '../../lib/edit';
+import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type Music, type TextOverlay } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
+import type { SymbolName } from '../ui';
 
 export const PPS = 56; // points per second of output, before zooming
 const MIN_PPS = 14;
 const MAX_PPS = 400;
 const CLIP_H = 58;
-const ROW_H = 30;
-const LEFT = 64;
+const ROW_H = 34;
+const ROW_GAP = 6;
+const LEFT = 70;
 const TILE = 46;
 
 type Props = {
@@ -21,8 +23,10 @@ type Props = {
   sourceDuration: number;
   time: number;
   selected: number;
-  muted: boolean;
+  /** Source time of the cover frame, for the Cover tile. */
+  coverSource: number;
   captionsOn: boolean;
+  music?: Music;
   lines: CaptionLine[];
   texts: TextOverlay[];
   selectedText: string | null;
@@ -32,7 +36,8 @@ type Props = {
   onSelectClip: (i: number) => void;
   onTrim: (i: number, edges: { start?: number; end?: number }) => void;
   onReorderStart: (i: number) => void;
-  onToggleMute: () => void;
+  onCover: () => void;
+  onAudio: () => void;
   onCaptions: (line?: CaptionLine) => void;
   onSelectText: (id: string) => void;
   onAddText: () => void;
@@ -110,16 +115,16 @@ export function Timeline(p: Props) {
     <View style={styles.wrap}>
       <View style={styles.left}>
         <View style={{ height: 22 }} />
-        <Pressable onPress={p.onToggleMute} style={[styles.leftRow, { height: CLIP_H }]} accessibilityLabel={p.muted ? 'Unmute clip audio' : 'Mute clip audio'}>
-          <SymbolView name={p.muted ? 'speaker.slash.fill' : 'speaker.wave.2.fill'} tintColor={theme.ink} size={16} />
-          <Text style={styles.leftLabel}>{p.muted ? 'Unmute' : 'Mute clip\naudio'}</Text>
+        <Pressable onPress={p.onCover} style={styles.cover} accessibilityLabel="Choose the cover">
+          <Thumb uri={p.sourceUri} seconds={p.coverSource} style={StyleSheet.absoluteFill} />
+          <View style={styles.coverShade}>
+            <SymbolView name="pencil" tintColor="#fff" size={13} weight="semibold" />
+            <Text style={styles.coverText}>Cover</Text>
+          </View>
         </Pressable>
-        <View style={[styles.leftRow, { height: ROW_H }]}>
-          <SymbolView name="captions.bubble" tintColor={theme.muted} size={15} />
-        </View>
-        <View style={[styles.leftRow, { height: ROW_H }]}>
-          <SymbolView name="textformat" tintColor={theme.muted} size={15} />
-        </View>
+        <LaneButton icon="captions.bubble" label="Captions" onPress={() => p.onCaptions()} />
+        <LaneButton icon="music.note" label="Audio" onPress={p.onAudio} />
+        <LaneButton text="Aa" label="Text" onPress={p.onAddText} />
       </View>
 
       <GestureDetector gesture={pinch}>
@@ -240,8 +245,9 @@ export function Timeline(p: Props) {
                 })}
               </View>
 
-              <View style={styles.row}>
-                {p.captionsOn ? (
+              {/* Captions, audio and text each run the full length of the video, like the clips. */}
+              <Pressable onPress={() => p.onCaptions()} style={styles.lane}>
+                {p.captionsOn && p.lines.length ? (
                   p.lines.map((l) => (
                     <Pressable key={`${l.key}-${l.start}`} onPress={() => p.onCaptions(l)} style={[styles.chip, { left: x(l.start), width: Math.max(14, x(l.end - l.start) - 2) }]}>
                       <Text style={styles.chipText} numberOfLines={1}>
@@ -250,13 +256,25 @@ export function Timeline(p: Props) {
                     </Pressable>
                   ))
                 ) : (
-                  <Pressable onPress={() => p.onCaptions()} style={[styles.add, { left: x(p.time) }]}>
-                    <Text style={styles.addText}>+ Add captions</Text>
-                  </Pressable>
+                  <Text style={styles.laneLabel}>+ Add captions</Text>
                 )}
-              </View>
+              </Pressable>
 
-              <View style={styles.row}>
+              <Pressable onPress={p.onAudio} style={styles.lane}>
+                {p.music ? (
+                  <View style={styles.song}>
+                    <SymbolView name="music.note" tintColor="#fff" size={11} />
+                    <Text style={styles.songText} numberOfLines={1}>
+                      {p.music.name}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text style={styles.laneLabel}>+ Add audio</Text>
+                )}
+              </Pressable>
+
+              <Pressable onPress={p.onAddText} style={styles.lane}>
+                {!p.texts.length && <Text style={styles.laneLabel}>+ Add text</Text>}
                 {p.texts.map((t) => (
                   <Pressable
                     key={t.id}
@@ -268,12 +286,7 @@ export function Timeline(p: Props) {
                     </Text>
                   </Pressable>
                 ))}
-                {!p.texts.some((t) => p.time >= t.start && p.time < t.end) && (
-                  <Pressable onPress={p.onAddText} style={[styles.add, { left: x(p.time) }]}>
-                    <Text style={styles.addText}>+ Add text</Text>
-                  </Pressable>
-                )}
-              </View>
+              </Pressable>
             </View>
           </ScrollView>
         )}
@@ -301,6 +314,15 @@ type HandleProps = {
   onCancel: () => void;
   sourceDuration: number;
 };
+
+/** A square at the left of a lane (captions, audio, text) that does the same as tapping the lane. */
+function LaneButton({ icon, text, label, onPress }: { icon?: SymbolName; text?: string; label: string; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} accessibilityLabel={label} style={({ pressed }) => [styles.laneButton, pressed && { opacity: 0.6 }]}>
+      {icon ? <SymbolView name={icon} tintColor={theme.ink} size={16} /> : <Text style={styles.laneButtonText}>{text}</Text>}
+    </Pressable>
+  );
+}
 
 /** Drag a clip's edge to trim it. Movement is in output points, converted to source seconds. */
 function TrimHandle({ side, clip, pps, onBegin, onMove, onEnd, onCancel, sourceDuration }: HandleProps) {
@@ -357,8 +379,11 @@ function TrimHandle({ side, clip, pps, onBegin, onMove, onEnd, onCancel, sourceD
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', paddingVertical: 6 },
   left: { width: LEFT, alignItems: 'center' },
-  leftRow: { alignItems: 'center', justifyContent: 'center', gap: 3 },
-  leftLabel: { fontSize: 9, color: theme.muted, textAlign: 'center', lineHeight: 11 },
+  cover: { width: LEFT - 14, height: CLIP_H, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.card },
+  coverShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', gap: 3 },
+  coverText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  laneButton: { width: LEFT - 22, height: ROW_H, marginTop: ROW_GAP, borderRadius: 9, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  laneButtonText: { fontSize: 15, fontWeight: '600', color: theme.ink },
   ruler: { height: 22 },
   tick: { position: 'absolute', top: 4 },
   tickText: { fontSize: 9, color: theme.faint, fontVariant: ['tabular-nums'], marginLeft: -12 },
@@ -369,13 +394,14 @@ const styles = StyleSheet.create({
   badgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   handle: { position: 'absolute', top: 0, bottom: 0, width: 14, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   grip: { width: 3, height: 18, borderRadius: 2, backgroundColor: '#fff' },
-  row: { height: ROW_H, marginTop: 6 },
-  chip: { position: 'absolute', top: 2, height: ROW_H - 4, borderRadius: 7, backgroundColor: theme.ink, justifyContent: 'center', paddingHorizontal: 6 },
+  lane: { height: ROW_H, marginTop: ROW_GAP, borderRadius: 9, backgroundColor: theme.card, justifyContent: 'center' },
+  laneLabel: { fontSize: 13, fontWeight: '500', color: theme.muted, marginLeft: 12 },
+  song: { position: 'absolute', top: 3, bottom: 3, left: 2, right: 2, borderRadius: 7, backgroundColor: '#3A3A40', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8 },
+  songText: { color: '#fff', fontSize: 11, fontWeight: '600', flexShrink: 1 },
+  chip: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, backgroundColor: theme.ink, justifyContent: 'center', paddingHorizontal: 6 },
   chipText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   textChip: { backgroundColor: '#E4E4E8' },
   textChipOn: { borderWidth: 2, borderColor: theme.ink },
-  add: { position: 'absolute', top: 2, height: ROW_H - 4, borderRadius: 7, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C7C7CC', justifyContent: 'center', paddingHorizontal: 10 },
-  addText: { fontSize: 11, fontWeight: '600', color: theme.muted },
   zoom: { position: 'absolute', top: 0, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   zoomText: { fontSize: 10, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 2, borderRadius: 1, backgroundColor: theme.ink },

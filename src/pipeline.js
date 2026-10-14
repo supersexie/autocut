@@ -64,7 +64,7 @@ export async function renderCut(input, output, segments, words, { captions = fal
 /**
  * Renders an edit from the app: clips with speed/volume, styled captions and text overlays.
  * edit = { clips: [{ start, end, speed, volume }], captions?: { style, lines }, texts?: [...],
- *          height?, fps?, bitrate? }  (caption lines and texts are on the output timeline)
+ *          music?: { file, volume }, height?, fps?, bitrate? }  (caption lines and texts are on the output timeline)
  */
 export async function renderEdit(input, output, edit, { onProgress } = {}) {
   let ass;
@@ -79,6 +79,7 @@ export async function renderEdit(input, output, edit, { onProgress } = {}) {
     height: edit.height,
     fps: edit.fps,
     bitrate: edit.bitrate,
+    music: edit.music,
     onProgress,
   });
 }

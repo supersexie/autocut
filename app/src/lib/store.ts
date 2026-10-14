@@ -150,6 +150,8 @@ export function deleteCut(id: string) {
   const record = getCut(id);
   if (record) removeFiles(record);
   deletePreviews(id);
+  // Songs added in the editor (every one kept, so undo can bring an earlier one back).
+  if (cutsDir.exists) for (const f of cutsDir.list()) if (f instanceof File && f.name.startsWith(`${id}-music-`)) f.delete();
   state = { ...state, cuts: state.cuts.filter((c) => c.id !== id) };
   persist();
   emit();

@@ -9,6 +9,7 @@ import { Thumb } from '../../components/Thumb';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
 import * as Sharing from 'expo-sharing';
+import { coverSource } from '../../lib/edit';
 import { editedDuration, cutFile, cutProgress, cutStatus, deleteCut, duplicateCut, exportFile, updateCut, useCuts, type CutRecord } from '../../lib/store';
 import { column, formatTime, theme, WIDE_COLUMN } from '../../lib/theme';
 
@@ -181,7 +182,7 @@ const when = (iso: string) => {
 function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; width: number; selecting: boolean; selected: boolean; onToggle: () => void }) {
   const uri = cut.source ? cutFile(cut.source).uri : cut.previewUri;
   const flip = !cut.source && !!cut.previewFlip;
-  const seconds = (cut.clips[0]?.[0] ?? 0) + 0.3;
+  const seconds = cut.edit ? coverSource(cut.edit) : (cut.clips[0]?.[0] ?? 0) + 0.3;
   const open = () => router.push({ pathname: cut.status === 'ready' ? '/edit/[id]' : '/cut/[id]', params: { id: cut.id } });
 
   function actions() {

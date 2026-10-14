@@ -62,7 +62,8 @@
           "cameraPermission": "Record a take so Autocut can cut it.",
           "microphonePermission": "Record your voice along with your take."
         }
-      ]
+      ],
+      "expo-audio"
     ],
     "scheme": "autocut",
     "experiments": {

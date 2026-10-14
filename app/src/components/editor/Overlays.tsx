@@ -7,7 +7,7 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { moveClip, outDuration, type CaptionLine, type ClipEdit, type TextLook, type TextOverlay } from '../../lib/edit';
+import { locate, moveClip, outDuration, totalDuration, type CaptionLine, type ClipEdit, type TextLook, type TextOverlay } from '../../lib/edit';
 import { TEXT_FONTS } from '../../lib/fonts';
 import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
@@ -287,6 +287,70 @@ export function ReorderStrip({ clips, from, sourceUri, onDone }: { clips: ClipEd
   );
 }
 
+const COVER_TILES = 8;
+
+/**
+ * Pick the cover: drag along the strip of frames and the big preview follows. The chosen frame
+ * goes first in the export, so it's what TikTok and Instagram show before the video plays.
+ */
+export function CoverPicker({ clips, sourceUri, value, onDone, onCancel }: { clips: ClipEdit[]; sourceUri: string; value: number; onDone: (t: number) => void; onCancel: () => void }) {
+  const insets = useSafeAreaInsets();
+  const total = totalDuration(clips);
+  const [t, setT] = useState(Math.min(value, total));
+  const [width, setWidth] = useState(0);
+  // Frames on a quarter-second grid, so dragging reuses the ones it has already made.
+  const source = (time: number) => Math.round(locate(clips, Math.min(time, total - 0.01))[1] * 4) / 4;
+  const latest = useRef({ width, total });
+  useEffect(() => {
+    latest.current = { width, total };
+  });
+  // PanResponder handlers read the latest values from a ref when a touch happens, never during render.
+  // eslint-disable-next-line react-hooks/refs
+  const [responder] = useState(() => {
+    const at = (x: number) => {
+      const { width: w, total: d } = latest.current;
+      return w ? Math.max(0, Math.min(d, (x / w) * d)) : 0;
+    };
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) => setT(at(e.nativeEvent.locationX)),
+      onPanResponderMove: (e) => setT(at(e.nativeEvent.locationX)),
+      onPanResponderRelease: () => Haptics.selectionAsync(),
+    });
+  });
+  const handleW = 34;
+  const left = width && total ? Math.max(0, Math.min(width - handleW, (t / total) * width - handleW / 2)) : 0;
+
+  return (
+    <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)} style={[StyleSheet.absoluteFill, styles.coverScreen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 16 }]}>
+      <View style={styles.coverHead}>
+        <Pressable onPress={onCancel} hitSlop={10}>
+          <Text style={styles.coverCancel}>Cancel</Text>
+        </Pressable>
+        <Text style={styles.coverTitle}>Cover</Text>
+        <Pressable onPress={() => onDone(t)} hitSlop={10}>
+          <Text style={styles.coverSave}>Save</Text>
+        </Pressable>
+      </View>
+      <View style={styles.coverStage}>
+        <Thumb uri={sourceUri} seconds={source(t)} style={styles.coverFrame} />
+      </View>
+      <Text style={styles.coverHint}>This frame shows first, so it’s the cover on TikTok and Instagram.</Text>
+      <View style={styles.coverStrip} onLayout={(e) => setWidth(e.nativeEvent.layout.width)} {...responder.panHandlers}>
+        <View style={styles.coverTiles} pointerEvents="none">
+          {Array.from({ length: COVER_TILES }, (_, k) => (
+            <Thumb key={k} uri={sourceUri} seconds={source(((k + 0.5) / COVER_TILES) * total)} style={{ flex: 1, height: '100%' }} />
+          ))}
+        </View>
+        <View style={[styles.coverHandle, { left, width: handleW }]} pointerEvents="none">
+          <Thumb uri={sourceUri} seconds={source(t)} style={StyleSheet.absoluteFill} />
+        </View>
+      </View>
+    </Animated.View>
+  );
+}
+
 export type TourStep = { title: string; body: string; target?: LayoutRectangle; cta: string };
 
 /** First-run coach marks: dims everything except the part being explained. */
@@ -365,6 +429,17 @@ const styles = StyleSheet.create({
   reorderRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingVertical: 14, flexWrap: 'nowrap' },
   reorderTile: { alignItems: 'center', gap: 4, shadowColor: '#000', shadowOpacity: 0, shadowRadius: 10, shadowOffset: { width: 0, height: 6 } },
   reorderTime: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },
+  coverScreen: { backgroundColor: '#fff', zIndex: 30, paddingHorizontal: 20 },
+  coverHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 44 },
+  coverCancel: { fontSize: 16, color: theme.muted },
+  coverTitle: { fontSize: 17, fontWeight: '700', color: theme.ink },
+  coverSave: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  coverStage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
+  coverFrame: { height: '100%', aspectRatio: 9 / 16, borderRadius: 18 },
+  coverHint: { fontSize: 13, color: theme.muted, textAlign: 'center', marginBottom: 16, lineHeight: 18 },
+  coverStrip: { height: 64, borderRadius: 12, overflow: 'visible' },
+  coverTiles: { flex: 1, flexDirection: 'row', borderRadius: 12, overflow: 'hidden', opacity: 0.55 },
+  coverHandle: { position: 'absolute', top: -6, bottom: -6, borderRadius: 9, borderWidth: 3, borderColor: theme.ink, overflow: 'hidden', backgroundColor: theme.card },
   holeRing: { position: 'absolute', borderRadius: 14, borderWidth: 2, borderColor: '#fff' },
   tourCard: { position: 'absolute', backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 8, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

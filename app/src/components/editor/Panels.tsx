@@ -4,7 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { useRef, useState, type ReactNode } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
-import type { Caps, CaptionLine, CaptionSettings } from '../../lib/edit';
+import type { Caps, CaptionLine, CaptionSettings, Music } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { CAPTION_STYLES, captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, type Frame, type StylePreset } from './StyledText';
 import type { SymbolName } from '../ui';
@@ -245,7 +245,9 @@ export function SizePanel({ scale, onChange, onDone }: { scale: number; onChange
   );
 }
 
-export function VolumePanel({ volume, clipLabel, onChange, onAll, onDone }: { volume: number; clipLabel: string; onChange: (v: number) => void; onAll: () => void; onDone: () => void }) {
+export function VolumePanel({
+  volume, clipLabel, muted, onChange, onAll, onMute, onDone,
+}: { volume: number; clipLabel: string; muted: boolean; onChange: (v: number) => void; onAll: () => void; onMute: (m: boolean) => void; onDone: () => void }) {
   const [v, setV] = useState(volume);
   return (
     <Panel title="Volume" value={<Text style={styles.valueStrong}>{Math.round(v * 100)}%</Text>} onDone={onDone}>
@@ -261,6 +263,49 @@ export function VolumePanel({ volume, clipLabel, onChange, onAll, onDone }: { vo
           <SymbolView name="square.stack.3d.up" tintColor={theme.ink} size={14} />
           <Text style={styles.pillText}>Apply to all clips</Text>
         </Pressable>
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Mute the video’s own sound</Text>
+          <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.ink }} />
+        </View>
+      </View>
+    </Panel>
+  );
+}
+
+/** The song under the video: how loud, swap it, or take it out. */
+export function MusicPanel({
+  music, onVolume, onReplace, onRemove, onDone,
+}: { music: Music; onVolume: (v: number) => void; onReplace: () => void; onRemove: () => void; onDone: () => void }) {
+  const [v, setV] = useState(music.volume);
+  return (
+    <Panel title="Audio" value={<Text style={styles.valueStrong}>{Math.round(v * 100)}%</Text>} onDone={onDone}>
+      <View style={{ paddingHorizontal: 16, gap: 10 }}>
+        <View style={styles.song}>
+          <View style={styles.songIcon}>
+            <SymbolView name="music.note" tintColor="#fff" size={15} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.songName} numberOfLines={1}>
+              {music.name}
+            </Text>
+            <Text style={styles.small}>{mmss(music.duration)} · loops under the whole video</Text>
+          </View>
+        </View>
+        <View style={styles.sliderRow}>
+          <SymbolView name="speaker.fill" tintColor={theme.muted} size={14} />
+          <Slider style={{ flex: 1 }} minimumValue={0} maximumValue={1} step={0.05} value={music.volume} onValueChange={setV} onSlidingComplete={onVolume} minimumTrackTintColor={theme.ink} />
+          <SymbolView name="speaker.wave.3.fill" tintColor={theme.muted} size={14} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <Pressable onPress={onReplace} style={styles.pill}>
+            <SymbolView name="arrow.triangle.2.circlepath" tintColor={theme.ink} size={14} />
+            <Text style={styles.pillText}>Replace</Text>
+          </Pressable>
+          <Pressable onPress={onRemove} style={styles.pill}>
+            <SymbolView name="trash" tintColor={theme.danger} size={14} />
+            <Text style={[styles.pillText, { color: theme.danger }]}>Remove</Text>
+          </Pressable>
+        </View>
       </View>
     </Panel>
   );
@@ -344,6 +389,11 @@ const styles = StyleSheet.create({
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, marginTop: 6 },
   pillText: { fontSize: 13, fontWeight: '600', color: theme.ink },
+  switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
+  switchLabel: { fontSize: 15, color: theme.ink },
+  song: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderRadius: 14, padding: 10 },
+  songIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  songName: { fontSize: 15, fontWeight: '600', color: theme.ink },
   speedRow: { flexDirection: 'row', justifyContent: 'space-between' },
   speedBtn: { width: 50, height: 40, borderRadius: 20, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   speedText: { fontSize: 13, fontWeight: '700', color: theme.ink },

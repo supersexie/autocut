@@ -20,7 +20,27 @@ export type TextAlign = 'left' | 'center' | 'right';
 /** Per-text changes made on top of its style (font, colour, background box, alignment). */
 export type TextLook = { font?: string; color?: string; box?: boolean; outline?: boolean; align?: TextAlign };
 export type TextOverlay = { id: string; text: string; style: string; start: number; end: number; x: number; y: number; scale: number } & TextLook;
-export type Edit = { clips: ClipEdit[]; muted: boolean; captions: CaptionSettings; texts: TextOverlay[] };
+/** A song under the whole video: a file in the cuts folder, looped if it's shorter than the video. */
+export type Music = { file: string; name: string; mime: string; duration: number; volume: number };
+
+export type Edit = {
+  clips: ClipEdit[];
+  muted: boolean;
+  captions: CaptionSettings;
+  texts: TextOverlay[];
+  /** Output time of the frame used as the cover (the first frame of the export). */
+  cover?: number;
+  music?: Music;
+};
+
+/** Source time of the edit's cover frame: the chosen one, or a moment into the first clip. */
+export function coverSource(edit: Pick<Edit, 'clips' | 'cover'>) {
+  if (edit.cover === undefined) return (edit.clips[0]?.start ?? 0) + 0.3;
+  return locate(edit.clips, Math.max(0, Math.min(edit.cover, totalDuration(edit.clips) - 0.01)))[1];
+}
+
+/** How long the cover frame is held at the very start of the export (two frames, just a flash). */
+export const COVER_FRAME = 0.06;
 
 const MIN = 0.1; // shortest clip worth keeping, in seconds
 
@@ -151,18 +171,27 @@ export function captionLines(words: Word[], clips: ClipEdit[], s: CaptionSetting
 }
 
 /** The body the server's export expects. */
-export function exportBody(edit: Edit, words: Word[], opts: { height?: number; fps?: number; bitrate?: number }) {
+/**
+ * What the server needs to render the edit. A chosen cover goes first as a two-frame flash, which
+ * is what TikTok and Instagram show as the cover, and everything else moves along to make room.
+ * `musicUpload` is the song's upload id, when the edit has one.
+ */
+export function exportBody(edit: Edit, words: Word[], opts: { height?: number; fps?: number; bitrate?: number }, musicUpload?: string) {
+  const cover = edit.cover === undefined ? [] : [{ start: locate(edit.clips, edit.cover)[1], speed: 1, volume: 0 }].map((c) => ({ ...c, end: c.start + COVER_FRAME }));
+  const shift = cover.length ? COVER_FRAME : 0;
+  const later = <T extends { start: number; end: number }>(x: T) => ({ ...x, start: x.start + shift, end: x.end + shift });
   return {
-    clips: edit.clips.map((c) => ({ ...c, volume: edit.muted ? 0 : c.volume })),
+    clips: [...cover, ...edit.clips.map((c) => ({ ...c, volume: edit.muted ? 0 : c.volume }))],
     captions: edit.captions.enabled
       ? {
           style: edit.captions.style,
           box: edit.captions.box,
           outline: edit.captions.outline,
-          lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => ({ start, end, words: w })),
+          lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => later({ start, end, words: w.map(later) })),
         }
       : undefined,
-    texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => ({ text, style, start, end, x, y, scale, font, color, box, outline, align })),
+    texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => later({ text, style, start, end, x, y, scale, font, color, box, outline, align })),
+    music: musicUpload && edit.music ? { upload: musicUpload, volume: edit.music.volume } : undefined,
     ...opts,
   };
 }

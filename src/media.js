@@ -117,8 +117,9 @@ function atempo(speed) {
  * `subtitles` burns an SRT; `ass` burns an ASS file using fonts from `fontsDir`.
  * `height` scales (keeping aspect), `fps` resamples, `bitrate` is in Mbps. `fast` trades quality
  * for speed (for the editor's preview): quick to encode, small, and a keyframe every half second.
+ * `music` = { file, volume } lays a song under the whole video, looped if it's short, fading out at the end.
  */
-export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, onProgress } = {}) {
+export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, onProgress } = {}) {
   const fade = 0.012;
   const parts = [];
   const labels = [];
@@ -139,7 +140,14 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   // `height` is the resolution's short side (1080p = 1080×1920 for vertical video), never upscaled.
   const scale = height && `scale=w='if(gt(iw,ih),-2,min(${height},iw))':h='if(gt(iw,ih),min(${height},ih),-2)'`;
   const post = [scale, fps && `fps=${fps}`].filter(Boolean).join(',');
-  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${post ? 'vr' : 'vc'}][ac]`);
+  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${post ? 'vr' : 'vc'}][${music ? 'voice' : 'ac'}]`);
+  if (music) {
+    // normalize=0 keeps the voice at full volume instead of halving both.
+    const vol = Math.min(1, Math.max(0, music.volume ?? 0.5));
+    const tail = Math.min(1.5, total / 4);
+    parts.push(`[1:a]aresample=48000,volume=${vol.toFixed(3)},atrim=0:${total.toFixed(3)},afade=t=out:st=${Math.max(0, total - tail).toFixed(3)}:d=${tail.toFixed(3)}[song]`);
+    parts.push(`[voice]aresample=48000[voice48];[voice48][song]amix=inputs=2:duration=first:dropout_transition=0:normalize=0[ac]`);
+  }
   if (post) parts.push(`[vr]${post}[vc]`);
   let vOut = '[vc]';
   const esc = (f) => f.replace(/\\/g, '/').replace(/:/g, '\\:').replace(/'/g, "\\'");
@@ -157,6 +165,7 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     : ['-c:v', 'libx264', '-preset', 'veryfast', ...quality];
   await run([
     '-y', '-i', input,
+    ...(music ? ['-stream_loop', '-1', '-i', music.file] : []),
     '-filter_complex', parts.join(';'),
     '-map', vOut, '-map', '[ac]',
     ...video, '-pix_fmt', 'yuv420p',

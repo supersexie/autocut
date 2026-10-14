@@ -3,17 +3,18 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
-import { CaptionsPanel, FormatPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
-import { Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
+import { CaptionsPanel, FormatPanel, MusicPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
+import { pickSong, useMusic } from '../../components/editor/music';
+import { CoverPicker, Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
 import { Button, type SymbolName } from '../../components/ui';
 import {
-  captionLines, clipOffset, duplicateClip, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
+  captionLines, clipOffset, coverSource, duplicateClip, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
   trimClip, updateClip, type ClipEdit, type Edit, type TextOverlay,
 } from '../../lib/edit';
 import { cutFile, editOf, getSettings, saveEdit, updateSettings, useCut, type CutRecord } from '../../lib/store';
@@ -33,7 +34,7 @@ export default function EditScreen() {
   return <Editor cut={cut} />;
 }
 
-type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'textStyle' | 'textSize' | null;
+type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'music' | 'textStyle' | 'textSize' | null;
 type History = { past: Edit[]; present: Edit; future: Edit[] };
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -54,11 +55,13 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [reorderFrom, setReorderFrom] = useState<number | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [choosingCover, setChoosingCover] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [aspect, setAspect] = useState(9 / 16);
 
   const playback = usePlayback({ cutId: cut.id, sourceUri, clips, muted: edit.muted });
   const { time, playing } = playback;
+  useMusic(edit.music, time, playing);
 
   // Video shape from a frame (already rotated the way it's shown).
   useEffect(() => {
@@ -163,6 +166,18 @@ function Editor({ cut }: { cut: CutRecord }) {
   ];
   const tools = text ? textTools : clipTools;
 
+  // ---- Song under the video.
+  async function addSong(replace = false) {
+    playback.pause();
+    try {
+      const music = await pickSong(cut.id, edit.music?.volume);
+      if (music) commit({ ...edit, music }, { keepTime: true });
+      if (music && !replace) setPanel('music');
+    } catch (e) {
+      Alert.alert('Couldn’t add that song', e instanceof Error ? e.message : String(e));
+    }
+  }
+
   function runTool(tool: ToolId) {
     Haptics.selectionAsync();
     if (tool === 'split') setClips(splitAt(clips, time));
@@ -259,8 +274,9 @@ function Editor({ cut }: { cut: CutRecord }) {
             sourceDuration={cut.duration}
             time={time}
             selected={selected}
-            muted={edit.muted}
+            coverSource={coverSource(edit)}
             captionsOn={edit.captions.enabled}
+            music={edit.music}
             lines={lines}
             texts={edit.texts}
             selectedText={selectedText}
@@ -281,7 +297,11 @@ function Editor({ cut }: { cut: CutRecord }) {
               setClips(trimClip(clips, i, edges, cut.duration));
             }}
             onReorderStart={(i) => setReorderFrom(i)}
-            onToggleMute={() => commit({ ...edit, muted: !edit.muted }, { keepTime: true })}
+            onCover={() => {
+              playback.pause();
+              setChoosingCover(true);
+            }}
+            onAudio={() => (edit.music ? setPanel('music') : addSong())}
             onCaptions={(l) => {
               playback.setScrubbing(false);
               if (l) playback.seek(l.start);
@@ -350,6 +370,21 @@ function Editor({ cut }: { cut: CutRecord }) {
             clipLabel={`Clip ${selected + 1} of ${clips.length}`}
             onChange={(volume) => setClips(updateClip(clips, selected, { volume }))}
             onAll={() => setClips(clips.map((c) => ({ ...c, volume: clip.volume })))}
+            muted={edit.muted}
+            onMute={(muted) => commit({ ...edit, muted }, { keepTime: true })}
+            onDone={() => setPanel(null)}
+          />
+        )}
+        {panel === 'music' && edit.music && (
+          <MusicPanel
+            key={edit.music.file}
+            music={edit.music}
+            onVolume={(volume) => edit.music && commit({ ...edit, music: { ...edit.music, volume } }, { keepTime: true })}
+            onReplace={() => addSong(true)}
+            onRemove={() => {
+              commit({ ...edit, music: undefined }, { keepTime: true });
+              setPanel(null);
+            }}
             onDone={() => setPanel(null)}
           />
         )}
@@ -414,6 +449,18 @@ function Editor({ cut }: { cut: CutRecord }) {
         </View>
       </Modal>
 
+      {choosingCover && (
+        <CoverPicker
+          clips={clips}
+          sourceUri={sourceUri}
+          value={edit.cover ?? 0}
+          onCancel={() => setChoosingCover(false)}
+          onDone={(cover) => {
+            commit({ ...edit, cover }, { keepTime: true });
+            setChoosingCover(false);
+          }}
+        />
+      )}
       {exporting && <ExportFlow cut={cut} edit={edit} aspect={aspect} onClose={() => setExporting(false)} />}
       {tour >= 0 && <Tour steps={tourSteps} index={tour} onNext={() => (tour + 1 < tourSteps.length ? setTour(tour + 1) : endTour())} onSkip={endTour} />}
     </View>
@@ -428,7 +475,7 @@ const styles = StyleSheet.create({
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 80, justifyContent: 'flex-end' },
   exportText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
-  bottom: { height: 292, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
+  bottom: { height: 330, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
   clock: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },
   preparing: { flexDirection: 'row', alignItems: 'center', gap: 2 },

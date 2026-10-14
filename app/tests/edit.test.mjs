@@ -64,3 +64,23 @@ test('export body mutes clips when audio is muted and omits disabled captions', 
   assert.equal(body.captions, undefined);
   assert.equal(body.height, 1080);
 });
+
+test('export body puts the cover frame first and moves captions, text and music along', () => {
+  const edit = {
+    clips, muted: false, captions: { ...DEFAULT_CAPTIONS, enabled: true },
+    texts: [{ id: 't', text: 'Hey', style: 'classic', start: 1, end: 2, x: 0.5, y: 0.3, scale: 1 }],
+    cover: 2.5, // output 2.5 s = source 5.5 s (second clip starts at output 2)
+    music: { file: 'm.mp3', name: 'Song', mime: 'audio/mpeg', duration: 30, volume: 0.4 },
+  };
+  const body = exportBody(edit, words, { height: 1080 }, 'upload-1');
+  assert.equal(body.clips.length, clips.length + 1);
+  assert.equal(body.clips[0].start, 5.5);
+  assert.ok(Math.abs(body.clips[0].end - body.clips[0].start - 0.06) < 1e-9);
+  assert.equal(body.clips[0].volume, 0);
+  assert.ok(Math.abs(body.texts[0].start - 1.06) < 1e-9);
+  const plain = exportBody({ ...edit, cover: undefined }, words, {});
+  assert.ok(Math.abs(body.captions.lines[0].start - plain.captions.lines[0].start - 0.06) < 1e-9);
+  assert.ok(Math.abs(body.captions.lines[0].words[0].start - plain.captions.lines[0].words[0].start - 0.06) < 1e-9);
+  assert.deepEqual(body.music, { upload: 'upload-1', volume: 0.4 });
+  assert.equal(plain.music, undefined);
+});

@@ -9,6 +9,7 @@ import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Thumb } from '../../components/Thumb';
 import { Button } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
+import { coverSource } from '../../lib/edit';
 import { startCut } from '../../lib/jobs';
 import { cutFile, cutProgress, cutStatus, useCuts, type CutRecord } from '../../lib/store';
 import { COLUMN, theme } from '../../lib/theme';
@@ -75,7 +76,7 @@ function BatchRow({ cut, n, last }: { cut: CutRecord; n: number; last: boolean }
       onPress={() => router.push({ pathname: ready ? '/edit/[id]' : '/cut/[id]', params: { id: cut.id } })}
       style={({ pressed }) => [styles.row, !last && styles.rowLine, pressed && { backgroundColor: theme.card }]}
     >
-      <Thumb uri={uri} seconds={(cut.clips[0]?.[0] ?? 0) + 0.3} style={styles.thumb} />
+      <Thumb uri={uri} seconds={cut.edit ? coverSource(cut.edit) : (cut.clips[0]?.[0] ?? 0) + 0.3} style={styles.thumb} />
       <View style={{ flex: 1, gap: 3 }}>
         <Text style={styles.rowTitle} numberOfLines={1}>
           {ready ? cut.title : `Video ${n}`}

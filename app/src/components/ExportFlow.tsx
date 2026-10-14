@@ -9,8 +9,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { download, getJob, ServerUnreachable, startRender } from '../lib/api';
-import { exportBody, totalDuration, type Edit } from '../lib/edit';
+import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
+import { coverSource, exportBody, totalDuration, type Edit } from '../lib/edit';
 import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type CutRecord } from '../lib/store';
 import { formatTime, sleep, theme } from '../lib/theme';
 import { ProgressCard } from './ProgressCard';
@@ -70,7 +70,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
   const length = totalDuration(edit.clips);
   const sizeMb = Math.max(1, (length * bitrate) / 8);
   const preview = cut.source ? cutFile(cut.source).uri : undefined;
-  const firstSeconds = (edit.clips[0]?.start ?? 0) + 0.3;
+  const firstSeconds = coverSource(edit);
 
   async function run() {
     let progress = 0;
@@ -94,7 +94,14 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
           await sleep(1500);
           render = (await job()).render;
         }
-        renderId.current = await patiently(() => startRender(id, exportBody(edit, cut.words, { height, fps, bitrate })), reconnecting);
+        // A song goes up first, the same way takes do, and the server mixes it in.
+        let musicUpload: string | undefined;
+        const music = edit.music;
+        if (music) {
+          show(0, 'Adding your song…');
+          musicUpload = await patiently(() => uploadTake(cutFile(music.file).uri, music.mime, () => {}), reconnecting);
+        }
+        renderId.current = await patiently(() => startRender(id, exportBody(edit, cut.words, { height, fps, bitrate }, musicUpload)), reconnecting);
       }
       while (true) {
         const r = (await job()).render;
