@@ -9,6 +9,7 @@
     "ios": {
       "supportsTablet": true,
       "requireFullScreen": true,
+      "usesAppleSignIn": true,
       "bundleIdentifier": "com.rishavvashisht.autocut"
     },
     "android": {

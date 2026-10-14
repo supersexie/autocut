@@ -1,12 +1,11 @@
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Animated, Easing, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Backdrop, Button, ErrorText, Option, StepHeader, Title, type SymbolName } from '../components/ui';
 import { openLegal } from '../lib/api';
-import { enabledProviders, useAuth } from '../lib/auth';
+import { socialOptions, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
 import { EDITOR_COSTS, editorMonthly, money, planFor, recommendedPlan } from '../lib/plans';
 import { COLUMN, theme } from '../lib/theme';
@@ -251,9 +250,7 @@ function Save({ header }: { header: React.ReactNode }) {
   const [providers, setProviders] = useState({ apple: false, google: false });
 
   useEffect(() => {
-    enabledProviders().then(async ({ google, apple }) =>
-      setProviders({ google, apple: apple && Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()) })
-    );
+    socialOptions().then(setProviders);
   }, []);
 
   async function go(kind: 'apple' | 'google' | 'email') {
@@ -278,10 +275,10 @@ function Save({ header }: { header: React.ReactNode }) {
       <Title sub="Create your account to see your plan.">Save your progress</Title>
       <View style={{ flex: 1, justifyContent: 'center', gap: 12 }}>
         {providers.apple && (
-          <Button title="Sign in with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => go('apple')} />
+          <Button title="Continue with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => go('apple')} />
         )}
         {providers.google && (
-          <Button kind="outline" title="Sign in with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => go('google')} />
+          <Button kind="outline" title="Continue with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => go('google')} />
         )}
         <Button
           kind={social ? 'outline' : 'primary'}

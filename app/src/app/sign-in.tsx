@@ -1,10 +1,9 @@
-import * as AppleAuthentication from 'expo-apple-authentication';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Backdrop, Button, ErrorText, Field, StepHeader, Title } from '../components/ui';
-import { enabledProviders, NOT_CONFIGURED, useAuth } from '../lib/auth';
+import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
 
 type Mode = 'sign-in' | 'sign-up';
@@ -23,9 +22,7 @@ export default function SignIn() {
   const signingUp = mode === 'sign-up';
 
   useEffect(() => {
-    enabledProviders().then(async ({ google, apple }) =>
-      setProviders({ google, apple: apple && Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()) })
-    );
+    socialOptions().then(setProviders);
   }, []);
 
   async function run(kind: 'email' | 'apple' | 'google', action: () => Promise<unknown>) {
@@ -59,7 +56,7 @@ export default function SignIn() {
     });
 
   const canSubmit = email.includes('@') && password.length >= 6;
-  const social = !signingUp && (providers.apple || providers.google);
+  const social = providers.apple || providers.google;
 
   return (
     <Backdrop>
@@ -71,10 +68,10 @@ export default function SignIn() {
       {social && (
         <View style={{ gap: 12, marginBottom: 18 }}>
           {providers.apple && (
-            <Button title="Sign in with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => run('apple', auth.signInWithApple)} />
+            <Button title="Continue with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => run('apple', auth.signInWithApple)} />
           )}
           {providers.google && (
-            <Button kind="outline" title="Sign in with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => run('google', auth.signInWithGoogle)} />
+            <Button kind="outline" title="Continue with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => run('google', auth.signInWithGoogle)} />
           )}
           <View style={styles.divider}>
             <View style={styles.rule} />

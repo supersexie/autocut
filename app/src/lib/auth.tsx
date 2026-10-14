@@ -3,6 +3,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { File, Paths } from 'expo-file-system';
 import * as Linking from 'expo-linking';
 import * as WebBrowser from 'expo-web-browser';
+import { Platform } from 'react-native';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Billing, PlanId } from './plans';
 import { deleteAccountOnServer } from './api';
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       async signInWithApple() {
         const auth = client();
+        await mustBeOn('apple');
         let credential: AppleAuthentication.AppleAuthenticationCredential;
         try {
           credential = await AppleAuthentication.signInAsync({
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       async signInWithGoogle() {
         const auth = client();
+        await mustBeOn('google');
         const redirectTo = Linking.createURL('auth-callback');
         const { data, error } = await auth.auth.signInWithOAuth({ provider: 'google', options: { redirectTo, skipBrowserRedirect: true } });
         check(error);
@@ -203,6 +206,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** Which sign-in providers are switched on in the Supabase project, so we only show those. */
+/** Apple sign-in needs an iPhone or iPad that supports it; Google works everywhere. */
+export async function socialOptions() {
+  return { apple: Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()), google: true };
+}
+
+/** Stops with a plain message if the provider isn't switched on in Supabase yet. */
+async function mustBeOn(provider: 'apple' | 'google') {
+  const enabled = await enabledProviders();
+  const name = provider === 'apple' ? 'Apple' : 'Google';
+  if (!enabled[provider]) throw new Error(`Sign in with ${name} isn't switched on yet. Use your email for now.`);
+}
+
 export async function enabledProviders(): Promise<{ google: boolean; apple: boolean }> {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const key = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -227,6 +242,6 @@ function friendly(message: string) {
   if (/already registered/i.test(message)) return 'There is already an account with that email. Sign in instead.';
   if (/password should be at least/i.test(message)) return 'Use a password with at least 6 characters.';
   if (/email not confirmed/i.test(message)) return 'Confirm your email first. Check your inbox for the link.';
-  if (/provider is not enabled/i.test(message)) return 'This sign-in option is not switched on yet.';
+  if (/not enabled|unsupported provider/i.test(message)) return 'This sign-in option is not switched on yet. Use your email for now.';
   return message;
 }
