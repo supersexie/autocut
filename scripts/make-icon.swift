@@ -110,7 +110,53 @@ func monogram(_ ctx: CGContext) {
   ctx.move(to: CGPoint(x: 230, y: 640)); ctx.addLine(to: CGPoint(x: 800, y: 560)); ctx.strokePath()
 }
 
-if CommandLine.arguments.contains("concepts") {
+// D — blueprint: the sliced play mark in a blue gradient on a pale tile with drafting guides.
+let sky = NSColor(srgbRed: 0xE9 / 255, green: 0xF3 / 255, blue: 0xFD / 255, alpha: 1)
+let guide = NSColor(srgbRed: 0x8F / 255, green: 0xC2 / 255, blue: 0xF2 / 255, alpha: 1)
+
+func blueprintGuides(_ ctx: CGContext) {
+  ctx.setStrokeColor(guide.cgColor)
+  ctx.setLineWidth(3)
+  let c = CGPoint(x: 512, y: 512)
+  for r: CGFloat in [420, 260] {
+    ctx.strokeEllipse(in: CGRect(x: c.x - r, y: c.y - r, width: 2 * r, height: 2 * r))
+  }
+  ctx.move(to: CGPoint(x: 0, y: 760)); ctx.addLine(to: CGPoint(x: size, y: 760)); ctx.strokePath()
+  ctx.setLineDash(phase: 0, lengths: [14, 12])
+  ctx.move(to: CGPoint(x: 512, y: 0)); ctx.addLine(to: CGPoint(x: 512, y: size)); ctx.strokePath()
+  ctx.move(to: CGPoint(x: 0, y: 512)); ctx.addLine(to: CGPoint(x: size, y: 512)); ctx.strokePath()
+  ctx.move(to: CGPoint(x: 120, y: size)); ctx.addLine(to: CGPoint(x: 512, y: 60)); ctx.addLine(to: CGPoint(x: 904, y: size)); ctx.strokePath()
+  ctx.setLineDash(phase: 0, lengths: [])
+}
+
+/// The mark filled with a vertical blue gradient, with a soft blue shadow under it.
+func blueMark(_ ctx: CGContext) {
+  // Draw the mark white-on-black into a mask, then paint the gradient through it.
+  let maskCtx = CGContext(data: nil, width: Int(size), height: Int(size), bitsPerComponent: 8, bytesPerRow: 0, space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)!
+  // Left y-up on purpose: the drawing context is flipped, so the mask lands the right way round.
+  slicedPlay(maskCtx, color: .white)
+  let mask = maskCtx.makeImage()!
+  let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: [
+    NSColor(srgbRed: 0x2F / 255, green: 0x8C / 255, blue: 0xFF / 255, alpha: 1).cgColor,
+    NSColor(srgbRed: 0x0F / 255, green: 0x62 / 255, blue: 0xE0 / 255, alpha: 1).cgColor,
+    NSColor(srgbRed: 0x7F / 255, green: 0xBE / 255, blue: 0xFF / 255, alpha: 1).cgColor,
+  ] as CFArray, locations: [0, 0.55, 1])!
+  // Shadow: the mask, offset and blurred, in soft blue.
+  ctx.saveGState()
+  ctx.setShadow(offset: CGSize(width: 0, height: 18), blur: 40, color: NSColor(srgbRed: 0.1, green: 0.45, blue: 0.95, alpha: 0.35).cgColor)
+  ctx.beginTransparencyLayer(auxiliaryInfo: nil)
+  ctx.clip(to: CGRect(x: 0, y: 0, width: size, height: size), mask: mask)
+  ctx.drawLinearGradient(gradient, start: CGPoint(x: 512, y: 250), end: CGPoint(x: 512, y: 800), options: [])
+  ctx.endTransparencyLayer()
+  ctx.restoreGState()
+}
+
+if CommandLine.arguments.contains("blueprint") {
+  render("concept-d-blueprint", background: sky, rounded: true) { ctx in
+    blueprintGuides(ctx)
+    blueMark(ctx)
+  }
+} else if CommandLine.arguments.contains("concepts") {
   render("concept-a-sliced-play", background: ink, rounded: true) { slicedPlay($0, color: paper) }
   render("concept-b-timeline", background: ink, rounded: true) { timeline($0) }
   render("concept-c-monogram", background: ink, rounded: true) { monogram($0) }

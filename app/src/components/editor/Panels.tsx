@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useRef, useState, type ReactNode } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import type { Caps, CaptionLine, CaptionSettings, Music } from '../../lib/edit';
 import { theme } from '../../lib/theme';
@@ -66,6 +66,7 @@ export function CaptionsPanel({
   onChange: (s: CaptionSettings) => void; onSeek: (t: number) => void; onStyle: () => void; onFormat: () => void; onDone: () => void;
 }) {
   const list = useRef<FlatList<CaptionLine>>(null);
+  const [editing, setEditing] = useState<CaptionLine | null>(null);
   const focusIndex = Math.max(0, lines.findIndex((l) => l.key === focusKey));
   const edited = Object.keys(settings.edits).length > 0;
   return (
@@ -100,19 +101,19 @@ export function CaptionsPanel({
           getItemLayout={(_, i) => ({ length: 46, offset: 46 * i, index: i })}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => (
-            <Pressable style={styles.lineRow} onPress={() => onSeek(item.start)}>
+            <Pressable
+              style={({ pressed }) => [styles.lineRow, pressed && { backgroundColor: theme.card }]}
+              onPress={() => {
+                onSeek(item.start);
+                setEditing(item);
+              }}
+              accessibilityLabel={`Edit caption: ${item.text}`}
+            >
               <Text style={styles.lineTime}>{mmss(item.start)}</Text>
-              <TextInput
-                style={styles.lineInput}
-                defaultValue={item.text}
-                onFocus={() => onSeek(item.start)}
-                onEndEditing={(e) => {
-                  const text = e.nativeEvent.text.trim();
-                  if (text !== item.text) onChange({ ...settings, edits: { ...settings.edits, [item.key]: text } });
-                }}
-                returnKeyType="done"
-                blurOnSubmit
-              />
+              <Text style={styles.lineText} numberOfLines={1}>
+                {item.text}
+              </Text>
+              <SymbolView name="pencil" tintColor={theme.faint} size={13} />
             </Pressable>
           )}
         />
@@ -121,7 +122,52 @@ export function CaptionsPanel({
           <Text style={styles.emptyText}>Captions are off. Turn them on to add them to every word.</Text>
         </View>
       )}
+      {editing && (
+        <LineEditor
+          line={editing}
+          onDone={(text) => {
+            setEditing(null);
+            if (text && text !== editing.text) onChange({ ...settings, edits: { ...settings.edits, [editing.key]: text } });
+          }}
+        />
+      )}
     </Panel>
+  );
+}
+
+/**
+ * Editing one caption line: a field that sits right on top of the keyboard, so what you type is
+ * always in view, with the video still showing above it.
+ */
+function LineEditor({ line, onDone }: { line: CaptionLine; onDone: (text: string) => void }) {
+  const [text, setText] = useState(line.text);
+  const done = () => onDone(text.trim());
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={done}>
+      <KeyboardAvoidingView behavior="padding" style={styles.editScreen}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={done} accessibilityLabel="Done editing" />
+        <View style={styles.editBar}>
+          <Text style={styles.editLabel}>Caption at {mmss(line.start)}</Text>
+          <View style={styles.editRow}>
+            <TextInput
+              style={styles.editInput}
+              value={text}
+              onChangeText={setText}
+              autoFocus
+              multiline
+              blurOnSubmit
+              returnKeyType="done"
+              onSubmitEditing={done}
+              placeholder="Caption text"
+              placeholderTextColor={theme.faint}
+            />
+            <Pressable onPress={done} style={styles.editDone} accessibilityLabel="Save caption">
+              <SymbolView name="checkmark" tintColor="#fff" size={16} weight="bold" />
+            </Pressable>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
   );
 }
 
@@ -369,7 +415,6 @@ const styles = StyleSheet.create({
   barText: { fontSize: 10, color: theme.ink, fontWeight: '500' },
   lineRow: { flexDirection: 'row', alignItems: 'center', height: 46, paddingHorizontal: 16, gap: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
   lineTime: { width: 38, fontSize: 12, color: theme.faint, fontVariant: ['tabular-nums'] },
-  lineInput: { flex: 1, fontSize: 15, color: theme.ink, paddingVertical: 8 },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 30 },
   emptyText: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20 },
   group: { fontSize: 13, fontWeight: '600', color: theme.muted, marginBottom: 8, marginTop: 6 },
@@ -389,6 +434,16 @@ const styles = StyleSheet.create({
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, marginTop: 6 },
   pillText: { fontSize: 13, fontWeight: '600', color: theme.ink },
+  lineText: { flex: 1, fontSize: 15, color: theme.ink },
+  editScreen: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.12)' },
+  editBar: {
+    backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10, gap: 8,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: -4 },
+  },
+  editLabel: { fontSize: 12, color: theme.muted, fontWeight: '600' },
+  editRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
+  editInput: { flex: 1, fontSize: 17, color: theme.ink, backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 11, maxHeight: 120 },
+  editDone: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   switchLabel: { fontSize: 15, color: theme.ink },
   song: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderRadius: 14, padding: 10 },

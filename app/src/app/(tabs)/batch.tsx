@@ -27,7 +27,7 @@ export default function BatchScreen() {
   const busy = batch.some((c) => c.status === 'uploading' || c.status === 'processing');
 
   async function pick() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsMultipleSelection: true, selectionLimit: MAX, quality: 1 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], videoExportPreset: ImagePicker.VideoExportPreset.H264_1920x1080, allowsMultipleSelection: true, selectionLimit: MAX, quality: 1 });
     if (result.canceled || !result.assets.length) return;
     const language = account?.profile.language ?? 'en';
     const ids = result.assets.slice(0, MAX).map((a) =>

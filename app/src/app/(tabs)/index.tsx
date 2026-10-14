@@ -150,7 +150,7 @@ export default function CreateScreen() {
   }
 
   async function importVideo() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], quality: 1 });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], videoExportPreset: ImagePicker.VideoExportPreset.H264_1920x1080, quality: 1 });
     const a = result.assets?.[0];
     if (result.canceled || !a) return;
     review([{ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }]);

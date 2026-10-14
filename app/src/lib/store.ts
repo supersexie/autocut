@@ -24,6 +24,8 @@ export type CutRecord = {
   previewUri?: string;
   /** The raw preview is a mirrored selfie take; show it flipped until the server's version arrives. */
   previewFlip?: boolean;
+  /** The take on this phone, when it's the very file the server cuts (one take, not flipped). */
+  localSource?: string;
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally
@@ -194,6 +196,7 @@ export const editOf = (c: CutRecord): Edit =>
 export function cutStatus(cut: CutRecord) {
   if (cut.status === 'ready') return cut.exports > 0 ? 'Exported' : 'Ready to edit';
   if (cut.status === 'failed') return cut.error ?? "The edit didn't finish.";
+  if (cut.stage === 'reconnecting') return 'Connection lost, retrying…';
   if (cut.status === 'uploading') return cut.stage === 'waiting' ? 'Waiting to upload' : `Uploading ${Math.round(cut.progress * 100)}%`;
   if (cut.stage === 'queued') return 'Waiting in line';
   return `Cutting ${Math.round(25 + 75 * cut.progress)}%`;

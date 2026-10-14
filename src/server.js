@@ -173,9 +173,11 @@ async function createCut(req, res, url, userId) {
         job.stage = 'joining';
         job.source = path.join(dir, 'source.mp4');
         await joinTakes(takes, job.source, { flips, onProgress: (f) => (job.progress = 0.15 * f) });
+        await Promise.all(takes.map((t) => rm(t, { force: true }))); // joined: the separate takes aren't needed
       } else {
+        // Move rather than copy: a long take is hundreds of MB, and the upload isn't used again.
         job.source = path.join(dir, `source${path.extname(takes[0])}`);
-        await copyFile(takes[0], job.source);
+        await rename(takes[0], job.source).catch(() => copyFile(takes[0], job.source));
       }
       const base = joined ? 0.15 : 0;
       const result = await analyze(job.source, {

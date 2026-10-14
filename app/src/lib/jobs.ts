@@ -1,5 +1,6 @@
-import { createCut, download, getJob, stopJob, uploadTake } from './api';
-import { addCut, getCut, getCuts, updateCut, type CutRecord } from './store';
+import { File } from 'expo-file-system';
+import { createCut, download, getJob, ServerUnreachable, stopJob, uploadTake } from './api';
+import { addCut, cutFile, getCut, getCuts, updateCut, type CutRecord } from './store';
 import { sleep } from './theme';
 
 /** `flip`: a front-camera take, which iOS records mirrored; the server flips it back. */
@@ -24,6 +25,9 @@ export function startCut(takes: Take[], language: string): string {
     takes: takes.length,
     previewUri: takes[0]?.uri,
     previewFlip: !!takes[0]?.flip,
+    // One take that needs no flipping is exactly what the server will cut, so the editor can use
+    // this copy instead of downloading it back.
+    localSource: takes.length === 1 && !takes[0].flip ? takes[0].uri : undefined,
     duration: takes.reduce((t, k) => t + k.duration, 0),
     words: [],
     cuts: [],
@@ -35,6 +39,22 @@ export function startCut(takes: Take[], language: string): string {
   return id;
 }
 
+/**
+ * Runs `request` again when the phone can't reach the server, waiting a little longer each time
+ * (`onRetry` says so meanwhile), and gives up after `tries`. Other errors come straight back.
+ */
+async function withRetries<T>(request: () => Promise<T>, tries: number, onRetry: () => void): Promise<T> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await request();
+    } catch (e) {
+      if (!(e instanceof ServerUnreachable) || attempt >= tries) throw e;
+      onRetry();
+      await sleep(Math.min(15000, 2000 * attempt));
+    }
+  }
+}
+
 // Uploads go one at a time, so a batch of 10 doesn't split the phone's connection ten ways.
 let uploads: Promise<unknown> = Promise.resolve();
 
@@ -43,7 +63,8 @@ function uploadAll(id: string, takes: Take[]) {
     updateCut(id, { stage: 'uploading' });
     const ids: string[] = [];
     for (const [i, take] of takes.entries()) {
-      ids.push(await uploadTake(take.uri, take.mime, (f) => updateCut(id, { progress: (i + f) / takes.length })));
+      const progress = (f: number) => updateCut(id, { stage: 'uploading', progress: (i + f) / takes.length });
+      ids.push(await withRetries(() => uploadTake(take.uri, take.mime, progress), 4, () => updateCut(id, { stage: 'reconnecting' })));
     }
     return ids;
   });
@@ -67,17 +88,22 @@ export async function track(id: string) {
   if (tracking.has(id)) return;
   tracking.add(id);
   try {
-    let misses = 0;
+    let lostSince = 0;
     while (true) {
       const record = getCut(id);
       if (!record?.serverId || record.status !== 'processing') return;
       let job;
       try {
         job = await getJob(record.serverId);
-        misses = 0;
+        lostSince = 0;
       } catch (e) {
-        if (++misses >= 5) throw e;
-        await sleep(2000);
+        // The server keeps cutting without us. Ride out a locked phone or a patchy connection for
+        // a few minutes before calling it; reopening the app picks it up again anyway.
+        if (!(e instanceof ServerUnreachable)) throw e;
+        lostSince ||= Date.now();
+        if (Date.now() - lostSince > 4 * 60_000) throw e;
+        updateCut(id, { stage: 'reconnecting' });
+        await sleep(3000);
         continue;
       }
       if (job.stage === 'failed' || job.stage === 'stopped') {
@@ -86,7 +112,7 @@ export async function track(id: string) {
       }
       if (job.stage === 'ready') {
         updateCut(id, { stage: 'downloading', progress: 0.97 });
-        const source = await download(`/cuts/${record.serverId}/source`, `${id}-source.mp4`);
+        const source = await sourceFor(id, record, record.serverId);
         const words = job.words ?? [];
         updateCut(id, {
           status: 'ready',
@@ -109,6 +135,19 @@ export async function track(id: string) {
   } finally {
     tracking.delete(id);
   }
+}
+
+/** The video the editor plays: the phone's own copy when it's the same file, else the server's. */
+async function sourceFor(id: string, record: CutRecord, serverId: string) {
+  const local = record.localSource ? new File(record.localSource) : null;
+  if (local?.exists) {
+    const name = `${id}-source.${(local.name.split('.').pop() ?? 'mov').toLowerCase()}`;
+    const copy = cutFile(name);
+    if (copy.exists) copy.delete();
+    local.copy(copy);
+    return name;
+  }
+  return withRetries(() => download(`/cuts/${serverId}/source`, `${id}-source.mp4`), 4, () => updateCut(id, { stage: 'reconnecting' }));
 }
 
 export async function stopCut(id: string) {

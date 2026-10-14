@@ -105,7 +105,9 @@ export default function Cutting() {
     );
   }
 
-  const status = uploading
+  const status = cut.stage === 'reconnecting'
+    ? 'Connection lost. Retrying, keep Autocut open'
+    : uploading
     ? cut.stage === 'waiting'
       ? 'Waiting for your other videos to upload'
       : stalled

@@ -1,11 +1,8 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../lib/theme';
 import { Thumb } from './Thumb';
-
-const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const W = 176;
 const H = 312;
@@ -39,11 +36,7 @@ const PATH = outline(W, H, R, STROKE / 2);
 
 /** The take's thumbnail with the percentage in the middle and progress running round the border. */
 export function ProgressCard({ uri, seconds = 0.5, progress, label, flip }: { uri?: string; seconds?: number; progress: number; label?: string; flip?: boolean }) {
-  const p = useSharedValue(0);
-  useEffect(() => {
-    p.value = withTiming(Math.max(0, Math.min(1, progress)), { duration: 600, easing: Easing.out(Easing.cubic) });
-  }, [progress, p]);
-  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: LENGTH * (1 - p.value) }));
+  const p = useEased(Math.max(0, Math.min(1, progress)));
 
   return (
     <View style={styles.wrap}>
@@ -53,10 +46,33 @@ export function ProgressCard({ uri, seconds = 0.5, progress, label, flip }: { ur
       </Thumb>
       <Svg width={W} height={H} style={StyleSheet.absoluteFill} pointerEvents="none">
         <Path d={PATH} stroke="rgba(255,255,255,0.35)" strokeWidth={STROKE} fill="none" />
-        <AnimatedPath d={PATH} stroke={theme.ink} strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={`${LENGTH} ${LENGTH}`} animatedProps={animatedProps} />
+        <Path d={PATH} stroke={theme.ink} strokeWidth={STROKE} fill="none" strokeLinecap="round" strokeDasharray={`${LENGTH} ${LENGTH}`} strokeDashoffset={LENGTH * (1 - p)} />
       </Svg>
     </View>
   );
+}
+
+/**
+ * Glides to `target` over `ms` whenever it changes. Driven from JS rather than Reanimated, which
+ * doesn't update animated SVG props inside a Modal (the export screen is one).
+ */
+function useEased(target: number, ms = 600) {
+  const [value, setValue] = useState(0);
+  const current = useRef(0);
+  useEffect(() => {
+    const from = current.current;
+    const start = Date.now();
+    let frame = 0;
+    const tick = () => {
+      const t = Math.min(1, (Date.now() - start) / ms);
+      current.current = from + (target - from) * (1 - Math.pow(1 - t, 3));
+      setValue(current.current);
+      if (t < 1) frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [target, ms]);
+  return value;
 }
 
 const styles = StyleSheet.create({

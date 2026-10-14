@@ -43,10 +43,11 @@ async function authHeaders(): Promise<Record<string, string>> {
 
 export class ServerUnreachable extends Error {
   constructor(base: string) {
+    // The Mac hint only makes sense when the app is pointed at a server on the Mac running Expo.
     super(
-      __DEV__
+      __DEV__ && base === autoServerUrl().replace(/\/+$/, '')
         ? `Can't reach the Autocut server at ${base}. Start it on your Mac with "npm run server", and keep your phone on the same Wi-Fi.`
-        : "Can't reach Autocut right now. Check your internet connection and try again."
+        : "Couldn't reach Autocut. Check your internet connection and try again."
     );
   }
 }
