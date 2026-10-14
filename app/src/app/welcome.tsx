@@ -6,11 +6,12 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
+import Svg, { Path } from 'react-native-svg';
+import { outline } from '../components/ProgressCard';
 import { Button } from '../components/ui';
 import { clearDraft } from '../lib/draft';
 import WORDS from '../lib/introWords.json';
-import { column, formatTime, theme } from '../lib/theme';
+import { column, COLUMN, formatTime, theme } from '../lib/theme';
 
 // The sample: one take, raw and edited. They're the same take frame for frame, so the edit can
 // take over mid-sentence. WORDS is the raw take transcribed by Autocut itself (src/transcribe.js).
@@ -20,6 +21,10 @@ const LENGTH = 24.5;
 /** When the edit takes over: the end of the first sentences, once the reading has been seen. */
 const READY_AT = 6.4;
 const ease = Easing.out(Easing.cubic);
+// The card, like the one on the cutting screen: rounded, with progress running round its border.
+const ASPECT = 9 / 16;
+const RADIUS = 26;
+const STROKE = 4;
 
 type Word = { t: string; s: number; e: number };
 type Phase = 'intro' | 'reading' | 'ready';
@@ -45,7 +50,7 @@ const LINES: Word[][] = (() => {
 })();
 
 /**
- * What a new user sees first, like CutAI: a real raw take plays behind the headline. "See it
+ * What a new user sees first, like CutAI: a real raw take plays in a card above the headline. "See it
  * happen" plays it with sound while Autocut reads it (captions type on, word by word), then the
  * edited version takes over at the same moment and plays on. Nothing is uploaded.
  */
@@ -136,57 +141,77 @@ export default function Welcome() {
     router.push('/setup');
   }
 
-  const heard = (WORDS as Word[]).filter((w) => w.s <= time);
   const line = phase === 'intro' ? undefined : LINES.find((l) => time < l[l.length - 1].e + 0.15 && time >= l[0].s - 0.05) ?? LINES.findLast((l) => l[0].s <= time);
   const status = phase === 'ready' ? 'Edit ready' : time < 2 ? 'Reading the take' : time < 4.2 ? 'Writing captions' : 'Timing every word';
 
-  return (
-    <View style={styles.screen}>
-      <VideoView player={raw} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
-      <Animated.View style={[StyleSheet.absoluteFill, editStyle]} pointerEvents="none">
-        <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
-      </Animated.View>
+  // The card fills the space above the words, keeping the video's shape.
+  const [space, setSpace] = useState({ w: 0, h: 0 });
+  const cardH = Math.max(0, Math.min(space.h - 12, (space.w - 48) / ASPECT));
+  const cardW = cardH * ASPECT;
+  // Round the border: filling while it reads the take, full once the edit is ready.
+  const progress = phase === 'ready' ? 1 : phase === 'reading' ? Math.min(1, time / READY_AT) : 0;
+  const r = RADIUS - STROKE / 2;
+  const perimeter = 2 * (cardW - STROKE - 2 * r) + 2 * (cardH - STROKE - 2 * r) + 2 * Math.PI * r;
 
-      <View style={[styles.top, { top: insets.top + 8 }]}>
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom + 10 }]}>
+      <View style={styles.top}>
         {phase === 'intro' ? (
-          <Animated.View exiting={FadeOut.duration(150)} style={styles.chip}>
-            <Text style={styles.chipText}>RAW TAKE · {formatTime(LENGTH)}</Text>
-          </Animated.View>
+          <View />
         ) : (
           <Animated.View entering={FadeIn.duration(250)}>
             <Pressable onPress={() => setMuted((m) => !m)} hitSlop={10} style={styles.round} accessibilityLabel={muted ? 'Sound on' : 'Sound off'}>
-              <SymbolView name={muted ? 'speaker.slash.fill' : 'speaker.wave.2.fill'} tintColor="#fff" size={14} />
+              <SymbolView name={muted ? 'speaker.slash.fill' : 'speaker.wave.2.fill'} tintColor={theme.ink} size={14} />
             </Pressable>
           </Animated.View>
         )}
         {phase === 'reading' && (
           <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(150)}>
-            <Pressable onPress={start} hitSlop={10} style={styles.chip} accessibilityLabel="Skip">
-              <Text style={styles.chipText}>Skip</Text>
+            <Pressable onPress={start} hitSlop={10} style={styles.pill} accessibilityLabel="Skip">
+              <Text style={styles.pillText}>Skip</Text>
             </Pressable>
           </Animated.View>
         )}
       </View>
 
-      {/* A solid white panel for the words and buttons; the picture above stays clear, with a short fade into it. */}
-      <View style={[styles.panel, { paddingBottom: insets.bottom + 10 }]}>
-        <View style={styles.fade} pointerEvents="none">
-          <Svg width="100%" height="100%" preserveAspectRatio="none">
-            <Defs>
-              <LinearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#fff" stopOpacity="0" />
-                <Stop offset="1" stopColor="#fff" stopOpacity="1" />
-              </LinearGradient>
-            </Defs>
-            <Rect x="0" y="0" width="100%" height="100%" fill="url(#fade)" />
-          </Svg>
-        </View>
-        <View style={column()}>
+      <View style={styles.stage} onLayout={(e) => setSpace({ w: Math.min(e.nativeEvent.layout.width, COLUMN), h: e.nativeEvent.layout.height })}>
+        {cardH > 0 && (
+          <View style={{ width: cardW, height: cardH }}>
+            <View style={[styles.card, { borderRadius: RADIUS }]}>
+              <VideoView player={raw} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+              <Animated.View style={[StyleSheet.absoluteFill, editStyle]} pointerEvents="none">
+                <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+              </Animated.View>
+              {phase === 'intro' && (
+                <Animated.View exiting={FadeOut.duration(150)} style={styles.chip}>
+                  <Text style={styles.chipText}>RAW TAKE · {formatTime(LENGTH)}</Text>
+                </Animated.View>
+              )}
+            </View>
+            <Svg width={cardW} height={cardH} style={StyleSheet.absoluteFill} pointerEvents="none">
+              <Path d={outline(cardW, cardH, RADIUS, STROKE / 2)} stroke="rgba(255,255,255,0.35)" strokeWidth={STROKE} fill="none" />
+              {progress > 0 && (
+                <Path
+                  d={outline(cardW, cardH, RADIUS, STROKE / 2)}
+                  stroke={theme.ink}
+                  strokeWidth={STROKE}
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeDasharray={`${perimeter} ${perimeter}`}
+                  strokeDashoffset={perimeter * (1 - progress)}
+                />
+              )}
+            </Svg>
+          </View>
+        )}
+      </View>
+
+      <View style={[styles.bottom, column()]}>
         {phase === 'intro' ? (
           <Animated.View key="intro" exiting={FadeOut.duration(180)} style={{ gap: 10 }}>
             <Text style={styles.headline}>Raw take in.{'\n'}Tight cut out.</Text>
             <Text style={styles.sub}>Autocut cuts the dead air, ums and retakes, and captions every word. You just film.</Text>
-            <Button title="See it happen" onPress={seeIt} style={{ marginTop: 12 }} />
+            <Button title="See it happen" onPress={seeIt} style={{ marginTop: 8 }} />
             <Text style={styles.signIn}>
               Already have an account?{' '}
               <Text style={styles.signInLink} onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })}>
@@ -195,7 +220,7 @@ export default function Welcome() {
             </Text>
           </Animated.View>
         ) : (
-          <Animated.View key="demo" entering={FadeInDown.duration(380).easing(ease)} style={{ gap: 14 }}>
+          <Animated.View key="demo" entering={FadeInDown.duration(380).easing(ease)} style={{ gap: 12 }}>
             {phase === 'reading' ? (
               // What's being said, word by word, the word being spoken in bold. Once the edit takes
               // over, its own captions say it, so this gives way to the result.
@@ -211,33 +236,17 @@ export default function Welcome() {
                 Cut, captioned,{'\n'}ready to post.
               </Animated.Text>
             )}
-
-            <View>
-              <View style={styles.track}>
-                {phase === 'ready' ? (
-                  <Animated.View entering={FadeIn.duration(300)} style={[StyleSheet.absoluteFill, styles.trackFull]} />
-                ) : (
-                  <View style={[styles.trackFill, { width: `${Math.min(100, (time / LENGTH) * 100)}%` }]} />
-                )}
-                {/* A tick for every word Autocut has placed so far. */}
-                {(phase === 'ready' ? (WORDS as Word[]) : heard).map((w) => (
-                  <View key={w.s} style={[styles.tick, { left: `${(w.s / LENGTH) * 100}%` }, phase === 'ready' && styles.tickOn]} />
-                ))}
-                <View style={[styles.head, { left: `${Math.min(100, (time / LENGTH) * 100)}%` }]} />
-              </View>
-              <View style={styles.statusRow}>
-                {phase === 'ready' ? (
-                  <Animated.View entering={FadeIn.duration(250)} style={styles.done}>
-                    <SymbolView name="checkmark" tintColor="#fff" size={9} weight="bold" />
-                  </Animated.View>
-                ) : (
-                  <View style={styles.pulse} />
-                )}
-                <Text style={styles.status}>{status}</Text>
-                <Text style={styles.count}>{phase === 'ready' ? `${WORDS.length} words captioned` : formatTime(time)}</Text>
-              </View>
+            <View style={styles.statusRow}>
+              {phase === 'ready' ? (
+                <Animated.View entering={FadeIn.duration(250)} style={styles.done}>
+                  <SymbolView name="checkmark" tintColor="#fff" size={9} weight="bold" />
+                </Animated.View>
+              ) : (
+                <View style={styles.dot} />
+              )}
+              <Text style={styles.status}>{status}</Text>
+              <Text style={styles.count}>{phase === 'ready' ? `${WORDS.length} words captioned` : `${Math.round(progress * 100)}%`}</Text>
             </View>
-
             {phase === 'ready' ? (
               <Animated.View entering={FadeInDown.duration(380).easing(ease)}>
                 <Button title="Try it with your video" onPress={start} />
@@ -248,7 +257,6 @@ export default function Welcome() {
             <Text style={styles.note}>Sample clip. Nothing uploaded, no permissions needed.</Text>
           </Animated.View>
         )}
-        </View>
       </View>
     </View>
   );
@@ -256,27 +264,25 @@ export default function Welcome() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  panel: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.bg, paddingHorizontal: 22, paddingTop: 6 },
-  fade: { position: 'absolute', left: 0, right: 0, top: -70, height: 70 },
-  top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chip: { backgroundColor: 'rgba(17,17,20,0.55)', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
-  chipText: { color: '#fff', fontSize: 11, fontWeight: '700', letterSpacing: 0.6 },
-  round: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(17,17,20,0.55)', alignItems: 'center', justifyContent: 'center' },
-  headline: { fontSize: 36, fontWeight: '800', color: theme.ink, letterSpacing: -0.9, lineHeight: 40 },
+  top: { height: 44, paddingHorizontal: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  round: { width: 34, height: 34, borderRadius: 17, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  pill: { backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
+  pillText: { color: theme.ink, fontSize: 14, fontWeight: '700' },
+  stage: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  card: { flex: 1, overflow: 'hidden', backgroundColor: '#1C1C1F' },
+  chip: { position: 'absolute', top: 12, left: 12, backgroundColor: 'rgba(17,17,20,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
+  chipText: { color: '#fff', fontSize: 10, fontWeight: '700', letterSpacing: 0.6 },
+  // The same height in every step, so the card never jumps as the words change.
+  bottom: { height: 236, justifyContent: 'flex-end', paddingHorizontal: 22 },
+  headline: { fontSize: 32, fontWeight: '800', color: theme.ink, letterSpacing: -0.8, lineHeight: 36 },
   sub: { fontSize: 15, color: theme.muted, lineHeight: 21 },
-  signIn: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
+  signIn: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 4 },
   signInLink: { color: theme.ink, fontWeight: '700' },
   transcript: { fontSize: 22, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, lineHeight: 28, minHeight: 56 },
   unsaid: { color: 'transparent' },
   saying: { fontWeight: '900' },
-  track: { height: 6, borderRadius: 3, backgroundColor: '#E6E6EA', overflow: 'visible' },
-  trackFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 3, backgroundColor: '#B9B9C0' },
-  trackFull: { borderRadius: 3, backgroundColor: theme.ink },
-  tick: { position: 'absolute', top: -3, width: 2, height: 12, marginLeft: -1, borderRadius: 1, backgroundColor: theme.ink },
-  tickOn: { backgroundColor: '#fff', top: 1, height: 4 },
-  head: { position: 'absolute', top: -5, width: 3, height: 16, marginLeft: -1.5, borderRadius: 1.5, backgroundColor: theme.ink },
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 10 },
-  pulse: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.ink },
+  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.ink },
   done: { width: 16, height: 16, borderRadius: 8, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   status: { flex: 1, fontSize: 13, fontWeight: '600', color: theme.ink },
   count: { fontSize: 13, fontWeight: '600', color: theme.muted, fontVariant: ['tabular-nums'] },

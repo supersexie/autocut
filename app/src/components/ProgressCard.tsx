@@ -10,7 +10,7 @@ const R = 22;
 const STROKE = 4;
 
 /** Rounded-rect outline starting at the top centre and running clockwise. */
-function outline(w: number, h: number, r: number, inset: number) {
+export function outline(w: number, h: number, r: number, inset: number) {
   const x0 = inset;
   const y0 = inset;
   const x1 = w - inset;
