@@ -54,6 +54,15 @@ export function Timeline(p: Props) {
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [trim, setTrim] = useState<{ i: number; start: number; end: number } | null>(null);
   const [pps, setPps] = useState(PPS);
+  const zoomed = Math.abs(pps - PPS) / PPS > 0.05;
+  // A light tick as the playhead crosses into another clip while scrubbing.
+  const lastClip = useRef(-1);
+  const tickAt = (t: number) => {
+    let i = 0;
+    for (let acc = 0; i < clips.length - 1 && t >= acc + outDuration(clips[i]); i++) acc += outDuration(clips[i]);
+    if (lastClip.current !== -1 && i !== lastClip.current) Haptics.selectionAsync();
+    lastClip.current = i;
+  };
 
   const clips = trim ? p.clips.map((c, k) => (k === trim.i ? { ...c, start: trim.start, end: trim.end } : c)) : p.clips;
   const total = clips.reduce((t, c) => t + outDuration(c), 0);
@@ -127,9 +136,15 @@ export function Timeline(p: Props) {
             onScrollBeginDrag={() => {
               dragging.current = true;
               momentum.current = false;
+              lastClip.current = -1;
               p.onScrubStart();
             }}
-            onScroll={(e) => dragging.current && p.onScrub(Math.max(0, Math.min(total, e.nativeEvent.contentOffset.x / pps)))}
+            onScroll={(e) => {
+              if (!dragging.current) return;
+              const t = Math.max(0, Math.min(total, e.nativeEvent.contentOffset.x / pps));
+              tickAt(t);
+              p.onScrub(t);
+            }}
             onScrollEndDrag={() => {
               // A fling keeps scrubbing until its momentum stops. If no momentum starts, the scrub
               // ends here, so the strip can never be left thinking it's still being dragged.
@@ -263,6 +278,12 @@ export function Timeline(p: Props) {
           </ScrollView>
         )}
         <View style={[styles.playhead, { left: width / 2 - 1 }]} pointerEvents="none" />
+        {zoomed && (
+          <Pressable onPress={() => setPps(PPS)} hitSlop={8} style={styles.zoom} accessibilityLabel="Reset zoom">
+            <Text style={styles.zoomText}>{(pps / PPS).toFixed(1)}×</Text>
+            <SymbolView name="arrow.counterclockwise" tintColor={theme.muted} size={10} weight="semibold" />
+          </Pressable>
+        )}
       </View>
       </GestureDetector>
     </View>
@@ -355,5 +376,7 @@ const styles = StyleSheet.create({
   textChipOn: { borderWidth: 2, borderColor: theme.ink },
   add: { position: 'absolute', top: 2, height: ROW_H - 4, borderRadius: 7, borderWidth: 1, borderStyle: 'dashed', borderColor: '#C7C7CC', justifyContent: 'center', paddingHorizontal: 10 },
   addText: { fontSize: 11, fontWeight: '600', color: theme.muted },
+  zoom: { position: 'absolute', top: 0, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
+  zoomText: { fontSize: 10, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 2, borderRadius: 1, backgroundColor: theme.ink },
 });

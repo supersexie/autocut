@@ -119,12 +119,36 @@ export function updateCut(id: string, patch: Partial<CutRecord>) {
   emit();
 }
 
+/** The cut's last export, if it has one on this phone. */
+export const exportFile = (cut: CutRecord) => cutFile(`${cut.id}-export.mp4`);
+
+/** A copy of a finished cut with its own copy of the video, to try a different edit. Returns its id. */
+export function duplicateCut(id: string) {
+  const cut = getCut(id);
+  if (!cut?.source || cut.status !== 'ready') return;
+  const copyId = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  const source = `${copyId}-source.mp4`;
+  cutFile(cut.source).copy(cutFile(source));
+  addCut({
+    ...cut,
+    id: copyId,
+    createdAt: new Date().toISOString(),
+    title: `${cut.title} (copy)`,
+    source,
+    exports: 0,
+    edit: cut.edit && JSON.parse(JSON.stringify(cut.edit)),
+  });
+  return copyId;
+}
+
+/** A cut's source video and its last export. */
+function removeFiles(cut: CutRecord) {
+  for (const file of [cut.source && cutFile(cut.source), exportFile(cut)]) if (file && file.exists) file.delete();
+}
+
 export function deleteCut(id: string) {
   const record = getCut(id);
-  if (record?.source) {
-    const file = cutFile(record.source);
-    if (file.exists) file.delete();
-  }
+  if (record) removeFiles(record);
   deletePreviews(id);
   state = { ...state, cuts: state.cuts.filter((c) => c.id !== id) };
   persist();
@@ -133,7 +157,10 @@ export function deleteCut(id: string) {
 
 /** Removes every cut and its videos from this phone. */
 export function clearCuts() {
-  for (const c of state.cuts) if (c.source && cutFile(c.source).exists) cutFile(c.source).delete();
+  for (const c of state.cuts) {
+    removeFiles(c);
+    deletePreviews(c.id);
+  }
   state = { ...state, cuts: [] };
   indexFile.write('[]');
   emit();
@@ -160,6 +187,19 @@ export const editOf = (c: CutRecord): Edit =>
     captions: { ...DEFAULT_CAPTIONS, enabled: state.settings.captions },
     texts: [],
   };
+
+/** One line on where a cut is: "Uploading 40%", "Cutting 70%", "Ready to edit", "Exported"… */
+export function cutStatus(cut: CutRecord) {
+  if (cut.status === 'ready') return cut.exports > 0 ? 'Exported' : 'Ready to edit';
+  if (cut.status === 'failed') return cut.error ?? "The edit didn't finish.";
+  if (cut.status === 'uploading') return cut.stage === 'waiting' ? 'Waiting to upload' : `Uploading ${Math.round(cut.progress * 100)}%`;
+  if (cut.stage === 'queued') return 'Waiting in line';
+  return `Cutting ${Math.round(25 + 75 * cut.progress)}%`;
+}
+
+/** 0–1 across the whole job: upload is the first quarter, cutting the rest. */
+export const cutProgress = (cut: CutRecord) =>
+  cut.status === 'ready' ? 1 : cut.status === 'uploading' ? cut.progress * 0.25 : cut.status === 'processing' ? 0.25 + 0.75 * cut.progress : 0;
 
 /** Length of the cut as the user will export it. */
 export const editedDuration = (c: CutRecord) => totalDuration(editOf(c).clips);

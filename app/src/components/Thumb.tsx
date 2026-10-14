@@ -1,6 +1,7 @@
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 const cache = new Map<string, string>();
 
@@ -29,9 +30,18 @@ export function useThumbnail(uri: string | undefined, seconds = 0.3) {
 
 export function Thumb({ uri, seconds, style, children, flip }: { uri?: string; seconds?: number; style?: StyleProp<ViewStyle>; children?: ReactNode; flip?: boolean }) {
   const thumb = useThumbnail(uri, seconds);
+  // Frames made while this is on screen fade in; ones already made just appear.
+  const [fresh] = useState(() => !thumb);
   return (
     <View style={[styles.box, style]}>
-      {thumb && <Image source={{ uri: thumb }} style={[StyleSheet.absoluteFill, flip && { transform: [{ scaleX: -1 }] }]} resizeMode="cover" />}
+      {thumb && (
+        <Animated.Image
+          entering={fresh ? FadeIn.duration(220) : undefined}
+          source={{ uri: thumb }}
+          style={[StyleSheet.absoluteFill, flip && { transform: [{ scaleX: -1 }] }]}
+          resizeMode="cover"
+        />
+      )}
       {children}
     </View>
   );

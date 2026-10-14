@@ -8,7 +8,8 @@ import { RoundButton } from '../../components/list';
 import { Thumb } from '../../components/Thumb';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
-import { editedDuration, cutFile, deleteCut, updateCut, useCuts, type CutRecord } from '../../lib/store';
+import * as Sharing from 'expo-sharing';
+import { editedDuration, cutFile, cutProgress, cutStatus, deleteCut, duplicateCut, exportFile, updateCut, useCuts, type CutRecord } from '../../lib/store';
 import { column, formatTime, theme, WIDE_COLUMN } from '../../lib/theme';
 
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
@@ -185,28 +186,24 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
 
   function actions() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    sheet(
-      cut.title,
-      ['Rename', 'Delete'],
-      (i) => {
-        if (i === 0)
-          Alert.prompt('Rename cut', undefined, (title) => title.trim() && updateCut(cut.id, { title: title.trim() }), 'plain-text', cut.title);
-        else
+    const exported = exportFile(cut);
+    const choices: { label: string; run: () => void }[] = [
+      { label: 'Rename', run: () => Alert.prompt('Rename cut', undefined, (title) => title.trim() && updateCut(cut.id, { title: title.trim() }), 'plain-text', cut.title) },
+      ...(exported.exists ? [{ label: 'Share', run: () => Sharing.shareAsync(exported.uri, { mimeType: 'video/mp4', UTI: 'public.mpeg-4' }) }] : []),
+      ...(cut.status === 'ready' && cut.source ? [{ label: 'Duplicate', run: () => duplicateCut(cut.id) }] : []),
+      {
+        label: 'Delete',
+        run: () =>
           Alert.alert('Delete this cut?', `It’s removed from this ${DEVICE}. Videos you saved to Photos stay there.`, [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Delete', style: 'destructive', onPress: () => deleteCut(cut.id) },
-          ]);
+          ]),
       },
-      1
-    );
+    ];
+    sheet(cut.title, choices.map((c) => c.label), (i) => choices[i].run(), choices.length - 1);
   }
 
-  let status: string;
-  if (cut.status === 'ready') status = cut.exports > 0 ? 'Exported' : 'Ready to edit';
-  else if (cut.status === 'failed') status = cut.error ?? "The edit didn't finish.";
-  else if (cut.status === 'uploading') status = cut.stage === 'waiting' ? 'Waiting to upload' : `Uploading ${Math.round(cut.progress * 100)}%`;
-  else if (cut.stage === 'queued') status = 'Waiting in line';
-  else status = `Cutting ${Math.round(25 + 75 * cut.progress)}%`;
+  const status = cutStatus(cut);
 
   return (
     <Pressable
@@ -223,7 +220,7 @@ function Card({ cut, width, selecting, selected, onToggle }: { cut: CutRecord; w
         {cut.status === 'ready' && <Text style={styles.duration}>{formatTime(editedDuration(cut))}</Text>}
         {(cut.status === 'uploading' || cut.status === 'processing') && (
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.round(100 * (cut.status === 'uploading' ? cut.progress * 0.25 : 0.25 + 0.75 * cut.progress))}%` }]} />
+            <View style={[styles.progressFill, { width: `${Math.round(100 * cutProgress(cut))}%` }]} />
           </View>
         )}
         {selecting && (

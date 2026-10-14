@@ -6,7 +6,7 @@ import * as StoreReview from 'expo-store-review';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActionSheetIOS, Alert, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { download, getJob, ServerUnreachable, startRender } from '../lib/api';
@@ -21,7 +21,7 @@ const RESOLUTIONS = [720, 1080, 1440, 2160];
 const FRAME_RATES = [24, 30, 60];
 const BITRATES = [8, 12, 20, 30, 60];
 
-type Phase = { kind: 'sheet' } | { kind: 'exporting'; progress: number; note?: string } | { kind: 'done'; file: string; saved: boolean } | { kind: 'failed'; error: string };
+type Phase = { kind: 'sheet' } | { kind: 'exporting'; progress: number; note?: string } | { kind: 'done'; file: string; saved: boolean; assetId?: string } | { kind: 'failed'; error: string };
 
 const stamp = (iso: string) => {
   const d = new Date(iso);
@@ -113,13 +113,14 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
       );
       const permission = await MediaLibrary.requestPermissionsAsync(true);
       let saved = false;
+      let assetId: string | undefined;
       if (permission.granted) {
-        await MediaLibrary.Asset.create(cutFile(file).uri);
+        assetId = (await MediaLibrary.Asset.create(cutFile(file).uri)).id;
         saved = true;
       }
       updateCut(cut.id, { exports: (getCut(cut.id)?.exports ?? 0) + 1 });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setPhase({ kind: 'done', file, saved });
+      setPhase({ kind: 'done', file, saved, assetId });
     } catch (e) {
       setPhase({ kind: 'failed', error: e instanceof Error ? e.message : String(e) });
     }
@@ -177,7 +178,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
   return (
     <Modal visible animationType="fade" presentationStyle="fullScreen" onRequestClose={() => phase.kind !== 'exporting' && onClose()}>
       {phase.kind === 'done' ? (
-        <Done file={phase.file} saved={phase.saved} onClose={onClose} />
+        <Done file={phase.file} saved={phase.saved} assetId={phase.assetId} onClose={onClose} />
       ) : (
         <Exporting phase={phase} preview={preview} seconds={firstSeconds} onRetry={run} onClose={onClose} />
       )}
@@ -210,7 +211,25 @@ function Exporting({ phase, preview, seconds, onRetry, onClose }: { phase: Phase
   );
 }
 
-function Done({ file, saved, onClose }: { file: string; saved: boolean; onClose: () => void }) {
+/** Opens Instagram with the saved video picked, or TikTok (where it's the newest video in Photos). */
+async function postTo(app: 'instagram' | 'tiktok', assetId?: string) {
+  const urls =
+    app === 'instagram'
+      ? [`instagram://library?LocalIdentifier=${encodeURIComponent((assetId ?? '').replace(/^ph:\/\//, ''))}`]
+      : ['tiktok://', 'snssdk1233://'];
+  for (const url of urls) {
+    try {
+      await Linking.openURL(url);
+      return;
+    } catch {
+      // not installed under this name; try the next
+    }
+  }
+  const name = app === 'instagram' ? 'Instagram' : 'TikTok';
+  Alert.alert(`${name} isn’t installed`, `Your cut is saved in Photos, so you can post it once ${name} is on this phone.`);
+}
+
+function Done({ file, saved, assetId, onClose }: { file: string; saved: boolean; assetId?: string; onClose: () => void }) {
   const insets = useSafeAreaInsets();
   const uri = cutFile(file).uri;
   const player = useVideoPlayer(uri, (p) => {
@@ -266,6 +285,12 @@ function Done({ file, saved, onClose }: { file: string; saved: boolean; onClose:
             <SymbolView name={saved ? 'checkmark.circle.fill' : 'exclamationmark.circle'} tintColor={saved ? theme.ok : theme.muted} size={15} />
             <Text style={styles.sub}>{saved ? 'Saved to Photos' : 'Allow Photos access in Settings to save it there.'}</Text>
           </View>
+          {saved && (
+            <View style={styles.postRow}>
+              <Button kind="outline" title="TikTok" icon={<SymbolView name="music.note" tintColor={theme.ink} size={15} />} onPress={() => postTo('tiktok')} style={{ flex: 1 }} />
+              <Button kind="outline" title="Instagram" icon={<SymbolView name="camera.aperture" tintColor={theme.ink} size={15} />} onPress={() => postTo('instagram', assetId)} style={{ flex: 1 }} />
+            </View>
+          )}
           <Button title="Share" icon={<SymbolView name="square.and.arrow.up" tintColor="#fff" size={16} />} onPress={() => Sharing.shareAsync(uri, { mimeType: 'video/mp4', UTI: 'public.mpeg-4' })} />
           <Button
             kind="outline"
@@ -303,6 +328,7 @@ const styles = StyleSheet.create({
   doneTitle: { fontSize: 17, fontWeight: '700', color: theme.ink },
   doneLink: { fontSize: 16, fontWeight: '600', color: theme.ink },
   donePlayer: { flex: 1, alignSelf: 'stretch', marginHorizontal: 30, borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
+  postRow: { flexDirection: 'row', gap: 10 },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   rateCard: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 20, alignItems: 'center', gap: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -4 } },
   ratePill: { fontSize: 11, fontWeight: '700', color: '#fff', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
