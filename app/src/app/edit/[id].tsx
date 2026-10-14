@@ -5,6 +5,7 @@ import { useVideoPlayer, type VideoPlayer } from 'expo-video';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
+import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
 import { CaptionsPanel, FormatPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
@@ -49,6 +50,13 @@ const start = (p: VideoPlayer, rate: number, volume: number) => {
   p.play();
   setSpeed(p, rate);
 };
+// Just before a cut the waiting player creeps forward at the slowest rate AVPlayer allows, silent
+// and hidden, so at the cut it's already running and only has to speed up: no cold start, no freeze.
+const WARM_UP = 0.4; // seconds before the cut
+const creep = (p: VideoPlayer) => {
+  p.volume = 0;
+  p.playbackRate = 1 / 32; // always assigned: it's the assignment that starts the player
+};
 
 type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'textStyle' | 'textSize' | null;
 type History = { past: Edit[]; present: Edit; future: Edit[] };
@@ -88,7 +96,9 @@ function Editor({ cut }: { cut: CutRecord }) {
   const playerA = useVideoPlayer(sourceUri, setup);
   const playerB = useVideoPlayer(sourceUri, setup);
   const players = useMemo(() => [playerA, playerB] as [VideoPlayer, VideoPlayer], [playerA, playerB]);
-  const [front, setFront] = useState<0 | 1>(0);
+  // Which player is on screen. A shared value, so the swap happens on the UI thread at once
+  // instead of waiting for a React render (which showed the old player's frozen frame).
+  const front = useSharedValue<0 | 1>(0);
 
   // Video shape from a frame (already rotated the way it's shown).
   useEffect(() => {
@@ -99,7 +109,7 @@ function Editor({ cut }: { cut: CutRecord }) {
 
   // ---- Playback state that event handlers read (refs, so they always see the latest edit).
   // `playing` is what we asked for (play / pause); the player's own flag lags behind.
-  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false, front: 0 as 0 | 1, playing: false });
+  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false, front: 0 as 0 | 1, playing: false, warm: false });
   useEffect(() => {
     live.current.clips = clips;
     live.current.muted = edit.muted;
@@ -114,6 +124,7 @@ function Editor({ cut }: { cut: CutRecord }) {
     const prime = (i: number) => {
       const c = live.current.clips[i];
       const p = standby();
+      live.current.warm = false;
       p.pause();
       if (!c) return;
       seek(p, c.start);
@@ -161,15 +172,23 @@ function Editor({ cut }: { cut: CutRecord }) {
           const incoming = players[f === 0 ? 1 : 0];
           live.current.front = f === 0 ? 1 : 0;
           live.current.index = i + 1;
-          start(incoming, next.speed, volumeOf(next));
+          if (live.current.warm) {
+            setVolume(incoming, volumeOf(next));
+            setSpeed(incoming, next.speed);
+          } else start(incoming, next.speed, volumeOf(next));
+          live.current.warm = false;
+          front.set(live.current.front);
           setVolume(pl, 0);
           pl.pause();
-          setFront(live.current.front);
           setTime(clipOffset(list, i + 1));
-          setTimeout(() => prime(i + 2), 60);
+          prime(i + 2);
           return;
         }
         if (currentTime < c.start - 0.3) seek(pl, c.start);
+        if (!live.current.warm && live.current.playing && list[i + 1] && (c.end - currentTime) / c.speed <= WARM_UP) {
+          live.current.warm = true;
+          creep(players[f === 0 ? 1 : 0]);
+        }
         setTime(clipOffset(list, i) + Math.max(0, currentTime - c.start) / c.speed);
       }),
       pl.addListener('statusChange', ({ status }) => {
@@ -185,10 +204,11 @@ function Editor({ cut }: { cut: CutRecord }) {
       }),
     ]);
     return () => subs.forEach((s) => s.remove());
-  }, [players, prime, volumeOf]);
+  }, [players, prime, volumeOf, front]);
 
   function pauseAll() {
     live.current.playing = false;
+    live.current.warm = false;
     players.forEach((p) => p.pause());
   }
 

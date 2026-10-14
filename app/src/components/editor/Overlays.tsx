@@ -6,7 +6,7 @@ import {
   Keyboard, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
   type LayoutChangeEvent, type LayoutRectangle,
 } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { moveClip, outDuration, type CaptionLine, type ClipEdit, type TextLook, type TextOverlay } from '../../lib/edit';
 import { TEXT_FONTS } from '../../lib/fonts';
@@ -19,7 +19,7 @@ import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, typ
 type PreviewProps = {
   /** Two players over the same video: one plays, the other waits at the next clip (see the editor). */
   players: [VideoPlayer, VideoPlayer];
-  front: 0 | 1;
+  front: SharedValue<0 | 1>;
   aspect: number; // width / height of the video
   line?: CaptionLine;
   activeWord: number;
@@ -33,6 +33,16 @@ type PreviewProps = {
   onMoveText: (id: string, x: number, y: number) => void;
   onCloseFullscreen: () => void;
 };
+
+/** One of the two relay players; shown only while it's the front one (switched on the UI thread). */
+function RelayVideo({ player, index, front }: { player: VideoPlayer; index: number; front: SharedValue<0 | 1> }) {
+  const shown = useAnimatedStyle(() => ({ opacity: front.get() === index ? 1 : 0 }));
+  return (
+    <Animated.View style={[StyleSheet.absoluteFill, shown]} pointerEvents="none">
+      <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+    </Animated.View>
+  );
+}
 
 /** The video with live captions and text overlays, sized to the video's shape. */
 export function Preview(p: PreviewProps) {
@@ -51,7 +61,7 @@ export function Preview(p: PreviewProps) {
         {fw > 0 && (
           <Pressable onPress={p.onTap} style={[styles.frame, { width: fw, height: fh, borderRadius: p.fullscreen ? 0 : 16 }]}>
             {p.players.map((pl, i) => (
-              <VideoView key={i} player={pl} style={[StyleSheet.absoluteFill, { opacity: i === p.front ? 1 : 0 }]} contentFit="cover" nativeControls={false} />
+              <RelayVideo key={i} player={pl} index={i} front={p.front} />
             ))}
             {p.line && (
               <View style={[styles.captionSpot, { bottom: fh * 0.24 }]} pointerEvents="none">
