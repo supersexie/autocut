@@ -2,15 +2,17 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Field } from '../components/ui';
-import { useAuth } from '../lib/auth';
+import { displayName, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
 
 /** Name and TikTok handle, from Settings › Edit. */
 export default function EditProfile() {
   const { account, updateProfile } = useAuth();
   const profile = account?.profile ?? {};
-  const [firstName, setFirstName] = useState(profile.firstName ?? '');
-  const [lastName, setLastName] = useState(profile.lastName ?? '');
+  // Start from the name we show (made from the email when they haven't set one).
+  const [suggestedFirst, ...suggestedRest] = displayName(account) === 'Creator' ? [''] : displayName(account).split(' ');
+  const [firstName, setFirstName] = useState(profile.firstName ?? suggestedFirst ?? '');
+  const [lastName, setLastName] = useState(profile.lastName ?? suggestedRest.join(' '));
   const [handle, setHandle] = useState(profile.handle ?? '');
   const [saving, setSaving] = useState(false);
 

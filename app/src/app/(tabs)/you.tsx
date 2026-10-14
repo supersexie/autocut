@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, listStyles, Meter, RoundButton } from '../../components/list';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
-import { useAuth } from '../../lib/auth';
+import { displayName, initialsOf, useAuth } from '../../lib/auth';
 import { useCuts } from '../../lib/store';
 import { column, COLUMN, theme } from '../../lib/theme';
 import { usageLine, useUsage } from '../../lib/usage';
@@ -18,8 +18,8 @@ export default function YouScreen() {
   const cuts = useCuts();
   const { plan, used, limit, resets } = useUsage();
   const profile = account?.profile ?? {};
-  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your studio';
-  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const name = displayName(account);
+  const initials = initialsOf(name);
   const since = account && `Since ${new Date(account.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`;
   const exported = cuts.reduce((t, c) => t + c.exports, 0);
   const made = cuts.filter((c) => c.status === 'ready').length;
@@ -30,17 +30,19 @@ export default function YouScreen() {
         <View style={styles.top}>
           <RoundButton icon="gearshape" label="Settings" onPress={() => router.push('/settings')} />
         </View>
-        <Text style={styles.h1}>You</Text>
+        <Text style={styles.h1} numberOfLines={2}>
+          {name}
+        </Text>
 
         <View style={styles.profile}>
-          <View style={[listStyles.avatar, { width: 64, height: 64 }]}>
-            <Text style={[listStyles.avatarText, { fontSize: 21 }]}>{initials}</Text>
+          <View style={[listStyles.avatar, { width: 52, height: 52 }]}>
+            <Text style={[listStyles.avatarText, { fontSize: 18 }]}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.name} numberOfLines={1}>
-              {name}
+            <Text style={styles.handle} numberOfLines={1}>
+              {profile.handle ? `@${profile.handle}` : (account?.email ?? '')}
             </Text>
-            <Text style={styles.sub}>{[profile.handle && `@${profile.handle}`, since].filter(Boolean).join(' · ')}</Text>
+            {since && <Text style={styles.sub}>{since}</Text>}
           </View>
         </View>
 
@@ -104,7 +106,7 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', justifyContent: 'flex-end', height: 44 },
   h1: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -0.6 },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14, marginBottom: 20 },
-  name: { fontSize: 26, fontWeight: '800', color: theme.ink, letterSpacing: -0.4 },
+  handle: { fontSize: 16, fontWeight: '600', color: theme.ink },
   sub: { fontSize: 14, color: theme.muted, marginTop: 3 },
   pad: { padding: 16 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

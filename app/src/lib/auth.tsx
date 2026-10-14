@@ -27,7 +27,8 @@ export type Profile = {
   onboarded?: boolean;
 };
 
-export type Account = { id: string; email: string | null; createdAt: string; profile: Profile };
+/** `fullName` is the name a sign-in provider (Google, Apple) shared, if any. */
+export type Account = { id: string; email: string | null; createdAt: string; profile: Profile; fullName?: string };
 
 type AuthContextValue = {
   loading: boolean;
@@ -60,7 +61,13 @@ const toMetadata = (p: Profile) =>
   Object.fromEntries(Object.entries(p).map(([k, v]) => [KEYS[k as keyof Profile], v]));
 const fromMetadata = (m: Record<string, unknown> = {}): Profile =>
   Object.fromEntries(Object.entries(KEYS).filter(([, mk]) => m[mk] !== undefined).map(([k, mk]) => [k, m[mk]])) as Profile;
-const toAccount = (u: User): Account => ({ id: u.id, email: u.email ?? null, createdAt: u.created_at, profile: fromMetadata(u.user_metadata) });
+const toAccount = (u: User): Account => ({
+  id: u.id,
+  email: u.email ?? null,
+  createdAt: u.created_at,
+  profile: fromMetadata(u.user_metadata),
+  fullName: String(u.user_metadata?.full_name ?? u.user_metadata?.name ?? '').trim() || undefined,
+});
 
 // Dev mode (no Supabase yet): a local stand-in account so the app can be tried end to end.
 const devFile = new File(Paths.document, 'dev-account.json');
@@ -234,6 +241,31 @@ export async function enabledProviders(): Promise<{ google: boolean; apple: bool
     return { google: false, apple: false };
   }
 }
+
+/**
+ * What to call someone: the name they set, else the one Google or Apple shared, else one made from
+ * their email (rishav.vashisht@… → Rishav Vashisht), else "Creator".
+ */
+export function displayName(account: Account | null) {
+  const own = [account?.profile.firstName, account?.profile.lastName].filter(Boolean).join(' ').trim();
+  if (own) return own;
+  if (account?.fullName) return account.fullName;
+  const local = (account?.email ?? '').split('@')[0].split('+')[0];
+  const words = local
+    .split(/[._\-\s]+/)
+    .map((w) => w.replace(/[0-9]+/g, ''))
+    .filter((w) => w.length > 1) // "r24126571" is a code, not a name
+    .map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase());
+  return words.join(' ') || 'Creator';
+}
+
+export const initialsOf = (name: string) =>
+  name
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
 export function useAuth() {
   const ctx = useContext(AuthContext);

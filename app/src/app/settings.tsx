@@ -9,7 +9,7 @@ import { CuttingSettings } from '../components/CuttingSettings';
 import { Card, Footnote, listStyles, PageHeader, Row, SectionLabel } from '../components/list';
 import { forgetThumbnails } from '../components/Thumb';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
-import { useAuth, type Language } from '../lib/auth';
+import { displayName, initialsOf, useAuth, type Language } from '../lib/auth';
 import { cacheBytes, clearCache, updateSettings, useSettings } from '../lib/store';
 import { column, COLUMN, theme } from '../lib/theme';
 import { useUsage } from '../lib/usage';
@@ -29,8 +29,8 @@ export default function SettingsScreen() {
   const settings = useSettings();
   const [cache, setCache] = useState(cacheBytes);
   const [serverStatus, setServerStatus] = useState<string | null>(null);
-  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your studio';
-  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const name = displayName(account);
+  const initials = initialsOf(name);
   const language = LANGUAGES.find((l) => l.value === profile.language) ?? LANGUAGES[0];
 
   function pickLanguage() {
