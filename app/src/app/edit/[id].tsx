@@ -1,16 +1,15 @@
 import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useVideoPlayer, type VideoPlayer } from 'expo-video';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
-import { useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
 import { CaptionsPanel, FormatPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
 import { Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
+import { usePlayback } from '../../components/editor/playback';
 import { Button, type SymbolName } from '../../components/ui';
 import {
   captionLines, clipOffset, duplicateClip, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
@@ -33,31 +32,6 @@ export default function EditScreen() {
   return <Editor cut={cut} />;
 }
 
-// expo-video is driven by setting properties on the player.
-const seek = (p: VideoPlayer, t: number) => {
-  p.currentTime = t;
-};
-const setVolume = (p: VideoPlayer, volume: number) => {
-  p.volume = Math.min(1, volume);
-};
-// On iOS, setting playbackRate also sets the native player's rate, which starts playback.
-// So speed is only ever set on a player that is (about to be) playing, never on a paused one.
-const setSpeed = (p: VideoPlayer, rate: number) => {
-  if (p.playbackRate !== rate) p.playbackRate = rate;
-};
-const start = (p: VideoPlayer, rate: number, volume: number) => {
-  setVolume(p, volume);
-  p.play();
-  setSpeed(p, rate);
-};
-// Just before a cut the waiting player creeps forward at the slowest rate AVPlayer allows, silent
-// and hidden, so at the cut it's already running and only has to speed up: no cold start, no freeze.
-const WARM_UP = 0.4; // seconds before the cut
-const creep = (p: VideoPlayer) => {
-  p.volume = 0;
-  p.playbackRate = 1 / 32; // always assigned: it's the assignment that starts the player
-};
-
 type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'textStyle' | 'textSize' | null;
 type History = { past: Edit[]; present: Edit; future: Edit[] };
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -72,9 +46,6 @@ function Editor({ cut }: { cut: CutRecord }) {
   const { clips } = edit;
   const total = totalDuration(clips);
 
-  const [time, setTime] = useState(0);
-  // Clip tools act on the clip under the playhead (tap a clip to jump into it).
-  const [playing, setPlaying] = useState(false);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [panel, setPanel] = useState<PanelId>(null);
   const [focusLine, setFocusLine] = useState<string | undefined>();
@@ -85,20 +56,8 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [exporting, setExporting] = useState(false);
   const [aspect, setAspect] = useState(9 / 16);
 
-  // Two players over the same video, working in relay: the front one plays the current clip
-  // while the other waits, already seeked, at the start of the next. At a clip boundary they
-  // swap instantly, so there's no seek (and no freeze) between clips.
-  const setup = (p: VideoPlayer) => {
-    p.timeUpdateEventInterval = 1 / 30;
-    p.loop = false;
-    p.preservesPitch = true;
-  };
-  const playerA = useVideoPlayer(sourceUri, setup);
-  const playerB = useVideoPlayer(sourceUri, setup);
-  const players = useMemo(() => [playerA, playerB] as [VideoPlayer, VideoPlayer], [playerA, playerB]);
-  // Which player is on screen. A shared value, so the swap happens on the UI thread at once
-  // instead of waiting for a React render (which showed the old player's frozen frame).
-  const front = useSharedValue<0 | 1>(0);
+  const playback = usePlayback({ sourceUri, clips, muted: edit.muted });
+  const { time, playing } = playback;
 
   // Video shape from a frame (already rotated the way it's shown).
   useEffect(() => {
@@ -107,144 +66,11 @@ function Editor({ cut }: { cut: CutRecord }) {
       .catch(() => {});
   }, [sourceUri]);
 
-  // ---- Playback state that event handlers read (refs, so they always see the latest edit).
-  // `playing` is what we asked for (play / pause); the player's own flag lags behind.
-  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false, front: 0 as 0 | 1, playing: false, warm: false });
-  useEffect(() => {
-    live.current.clips = clips;
-    live.current.muted = edit.muted;
-  }, [clips, edit.muted]);
-
-  // Stable helpers (they only touch the players and the `live` ref).
-  const relay = useMemo(() => {
-    const active = () => players[live.current.front];
-    const standby = () => players[live.current.front === 0 ? 1 : 0];
-    const volumeOf = (c: ClipEdit) => (live.current.muted ? 0 : c.volume);
-    /** Park the standby player, silent and paused, at the start of clip `i`. */
-    const prime = (i: number) => {
-      const c = live.current.clips[i];
-      const p = standby();
-      live.current.warm = false;
-      p.pause();
-      if (!c) return;
-      seek(p, c.start);
-      setVolume(p, 0);
-    };
-    return { active, standby, volumeOf, prime };
-  }, [players]);
-  const { active: activePlayer, volumeOf, prime } = relay;
-
-  /** Bring the front player's volume (and speed, if it's playing) in line with clip `i`. */
-  const applyClip = (i: number) => {
-    const c = live.current.clips[i];
-    const p = activePlayer();
-    if (!c) return;
-    setVolume(p, volumeOf(c));
-    if (live.current.playing) setSpeed(p, c.speed);
-  };
-
-  useEffect(() => {
-    const subs = players.flatMap((pl, which) => [
-      pl.addListener('playingChange', (e) => {
-        if (which !== live.current.front) return;
-        setPlaying(e.isPlaying);
-        if (!e.isPlaying) live.current.playing = false; // e.g. a phone call paused it
-      }),
-      pl.addListener('timeUpdate', ({ currentTime }) => {
-        const { clips: list, index, scrubbing, front: f } = live.current;
-        if (which !== f || scrubbing) return;
-        const i = Math.min(index, list.length - 1);
-        const c = list[i];
-        if (!c) return;
-        if (currentTime >= c.end - 0.04) {
-          const next = list[i + 1];
-          if (!next) {
-            live.current.playing = false;
-            pl.pause();
-            live.current.index = 0;
-            seek(pl, list[0].start);
-            setVolume(pl, volumeOf(list[0]));
-            setTime(0);
-            prime(1);
-            return;
-          }
-          // Hand over to the waiting player, then park this one at the clip after next.
-          const incoming = players[f === 0 ? 1 : 0];
-          live.current.front = f === 0 ? 1 : 0;
-          live.current.index = i + 1;
-          if (live.current.warm) {
-            setVolume(incoming, volumeOf(next));
-            setSpeed(incoming, next.speed);
-          } else start(incoming, next.speed, volumeOf(next));
-          live.current.warm = false;
-          front.set(live.current.front);
-          setVolume(pl, 0);
-          pl.pause();
-          setTime(clipOffset(list, i + 1));
-          prime(i + 2);
-          return;
-        }
-        if (currentTime < c.start - 0.3) seek(pl, c.start);
-        if (!live.current.warm && live.current.playing && list[i + 1] && (c.end - currentTime) / c.speed <= WARM_UP) {
-          live.current.warm = true;
-          creep(players[f === 0 ? 1 : 0]);
-        }
-        setTime(clipOffset(list, i) + Math.max(0, currentTime - c.start) / c.speed);
-      }),
-      pl.addListener('statusChange', ({ status }) => {
-        if (status !== 'readyToPlay') return;
-        const list = live.current.clips;
-        if (which === live.current.front) {
-          const first = list[0];
-          if (first && pl.currentTime < first.start) {
-            seek(pl, first.start);
-            setVolume(pl, volumeOf(first));
-          }
-        } else prime(live.current.index + 1);
-      }),
-    ]);
-    return () => subs.forEach((s) => s.remove());
-  }, [players, prime, volumeOf, front]);
-
-  function pauseAll() {
-    live.current.playing = false;
-    live.current.warm = false;
-    players.forEach((p) => p.pause());
-  }
-
-  function goTo(t: number, list: ClipEdit[] = clips) {
-    const clamped = Math.max(0, Math.min(t, totalDuration(list) - 0.01));
-    const [i, source] = locate(list, clamped);
-    live.current.index = i;
-    const p = activePlayer();
-    seek(p, source);
-    const c = list[i];
-    if (c) {
-      setVolume(p, volumeOf(c));
-      if (live.current.playing) setSpeed(p, c.speed);
-    }
-    setTime(clamped);
-    prime(i + 1);
-  }
-
-  function toggle() {
-    if (playing) return pauseAll();
-    live.current.scrubbing = false;
-    if (time >= total - 0.05) goTo(0);
-    const c = live.current.clips[live.current.index];
-    if (!c) return;
-    live.current.playing = true;
-    start(activePlayer(), c.speed, volumeOf(c));
-  }
-
   // ---- History: every change is undoable and saved.
   function commit(next: Edit, opts: { keepTime?: boolean } = {}) {
     setHistory((h) => ({ past: [...h.past, h.present].slice(-60), present: next, future: [] }));
     saveEdit(cut.id, next);
-    if (next.clips !== clips) {
-      live.current.clips = next.clips;
-      if (!opts.keepTime) goTo(Math.min(time, totalDuration(next.clips) - 0.05), next.clips);
-    }
+    if (next.clips !== clips && !opts.keepTime) playback.seek(Math.min(time, totalDuration(next.clips) - 0.05), next.clips);
   }
   const setClips = (next: ClipEdit[]) => next.length && commit({ ...edit, clips: next });
 
@@ -253,8 +79,7 @@ function Editor({ cut }: { cut: CutRecord }) {
     if (!prev) return;
     setHistory((h) => ({ past: h.past.slice(0, -1), present: prev, future: [h.present, ...h.future] }));
     saveEdit(cut.id, prev);
-    live.current.clips = prev.clips;
-    goTo(Math.min(time, totalDuration(prev.clips) - 0.05), prev.clips);
+    playback.seek(Math.min(time, totalDuration(prev.clips) - 0.05), prev.clips);
     Haptics.selectionAsync();
   }
   function redo() {
@@ -262,8 +87,7 @@ function Editor({ cut }: { cut: CutRecord }) {
     if (!next) return;
     setHistory((h) => ({ past: [...h.past, h.present], present: next, future: h.future.slice(1) }));
     saveEdit(cut.id, next);
-    live.current.clips = next.clips;
-    goTo(Math.min(time, totalDuration(next.clips) - 0.05), next.clips);
+    playback.seek(Math.min(time, totalDuration(next.clips) - 0.05), next.clips);
     Haptics.selectionAsync();
   }
 
@@ -371,7 +195,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         <Pressable
           ref={exportRef}
           onPress={() => {
-            pauseAll();
+            playback.pause();
             setExporting(true);
           }}
           hitSlop={10}
@@ -383,8 +207,7 @@ function Editor({ cut }: { cut: CutRecord }) {
       </View>
 
       <Preview
-        players={players}
-        front={front}
+        video={playback.video}
         aspect={aspect}
         line={line}
         activeWord={activeWord}
@@ -393,7 +216,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         texts={visibleTexts}
         selectedText={selectedText}
         fullscreen={fullscreen}
-        onTap={() => (selectedText ? setSelectedText(null) : toggle())}
+        onTap={() => (selectedText ? setSelectedText(null) : playback.toggle())}
         onTapText={(id) => setSelectedText(id)}
         onMoveText={(id, x, y) => updateText(id, { x, y })}
         onCloseFullscreen={() => setFullscreen(false)}
@@ -403,7 +226,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         <Pressable onPress={() => setFullscreen(true)} hitSlop={10} accessibilityLabel="Full screen" style={{ width: 80 }}>
           <SymbolView name="arrow.up.left.and.arrow.down.right" tintColor={theme.ink} size={16} />
         </Pressable>
-        <Pressable onPress={toggle} hitSlop={14} accessibilityLabel={playing ? 'Pause' : 'Play'}>
+        <Pressable onPress={playback.toggle} hitSlop={14} accessibilityLabel={playing ? 'Pause' : 'Play'}>
           <SymbolView name={playing ? 'pause.fill' : 'play.fill'} tintColor={theme.ink} size={22} />
         </Pressable>
         <View style={{ flexDirection: 'row', gap: 20, width: 80, justifyContent: 'flex-end' }}>
@@ -433,44 +256,34 @@ function Editor({ cut }: { cut: CutRecord }) {
             texts={edit.texts}
             selectedText={selectedText}
             onScrubStart={() => {
-              pauseAll();
-              live.current.scrubbing = true;
+              playback.pause();
+              playback.setScrubbing(true);
             }}
-            onScrub={(t) => {
-              live.current.scrubbing = false;
-              goTo(t);
-              live.current.scrubbing = true;
-            }}
-            onScrubEnd={() => {
-              live.current.scrubbing = false;
-            }}
+            onScrub={(t) => playback.seek(t)}
+            onScrubEnd={() => playback.setScrubbing(false)}
             onSelectClip={(i) => {
-              live.current.scrubbing = false;
+              playback.setScrubbing(false);
               setSelectedText(null);
-              if (i !== selected) goTo(clipOffset(clips, i) + 0.02);
+              if (i !== selected) playback.seek(clipOffset(clips, i) + 0.02);
               Haptics.selectionAsync();
             }}
             onTrim={(i, edges) => {
-              live.current.scrubbing = false;
+              playback.setScrubbing(false);
               setClips(trimClip(clips, i, edges, cut.duration));
             }}
             onReorderStart={(i) => setReorderFrom(i)}
-            onToggleMute={() => {
-              commit({ ...edit, muted: !edit.muted }, { keepTime: true });
-              live.current.muted = !edit.muted;
-              applyClip(live.current.index);
-            }}
+            onToggleMute={() => commit({ ...edit, muted: !edit.muted }, { keepTime: true })}
             onCaptions={(l) => {
-              live.current.scrubbing = false;
-              if (l) goTo(l.start);
+              playback.setScrubbing(false);
+              if (l) playback.seek(l.start);
               setFocusLine(l?.key);
               setPanel('captions');
             }}
             onSelectText={(tid) => {
-              live.current.scrubbing = false;
+              playback.setScrubbing(false);
               setSelectedText(tid);
               const t = edit.texts.find((x) => x.id === tid);
-              if (t) goTo(t.start);
+              if (t) playback.seek(t.start);
             }}
             onAddText={() => setComposer({ text: '', style: 'classic' })}
           />
@@ -506,7 +319,7 @@ function Editor({ cut }: { cut: CutRecord }) {
             total={total}
             focusKey={focusLine}
             onChange={(captions) => commit({ ...edit, captions }, { keepTime: true })}
-            onSeek={(t) => goTo(t)}
+            onSeek={(t) => playback.seek(t)}
             onStyle={() => setPanel('captionStyle')}
             onFormat={() => setPanel('format')}
             onDone={() => setPanel(null)}
