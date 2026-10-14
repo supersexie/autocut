@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Backdrop, Button, ErrorText, Option, StepHeader, Title, type SymbolName } from '../components/ui';
+import { AppleLogo, Backdrop, Button, ErrorText, GoogleLogo, Option, StepHeader, Title, type SymbolName } from '../components/ui';
 import { openLegal } from '../lib/api';
 import { socialOptions, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
@@ -253,10 +253,10 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
         <>
           <ErrorText>{error}</ErrorText>
           {providers.apple && (
-            <Button title="Continue with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => go('apple')} />
+            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} onPress={() => go('apple')} />
           )}
           {providers.google && (
-            <Button kind="outline" title="Continue with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => go('google')} />
+            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} onPress={() => go('google')} />
           )}
           <Button
             kind={providers.apple ? 'outline' : 'primary'}
@@ -319,7 +319,6 @@ const styles = StyleSheet.create({
   pointIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   pointText: { flex: 1, fontSize: 15, color: theme.ink, lineHeight: 20 },
   have: { fontSize: 14, color: theme.muted },
-  g: { fontSize: 18, fontWeight: '800', color: '#4285F4' },
   legal: { fontSize: 12, color: theme.muted, textAlign: 'center', lineHeight: 17, marginTop: 2 },
   legalLink: { color: theme.ink, fontWeight: '600', textDecorationLine: 'underline' },
 });

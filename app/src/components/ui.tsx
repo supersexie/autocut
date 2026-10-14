@@ -50,6 +50,18 @@ export function Logo({ size = 56 }: { size?: number }) {
   );
 }
 
+const GOOGLE = require('../../assets/google-logo.png');
+const APPLE = require('../../assets/apple-logo.png');
+
+/** The sign-in providers' own marks, for the Continue with… buttons. */
+export function GoogleLogo({ size = 19 }: { size?: number }) {
+  return <Image source={GOOGLE} style={{ width: size * (250 / 256), height: size }} resizeMode="contain" accessibilityIgnoresInvertColors />;
+}
+
+export function AppleLogo({ size = 19, color = '#fff' }: { size?: number; color?: string }) {
+  return <Image source={APPLE} style={{ width: size, height: size, tintColor: color, marginTop: -2 }} resizeMode="contain" />;
+}
+
 type ButtonProps = {
   title: string;
   onPress: () => void;

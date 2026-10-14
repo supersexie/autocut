@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Backdrop, Button, ErrorText, Field, StepHeader, Title } from '../components/ui';
+import { AppleLogo, Backdrop, Button, ErrorText, Field, GoogleLogo, StepHeader, Title } from '../components/ui';
 import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
 
@@ -68,10 +67,10 @@ export default function SignIn() {
       {social && (
         <View style={{ gap: 12, marginBottom: 18 }}>
           {providers.apple && (
-            <Button title="Continue with Apple" icon={<SymbolView name="apple.logo" tintColor="#fff" size={18} />} loading={busy === 'apple'} onPress={() => run('apple', auth.signInWithApple)} />
+            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} onPress={() => run('apple', auth.signInWithApple)} />
           )}
           {providers.google && (
-            <Button kind="outline" title="Continue with Google" icon={<Text style={styles.g}>G</Text>} loading={busy === 'google'} onPress={() => run('google', auth.signInWithGoogle)} />
+            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} onPress={() => run('google', auth.signInWithGoogle)} />
           )}
           <View style={styles.divider}>
             <View style={styles.rule} />
@@ -141,7 +140,6 @@ export default function SignIn() {
 }
 
 const styles = StyleSheet.create({
-  g: { fontSize: 18, fontWeight: '800', color: '#4285F4' },
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   rule: { flex: 1, height: 1, backgroundColor: theme.line },
   or: { fontSize: 13, color: theme.faint },
