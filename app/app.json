@@ -10,7 +10,10 @@
       "supportsTablet": true,
       "requireFullScreen": true,
       "usesAppleSignIn": true,
-      "bundleIdentifier": "com.rishavvashisht.autocut"
+      "bundleIdentifier": "com.rishavvashisht.autocut",
+      "config": {
+        "usesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -63,7 +66,8 @@
           "microphonePermission": "Record your voice along with your take."
         }
       ],
-      "expo-audio"
+      "expo-audio",
+      "expo-asset"
     ],
     "scheme": "autocut",
     "experiments": {
