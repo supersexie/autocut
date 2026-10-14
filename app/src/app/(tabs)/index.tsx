@@ -4,7 +4,7 @@ import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Logo } from '../../components/ui';
@@ -81,7 +81,13 @@ export default function CreateScreen() {
 
   async function record() {
     if (!camera.current || !ready) return;
-    if (!micPermission?.granted && !(await requestMic()).granted) return;
+    if (!micPermission?.granted && !(await requestMic()).granted) {
+      Alert.alert('Microphone is off', 'Autocut needs your microphone to hear what you say. Turn it on in Settings › Autocut.', [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Open Settings', onPress: () => Linking.openSettings() },
+      ]);
+      return;
+    }
     const remaining = limit - recorded;
     if (remaining < 1) return;
     setElapsed(0);

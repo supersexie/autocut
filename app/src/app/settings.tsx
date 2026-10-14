@@ -126,7 +126,7 @@ function Row({ label, value, onChange, last }: { label: string; value: boolean; 
   return (
     <View style={[styles.item, last && styles.last]}>
       <Text style={styles.text}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: theme.ink }} />
     </View>
   );
 }

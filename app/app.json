@@ -62,6 +62,9 @@
         }
       ]
     ],
-    "scheme": "autocut"
+    "scheme": "autocut",
+    "experiments": {
+      "reactCompiler": true
+    }
   }
 }

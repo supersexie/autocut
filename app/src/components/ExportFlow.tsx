@@ -37,7 +37,13 @@ function pick<T extends number>(title: string, options: T[], label: (v: T) => st
 }
 
 /** Export sheet → "Exporting your cut… 79%" → "Your cut is ready" (saved to Photos). */
-export function ExportFlow({ cut, edit, onClose }: { cut: CutRecord; edit: Edit; onClose: () => void }) {
+/** '9:16', '16:9', '1:1'… — the common ratio closest to the video's shape. */
+function ratioLabel(aspect: number) {
+  const ratios: [string, number][] = [['9:16', 9 / 16], ['3:4', 3 / 4], ['4:5', 4 / 5], ['1:1', 1], ['4:3', 4 / 3], ['16:9', 16 / 9]];
+  return ratios.reduce((best, r) => (Math.abs(r[1] - aspect) < Math.abs(best[1] - aspect) ? r : best))[0];
+}
+
+export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edit: Edit; aspect: number; onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'sheet' });
   const [height, setHeight] = useState(1080);
   const [fps, setFps] = useState(30);
@@ -92,7 +98,7 @@ export function ExportFlow({ cut, edit, onClose }: { cut: CutRecord; edit: Edit;
             <Thumb uri={preview} seconds={firstSeconds} style={styles.sheetThumb} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={styles.sheetTitle} numberOfLines={1}>{stamp(cut.createdAt)}</Text>
-              <Text style={styles.sheetMeta}>{formatTime(length)} · 9:16</Text>
+              <Text style={styles.sheetMeta}>{formatTime(length)} · {ratioLabel(aspect)}</Text>
               <Text style={styles.sheetMeta}>From your original</Text>
             </View>
           </View>

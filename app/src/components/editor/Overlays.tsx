@@ -22,6 +22,7 @@ type PreviewProps = {
   line?: CaptionLine;
   activeWord: number;
   captionStyleId: string;
+  captionLook?: TextLook;
   texts: TextOverlay[];
   selectedText: string | null;
   fullscreen: boolean;
@@ -50,7 +51,7 @@ export function Preview(p: PreviewProps) {
             <VideoView player={p.player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
             {p.line && (
               <View style={[styles.captionSpot, { bottom: fh * 0.24 }]} pointerEvents="none">
-                <StyledText preset={captionStyle(p.captionStyleId)} words={p.line.words.map((w) => w.text)} active={p.activeWord} frameWidth={fw} />
+                <StyledText preset={captionStyle(p.captionStyleId)} look={p.captionLook} words={p.line.words.map((w) => w.text)} active={p.activeWord} frameWidth={fw} />
               </View>
             )}
             {p.texts.map((t) => (
@@ -233,7 +234,8 @@ export function TextComposer({ initial, sourceUri, seconds, onDone, onCancel }: 
 
 /** Hold-to-reorder: clips as tiles; drag one along the row and drop it. */
 export function ReorderStrip({ clips, from, sourceUri, onDone }: { clips: ClipEdit[]; from: number; sourceUri: string; onDone: (order: ClipEdit[]) => void }) {
-  const TILE_W = 64;
+  const { width: screenW } = useWindowDimensions();
+  const TILE_W = Math.max(28, Math.min(64, (screenW - 24) / Math.max(1, clips.length) - 8));
   const [order, setOrder] = useState(clips);
   const [active, setActive] = useState(from);
   const [dx, setDx] = useState(0);
@@ -275,7 +277,7 @@ export function ReorderStrip({ clips, from, sourceUri, onDone }: { clips: ClipEd
       <View {...responder.panHandlers} style={styles.reorderRow}>
         {order.map((c, i) => (
           <View key={`${i}-${c.start}`} style={[styles.reorderTile, i === active && { transform: [{ translateX: dx }, { scale: 1.08 }], zIndex: 2, shadowOpacity: 0.25 }]}>
-            <Thumb uri={sourceUri} seconds={c.start + (c.end - c.start) / 2} style={{ width: TILE_W, height: 84, borderRadius: 10 }} />
+            <Thumb uri={sourceUri} seconds={c.start + (c.end - c.start) / 2} style={{ width: TILE_W, height: TILE_W * 1.3, borderRadius: 8 }} />
             <Text style={styles.reorderTime}>{outDuration(c).toFixed(1)}s</Text>
           </View>
         ))}

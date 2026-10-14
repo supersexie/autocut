@@ -134,7 +134,9 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     );
     labels.push(`[v${i}][a${i}]`);
   });
-  const post = [height && `scale=-2:${height}`, fps && `fps=${fps}`].filter(Boolean).join(',');
+  // `height` is the resolution's short side (1080p = 1080×1920 for vertical video), never upscaled.
+  const scale = height && `scale=w='if(gt(iw,ih),-2,min(${height},iw))':h='if(gt(iw,ih),min(${height},ih),-2)'`;
+  const post = [scale, fps && `fps=${fps}`].filter(Boolean).join(',');
   parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${post ? 'vr' : 'vc'}][ac]`);
   if (post) parts.push(`[vr]${post}[vc]`);
   let vOut = '[vc]';

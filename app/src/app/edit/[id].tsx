@@ -56,8 +56,8 @@ function Editor({ cut }: { cut: CutRecord }) {
   const total = totalDuration(clips);
 
   const [time, setTime] = useState(0);
+  // Clip tools act on the clip under the playhead (tap a clip to jump into it).
   const [playing, setPlaying] = useState(false);
-  const [selected, setSelected] = useState(0);
   const [selectedText, setSelectedText] = useState<string | null>(null);
   const [panel, setPanel] = useState<PanelId>(null);
   const [focusLine, setFocusLine] = useState<string | undefined>();
@@ -155,7 +155,6 @@ function Editor({ cut }: { cut: CutRecord }) {
     if (next.clips !== clips) {
       live.current.clips = next.clips;
       if (!opts.keepTime) goTo(Math.min(time, totalDuration(next.clips) - 0.05), next.clips);
-      setSelected((s) => Math.min(s, next.clips.length - 1));
     }
   }
   const setClips = (next: ClipEdit[]) => next.length && commit({ ...edit, clips: next });
@@ -188,7 +187,9 @@ function Editor({ cut }: { cut: CutRecord }) {
   const updateText = (id: string, patch: Partial<TextOverlay>) => commit({ ...edit, texts: edit.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)) }, { keepTime: true });
 
   function addText(d: TextDraft) {
-    const t: TextOverlay = { ...d, id: newId(), start: time, end: Math.min(total, time + 3), x: 0.5, y: 0.3, scale: d.scale ?? 1 };
+    // Near the end, start early enough that the text is on screen for at least a second.
+    const start = Math.max(0, Math.min(time, total - 1));
+    const t: TextOverlay = { ...d, id: newId(), start, end: Math.min(total, start + 3), x: 0.5, y: 0.3, scale: d.scale ?? 1 };
     commit({ ...edit, texts: [...edit.texts, t] }, { keepTime: true });
     setSelectedText(t.id);
   }
@@ -222,6 +223,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   };
 
   // ---- Toolbar: plain data, with one handler that does the work.
+  const selected = locate(clips, Math.min(time, total - 0.01))[0];
   const clip = clips[selected];
   type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'volume' | 'speed' | 'restore'
     | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete';
@@ -297,6 +299,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         line={line}
         activeWord={activeWord}
         captionStyleId={edit.captions.style}
+        captionLook={{ box: edit.captions.box, outline: edit.captions.outline }}
         texts={visibleTexts}
         selectedText={selectedText}
         fullscreen={fullscreen}
@@ -354,7 +357,7 @@ function Editor({ cut }: { cut: CutRecord }) {
             onSelectClip={(i) => {
               live.current.scrubbing = false;
               setSelectedText(null);
-              setSelected(i);
+              if (i !== selected) goTo(clipOffset(clips, i) + 0.02);
               Haptics.selectionAsync();
             }}
             onTrim={(i, edges) => {
@@ -405,6 +408,7 @@ function Editor({ cut }: { cut: CutRecord }) {
           <CaptionsPanel
             settings={edit.captions}
             lines={lines}
+            time={time}
             total={total}
             focusKey={focusLine}
             onChange={(captions) => commit({ ...edit, captions }, { keepTime: true })}
@@ -421,7 +425,7 @@ function Editor({ cut }: { cut: CutRecord }) {
           <FormatPanel settings={edit.captions} onChange={(captions) => commit({ ...edit, captions }, { keepTime: true })} onClose={() => setPanel('captions')} onDone={() => setPanel('captions')} />
         )}
         {panel === 'textStyle' && text && (
-          <StylePicker kind="texts" value={text.style} onPick={(style) => updateText(text.id, { style })} onClose={() => setPanel(null)} onDone={() => setPanel(null)} />
+          <StylePicker kind="texts" value={text.style} onPick={(style) => updateText(text.id, { style, box: undefined, outline: undefined, color: undefined, font: undefined })} onClose={() => setPanel(null)} onDone={() => setPanel(null)} />
         )}
         {panel === 'textSize' && text && <SizePanel scale={text.scale} onChange={(scale) => updateText(text.id, { scale })} onDone={() => setPanel(null)} />}
         {panel === 'volume' && clip && (
@@ -494,7 +498,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         </View>
       </Modal>
 
-      {exporting && <ExportFlow cut={cut} edit={edit} onClose={() => setExporting(false)} />}
+      {exporting && <ExportFlow cut={cut} edit={edit} aspect={aspect} onClose={() => setExporting(false)} />}
       {tour >= 0 && <Tour steps={tourSteps} index={tour} onNext={() => (tour + 1 < tourSteps.length ? setTour(tour + 1) : endTour())} onSkip={endTour} />}
     </View>
   );

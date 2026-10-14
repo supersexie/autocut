@@ -60,9 +60,9 @@ function BottomBar({ items, onBack }: { items: { icon: SymbolName; label: string
 }
 
 export function CaptionsPanel({
-  settings, lines, total, focusKey, onChange, onSeek, onStyle, onFormat, onDone,
+  settings, lines, time, total, focusKey, onChange, onSeek, onStyle, onFormat, onDone,
 }: {
-  settings: CaptionSettings; lines: CaptionLine[]; total: number; focusKey?: string;
+  settings: CaptionSettings; lines: CaptionLine[]; time: number; total: number; focusKey?: string;
   onChange: (s: CaptionSettings) => void; onSeek: (t: number) => void; onStyle: () => void; onFormat: () => void; onDone: () => void;
 }) {
   const list = useRef<FlatList<CaptionLine>>(null);
@@ -73,7 +73,9 @@ export function CaptionsPanel({
       title="Captions"
       value={
         <>
-          <Text style={styles.value}>00:00 / {mmss(total)}</Text>
+          <Text style={styles.value}>
+            {mmss(time)} / {mmss(total)}
+          </Text>
           <Switch value={settings.enabled} onValueChange={(enabled) => onChange({ ...settings, enabled })} trackColor={{ true: theme.ink }} />
         </>
       }
@@ -93,7 +95,7 @@ export function CaptionsPanel({
         <FlatList
           ref={list}
           data={lines}
-          keyExtractor={(l) => `${l.key}-${l.start}`}
+          keyExtractor={(l) => `${l.key}-${l.start}-${l.text}`}
           initialScrollIndex={lines.length ? Math.min(focusIndex, lines.length - 1) : undefined}
           getItemLayout={(_, i) => ({ length: 46, offset: 46 * i, index: i })}
           keyboardShouldPersistTaps="handled"
