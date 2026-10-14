@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import {
-  Keyboard, PanResponder, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
+  Keyboard, PanResponder, Pressable, type GestureResponderEvent, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions,
   type LayoutChangeEvent, type LayoutRectangle,
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
@@ -10,7 +10,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   clampFraming, locate, moveClip, outDuration, totalDuration, type CaptionLine, type ClipEdit, type Framing, type TextLook, type TextOverlay,
 } from '../../lib/edit';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { TEXT_FONTS } from '../../lib/fonts';
 import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
@@ -51,55 +50,52 @@ const SNAP_CENTRE = 0.015; // within 1.5% of the middle snaps to it
  * the fingers are down.
  */
 function useFramingGesture(width: number, height: number, onStart: () => Framing, onFrame: (f: Framing) => void, onEnd: () => void) {
-  const latest = useRef({ width, height, onStart, onFrame, onEnd });
-  useEffect(() => {
-    latest.current = { width, height, onStart, onFrame, onEnd };
-  });
   const [shown, setShown] = useState<{ scale: number; centredX: boolean; centredY: boolean } | null>(null);
+  const pinch = useRef<{ distance: number; mid: { x: number; y: number }; base: Framing } | null>(null);
   const endedAt = useRef(0);
-  // Made once, reading the latest props from a ref, so a re-render mid-gesture doesn't cancel it.
-  // One pinch gesture does both: the spread of the fingers zooms, the point between them moves the
-  // picture. Every way a touch can end (lift, cancel, the gesture ending) lands in finish(), which
-  // runs once; anything arriving after it is ignored.
-  // eslint-disable-next-line react-hooks/refs
-  const [gesture] = useState(() => {
-    let base: Framing = { scale: 1, x: 0, y: 0 };
-    let active = false;
-    let focal = { x: 0, y: 0 };
-    const finish = () => {
-      if (!active) return;
-      active = false;
-      endedAt.current = Date.now();
-      setShown(null);
-      latest.current.onEnd();
-    };
-    return Gesture.Pinch()
-      .runOnJS(true)
-      .onStart((e) => {
-        active = true;
-        focal = { x: e.focalX, y: e.focalY };
-        base = latest.current.onStart();
-      })
-      .onUpdate((e) => {
-        if (!active) return;
-        const { width: w, height: h } = latest.current;
-        let f = clampFraming({ scale: base.scale * e.scale, x: base.x + (e.focalX - focal.x) / w, y: base.y + (e.focalY - focal.y) / h });
-        if (Math.abs(f.scale - 1) < SNAP_ZOOM) f = { scale: 1, x: 0, y: 0 };
-        if (Math.abs(f.x) < SNAP_CENTRE) f = { ...f, x: 0 };
-        if (Math.abs(f.y) < SNAP_CENTRE) f = { ...f, y: 0 };
-        setShown({ scale: f.scale, centredX: f.x === 0, centredY: f.y === 0 });
-        latest.current.onFrame(f);
-      })
-      .onEnd(finish)
-      .onFinalize(finish)
-      .onTouchesUp((e) => {
-        if (e.numberOfTouches === 0) finish();
-      })
-      .onTouchesCancelled(finish);
-  });
+
+  // Plain touch events, which say exactly how many fingers are down: two start a pinch, and the
+  // pinch ends the moment fewer than two are left.
+  const measure = (touches: readonly { pageX: number; pageY: number }[]) => {
+    const [a, b] = touches;
+    return { distance: Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY), mid: { x: (a.pageX + b.pageX) / 2, y: (a.pageY + b.pageY) / 2 } };
+  };
+  const finish = () => {
+    if (!pinch.current) return;
+    pinch.current = null;
+    endedAt.current = Date.now();
+    setShown(null);
+    onEnd();
+  };
+  const handlers = {
+    onTouchMove: (e: GestureResponderEvent) => {
+      const touches = e.nativeEvent.touches;
+      if (touches.length < 2) return finish();
+      const now = measure(touches);
+      if (!pinch.current) {
+        pinch.current = { ...now, base: onStart() };
+        return;
+      }
+      const { distance, mid, base } = pinch.current;
+      let f = clampFraming({
+        scale: base.scale * (now.distance / Math.max(1, distance)),
+        x: base.x + (now.mid.x - mid.x) / width,
+        y: base.y + (now.mid.y - mid.y) / height,
+      });
+      if (Math.abs(f.scale - 1) < SNAP_ZOOM) f = { scale: 1, x: 0, y: 0 };
+      if (Math.abs(f.x) < SNAP_CENTRE) f = { ...f, x: 0 };
+      if (Math.abs(f.y) < SNAP_CENTRE) f = { ...f, y: 0 };
+      setShown({ scale: f.scale, centredX: f.x === 0, centredY: f.y === 0 });
+      onFrame(f);
+    },
+    onTouchEnd: (e: GestureResponderEvent) => {
+      if (e.nativeEvent.touches.length < 2) finish();
+    },
+    onTouchCancel: () => finish(),
+  };
   // A pinch shouldn't also count as a tap on the picture (which plays or pauses).
-  const justFramed = () => !!shown || Date.now() - endedAt.current < 400;
-  return { gesture, shown, justFramed };
+  const justFramed = () => !!pinch.current || Date.now() - endedAt.current < 400;
+  return { handlers, shown, justFramed };
 }
 
 /** The video with live captions and text overlays, sized to the video's shape. */
@@ -118,7 +114,7 @@ export function Preview(p: PreviewProps) {
     <View style={p.fullscreen ? [StyleSheet.absoluteFill, styles.full, { paddingTop: insets.top, paddingBottom: insets.bottom }] : styles.previewWrap}>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} onLayout={onLayout}>
         {fw > 0 && (
-          <GestureDetector gesture={zoom.gesture}>
+          <View {...zoom.handlers}>
           <Pressable onPress={() => !zoom.justFramed() && p.onTap()} style={[styles.frame, { width: fw, height: fh, borderRadius: p.fullscreen ? 0 : 16 }]}>
             {/* Only the picture zooms and moves; captions and text stay where they are. */}
             <View
@@ -146,7 +142,7 @@ export function Preview(p: PreviewProps) {
               </View>
             )}
           </Pressable>
-          </GestureDetector>
+          </View>
         )}
       </View>
       {p.fullscreen && (
