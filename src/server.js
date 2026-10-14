@@ -311,7 +311,7 @@ function parseClips(raw, job) {
     .map((c) => ({
       start: Math.max(0, Number(c.start)),
       end: Math.min(job.duration, Number(c.end)),
-      speed: Math.min(4, Math.max(0.25, Number(c.speed) || 1)),
+      speed: Math.min(10, Math.max(0.25, Number(c.speed) || 1)),
       volume: Math.min(2, Math.max(0, c.volume === undefined ? 1 : Number(c.volume))),
     }))
     .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end - c.start >= 0.05);

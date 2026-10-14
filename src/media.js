@@ -165,6 +165,8 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     );
     labels.push(`[v${i}][a${i}]`);
   });
+  // Sped-up clips crowd frames together (10× a 30 fps take is 300 fps); settle on a normal rate.
+  fps ||= list.some((c) => (c.speed ?? 1) > 2) ? 30 : undefined;
   // `height` is the resolution's short side (1080p = 1080×1920 for vertical video), never upscaled.
   const scale = height && `scale=w='if(gt(iw,ih),-2,min(${height},iw))':h='if(gt(iw,ih),min(${height},ih),-2)'`;
   const post = [scale, fps && `fps=${fps}`].filter(Boolean).join(',');

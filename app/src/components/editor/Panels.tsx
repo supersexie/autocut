@@ -357,7 +357,19 @@ export function MusicPanel({
   );
 }
 
-const SPEEDS = [1, 1.15, 1.25, 1.5, 1.75, 2];
+const SPEEDS = [0.5, 1, 1.15, 1.25, 1.5, 2, 3, 5, 10];
+const MIN_SPEED = 0.25;
+const MAX_SPEED = 10;
+
+// The slider runs on a log scale, so 1–2× gets as much room as 5–10×; values round to steps that
+// suit the range (0.05× when slow, 0.5× when very fast).
+const toSlider = (speed: number) => Math.log(speed / MIN_SPEED) / Math.log(MAX_SPEED / MIN_SPEED);
+const fromSlider = (p: number) => {
+  const raw = MIN_SPEED * Math.pow(MAX_SPEED / MIN_SPEED, p);
+  const step = raw < 2 ? 0.05 : raw < 5 ? 0.1 : 0.5;
+  return Math.min(MAX_SPEED, Math.max(MIN_SPEED, Math.round(raw / step) * step));
+};
+const label = (s: number) => `${Number(s.toFixed(2))}x`;
 
 export function SpeedPanel({ speed, length, onChange, onDone }: { speed: number; length: number; onChange: (v: number) => void; onDone: () => void }) {
   const [v, setV] = useState(speed);
@@ -367,24 +379,32 @@ export function SpeedPanel({ speed, length, onChange, onDone }: { speed: number;
     onChange(s);
   };
   return (
-    <Panel title="Speed" value={<Text style={styles.valueStrong}>{v}x</Text>} onDone={onDone}
+    <Panel title="Speed" value={<Text style={styles.valueStrong}>{label(v)}</Text>} onDone={onDone}
       footer={<BottomBar items={[{ icon: 'arrow.counterclockwise', label: 'Reset', onPress: () => pick(1), disabled: v === 1 }]} />}
     >
       <View style={{ paddingHorizontal: 16, gap: 14 }}>
         <Text style={styles.small}>
-          {mmss((length * speed) / v)} at {v}x
+          {mmss((length * speed) / v)} at {label(v)}
         </Text>
-        <View style={styles.speedRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.speedRow}>
           {SPEEDS.map((s) => (
             <Pressable key={s} onPress={() => pick(s)} style={[styles.speedBtn, v === s && styles.capsOn]}>
-              <Text style={[styles.speedText, v === s && { color: '#fff' }]}>{s}x</Text>
+              <Text style={[styles.speedText, v === s && { color: '#fff' }]}>{label(s)}</Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
         <View style={styles.sliderRow}>
-          <Text style={styles.small}>0.5x</Text>
-          <Slider style={{ flex: 1 }} minimumValue={0.5} maximumValue={4} step={0.05} value={speed} onValueChange={(x) => setV(Math.round(x * 100) / 100)} onSlidingComplete={(x) => onChange(Math.round(x * 100) / 100)} minimumTrackTintColor={theme.ink} />
-          <Text style={styles.small}>4x</Text>
+          <Text style={styles.small}>{label(MIN_SPEED)}</Text>
+          <Slider
+            style={{ flex: 1 }}
+            minimumValue={0}
+            maximumValue={1}
+            value={toSlider(speed)}
+            onValueChange={(p) => setV(fromSlider(p))}
+            onSlidingComplete={(p) => onChange(fromSlider(p))}
+            minimumTrackTintColor={theme.ink}
+          />
+          <Text style={styles.small}>{label(MAX_SPEED)}</Text>
         </View>
       </View>
     </Panel>
@@ -449,8 +469,8 @@ const styles = StyleSheet.create({
   song: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderRadius: 14, padding: 10 },
   songIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   songName: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  speedRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  speedBtn: { width: 50, height: 40, borderRadius: 20, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
+  speedRow: { flexDirection: 'row', gap: 8 },
+  speedBtn: { minWidth: 54, paddingHorizontal: 10, height: 40, borderRadius: 20, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   speedText: { fontSize: 13, fontWeight: '700', color: theme.ink },
   hint: { position: 'absolute', top: 6, alignSelf: 'center', flexDirection: 'row', gap: 6, alignItems: 'center', backgroundColor: '#fff', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, zIndex: 5 },
   hintText: { fontSize: 12, color: theme.ink },
