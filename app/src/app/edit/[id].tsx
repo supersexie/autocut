@@ -478,7 +478,8 @@ function Editor({ cut }: { cut: CutRecord }) {
       <View style={[styles.bottom, overlays.length > 0 && { height: BOTTOM_H + 40 }]}>
         <View style={styles.clockRow}>
           <Text style={styles.clock}>
-            {mmss(time)} / {mmss(total)}
+            {/* The length is rounded, like Photos and the export sheet show it; the playhead counts whole seconds. */}
+            {mmss(time)} / {mmss(Math.round(total))}
           </Text>
           {playback.preparing && (
             <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={styles.preparing}>

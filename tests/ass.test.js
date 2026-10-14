@@ -33,6 +33,14 @@ test('moved and resized captions are pinned where the user put them', () => {
   assert.doesNotMatch(dialogues(buildAss({ width: 1080, height: 1920, captions: { style: 'classic', lines: [line] } }))[0], /pos/);
 });
 
+test('overlapping caption lines are trimmed so two never show at once', () => {
+  const a = { start: 0, end: 1.2, words: [{ text: 'one', start: 0, end: 1 }] };
+  const b = { start: 1, end: 2, words: [{ text: 'two', start: 1, end: 1.8 }] };
+  const d = dialogues(buildAss({ width: 1080, height: 1920, captions: { style: 'classic', y: 0.5, lines: [a, b] } }));
+  assert.match(d[0], /^Dialogue: 0,0:00:00\.00,0:00:01\.00,/);
+  assert.match(d[1], /^Dialogue: 0,0:00:01\.00,0:00:02\.00,/);
+});
+
 test('simple styles write one event per line', () => {
   const ass = buildAss({ width: 1080, height: 1920, captions: { style: 'classic', lines: [line] } });
   assert.equal(dialogues(ass).length, 1);

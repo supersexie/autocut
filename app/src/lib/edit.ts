@@ -310,6 +310,9 @@ export function captionLines(words: Word[], clips: ClipEdit[], s: CaptionSetting
       lines.push({ key, clip: ci, start, end, text: out.map((w) => w.text).join(' '), words: out });
     }
   });
+  // A line lingers a moment after its last word, but never into the next line: two on screen at
+  // once would draw over each other once the captions are moved to a spot of their own.
+  for (let i = 0; i + 1 < lines.length; i++) lines[i].end = Math.max(lines[i].start + 0.05, Math.min(lines[i].end, lines[i + 1].start));
   return lines;
 }
 

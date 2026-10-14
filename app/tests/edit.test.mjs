@@ -175,3 +175,13 @@ test('captions: split a line at the playhead, delete one, and the export carries
   assert.deepEqual([body.captions.x, body.captions.y, body.captions.scale], [0.4, 0.5, 1.3]);
   assert.deepEqual(Object.keys(body.captions.lines[0].words[0]).sort(), ['end', 'start', 'text']);
 });
+
+test('caption lines never overlap: each ends by the time the next starts', () => {
+  const close = [
+    { text: 'one', start: 0, end: 0.3 }, { text: 'two', start: 0.3, end: 0.6 }, { text: 'three.', start: 0.6, end: 0.9 },
+    { text: 'four', start: 0.92, end: 1.2 }, { text: 'five', start: 1.2, end: 1.5 },
+  ];
+  const lines = captionLines(close, [makeClip(0, 2)], { ...DEFAULT_CAPTIONS, wordsPerLine: 3 });
+  assert.equal(lines.length, 2);
+  for (let i = 0; i + 1 < lines.length; i++) assert.ok(lines[i].end <= lines[i + 1].start + 1e-9, `line ${i} runs into the next`);
+});

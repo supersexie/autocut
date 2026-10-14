@@ -100,7 +100,10 @@ export function buildAss({ width, height, captions, texts = [] }) {
     const moved = captions.x !== undefined || captions.y !== undefined;
     const pos = moved ? `\\an2\\pos(${Math.round((captions.x ?? 0.5) * BASE_WIDTH)},${Math.round((captions.y ?? 0.76) * playResY)})` : '';
     const lead = s.glow || pos ? `{${pos}${s.glow ? `\\blur${s.glow}` : ''}}` : ''; // tags at the start of every caption event
-    for (const line of captions.lines) {
+    // Never two caption lines at once (older apps let one linger into the next): one ends where the next begins.
+    const ordered = [...captions.lines].sort((a, b) => a.start - b.start);
+    const lines = ordered.map((l, i) => (i + 1 < ordered.length && ordered[i + 1].start < l.end ? { ...l, end: Math.max(l.start + 0.05, ordered[i + 1].start) } : l));
+    for (const line of lines) {
       const words = line.words.filter((w) => w.text);
       const mode = s.highlight?.mode;
       if (!mode || !words.length) {
