@@ -21,6 +21,7 @@ export type Profile = {
   who?: string;
   goal?: string;
   editorCost?: string;
+  perWeek?: string;
   plan?: PlanId;
   billing?: Billing;
   onboarded?: boolean;
@@ -53,7 +54,7 @@ export const NOT_CONFIGURED = "Accounts aren't connected yet. Add your Supabase 
 // Profile fields live in the Supabase user's metadata, so no extra tables are needed.
 const KEYS: Record<keyof Profile, string> = {
   firstName: 'first_name', lastName: 'last_name', language: 'language', handle: 'handle',
-  tour: 'tour', who: 'who', goal: 'goal', editorCost: 'editor_cost', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
+  tour: 'tour', who: 'who', goal: 'goal', editorCost: 'editor_cost', perWeek: 'per_week', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
 };
 const toMetadata = (p: Profile) =>
   Object.fromEntries(Object.entries(p).map(([k, v]) => [KEYS[k as keyof Profile], v]));
@@ -120,6 +121,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       async signInWithApple() {
         const auth = client();
+        // Expo Go can't use Sign in with Apple (it's tied to each app's own ID); the real app can.
+        if (!(await AppleAuthentication.isAvailableAsync()))
+          throw new Error('Sign in with Apple works in the Autocut app from the App Store. Here, use Google or email.');
         await mustBeOn('apple');
         let credential: AppleAuthentication.AppleAuthenticationCredential;
         try {
@@ -206,9 +210,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** Which sign-in providers are switched on in the Supabase project, so we only show those. */
-/** Apple sign-in needs an iPhone or iPad that supports it; Google works everywhere. */
+/** Apple sign-in is offered on iPhone and iPad; Google everywhere. */
 export async function socialOptions() {
-  return { apple: Platform.OS === 'ios' && (await AppleAuthentication.isAvailableAsync()), google: true };
+  return { apple: Platform.OS === 'ios', google: true };
 }
 
 /** Stops with a plain message if the provider isn't switched on in Supabase yet. */

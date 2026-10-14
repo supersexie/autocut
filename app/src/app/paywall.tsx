@@ -13,7 +13,7 @@ import { column, COLUMN, theme } from '../lib/theme';
 export default function Paywall() {
   const insets = useSafeAreaInsets();
   const { account, updateProfile, signOut } = useAuth();
-  const best = recommendedPlan(getDraft().editorCost ?? account?.profile.editorCost);
+  const best = recommendedPlan(getDraft().editorCost ?? account?.profile.editorCost, getDraft().perWeek ?? account?.profile.perWeek);
   const [billing, setBilling] = useState<Billing>('monthly');
   const [plan, setPlan] = useState<PlanId>(account?.profile.plan ?? best);
   const [saving, setSaving] = useState(false);
@@ -27,7 +27,7 @@ export default function Paywall() {
     try {
       const d = getDraft();
       const fromSetup: Profile = Object.fromEntries(
-        Object.entries({ who: d.who, goal: d.goal, editorCost: d.editorCost, language: d.language }).filter(([, v]) => v)
+        Object.entries({ who: d.who, goal: d.goal, editorCost: d.editorCost, perWeek: d.perWeek, language: d.language }).filter(([, v]) => v)
       );
       // Payments are not connected yet: save the choice and open the app.
       await updateProfile({ ...fromSetup, plan, billing, onboarded: true });

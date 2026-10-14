@@ -28,16 +28,37 @@ export const EDITOR_COSTS = [
   { value: '25-50k', label: '$300 to $600', monthly: 450, bars: 3 },
   { value: '50k-1l', label: '$600 to $1,200', monthly: 900, bars: 4 },
   { value: '1l+', label: 'More than $1,200', monthly: 1500, bars: 5 },
-  { value: 'none', label: 'I don’t pay an editor', monthly: 0, bars: 0 },
+  { value: 'none', label: 'Nothing, I edit myself', monthly: 0, bars: 0 },
 ] as const;
 
 export const editorMonthly = (value?: string) => EDITOR_COSTS.find((c) => c.value === value)?.monthly ?? 0;
 
-/** The plan to suggest from what they spend on editing now. */
-export function recommendedPlan(editorCost?: string): PlanId {
+/** How many videos a creator posts a week, as asked in setup (`count` is a typical week). */
+export const PER_WEEK = [
+  { value: '1-3', label: '1 to 3', count: 2 },
+  { value: '4-7', label: '4 to 7', count: 5.5 },
+  { value: '8-15', label: '8 to 15', count: 11.5 },
+  { value: '15+', label: 'More than 15', count: 20 },
+] as const;
+
+export const videosPerWeek = (value?: string) => PER_WEEK.find((p) => p.value === value)?.count ?? 0;
+
+// Rough minutes to cut one short video by hand, and with Autocut (send, check, export).
+export const BY_HAND_MINUTES = 30;
+export const AUTOCUT_MINUTES = 3;
+
+/** Hours a week Autocut saves, from how many videos they post. */
+export const hoursBack = (perWeek?: string) => (videosPerWeek(perWeek) * (BY_HAND_MINUTES - AUTOCUT_MINUTES)) / 60;
+
+const ORDER: PlanId[] = ['starter', 'pro', 'ultimate'];
+
+/** The plan to suggest from what they spend on editing now, and enough edits for how much they post. */
+export function recommendedPlan(editorCost?: string, perWeek?: string): PlanId {
   const spend = editorMonthly(editorCost);
-  if (!spend || spend < 100) return 'starter';
-  return spend >= 900 ? 'ultimate' : 'pro';
+  const bySpend: PlanId = !spend || spend < 100 ? 'starter' : spend >= 900 ? 'ultimate' : 'pro';
+  const monthly = videosPerWeek(perWeek) * 4.3;
+  const byVolume: PlanId = monthly > 250 ? 'ultimate' : monthly > 80 ? 'pro' : 'starter';
+  return ORDER[Math.max(ORDER.indexOf(bySpend), ORDER.indexOf(byVolume))];
 }
 
 /** $49.99, $1,500 — cents only when there are some. */

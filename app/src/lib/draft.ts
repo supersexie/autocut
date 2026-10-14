@@ -10,6 +10,7 @@ export type Draft = {
   who?: string;
   goal?: string;
   editorCost?: string; // an EDITOR_COSTS value
+  perWeek?: string; // a PER_WEEK value
   language?: Language;
   firstName?: string;
   lastName?: string;
