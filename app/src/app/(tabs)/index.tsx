@@ -1,4 +1,5 @@
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
@@ -114,6 +115,21 @@ export default function CreateScreen() {
     }
   }
 
+  // Double-tap the picture to switch cameras (not mid-take: switching stops the recording on iOS).
+  const lastTap = useRef(0);
+  function flip() {
+    if (mode === 'recording') return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setFacing((f) => (f === 'front' ? 'back' : 'front'));
+  }
+  function tapPreview() {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      flip();
+    } else lastTap.current = now;
+  }
+
   function pause() {
     camera.current?.stopRecording();
   }
@@ -184,6 +200,12 @@ export default function CreateScreen() {
         />
       )}
 
+      <Pressable
+        onPress={tapPreview}
+        accessibilityLabel="Double-tap to switch camera"
+        style={{ position: 'absolute', top: insets.top, left: 0, width: screen.width, height: frameH }}
+      />
+
       <View style={[styles.top, { top: insets.top + 8 }]}>
         <View style={styles.brand}>
           <Logo size={24} />
@@ -201,7 +223,7 @@ export default function CreateScreen() {
             name="arrow.triangle.2.circlepath.camera"
             label="Flip camera"
             disabled={mode === 'recording'}
-            onPress={() => setFacing(facing === 'front' ? 'back' : 'front')}
+            onPress={flip}
           />
         </View>
       </View>
