@@ -167,7 +167,8 @@ export default function Welcome() {
         )}
         {phase === 'reading' && (
           <Animated.View entering={FadeIn.duration(250)} exiting={FadeOut.duration(150)}>
-            <Pressable onPress={start} hitSlop={10} style={styles.pill} accessibilityLabel="Skip">
+            {/* Skip the reading, not the sample: straight to the finished edit. */}
+            <Pressable onPress={() => setPhase('ready')} hitSlop={10} style={styles.pill} accessibilityLabel="Skip to the finished edit">
               <Text style={styles.pillText}>Skip</Text>
             </Pressable>
           </Animated.View>
