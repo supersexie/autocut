@@ -3,6 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { StyleSheet, Text, View } from 'react-native';
 import { Backdrop, Button, Logo } from '../components/ui';
 import { clearDraft } from '../lib/draft';
+import { BRAND_FONT } from '../lib/fonts';
 import { theme } from '../lib/theme';
 
 // Raw take (seconds) and what Autocut removed, drawn on the mock phone.
@@ -83,7 +84,7 @@ const styles = StyleSheet.create({
   phone: { width: 236, height: 470, borderRadius: 42, backgroundColor: '#111114', padding: 9, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 30, shadowOffset: { width: 0, height: 16 } },
   screen: { flex: 1, borderRadius: 34, backgroundColor: '#fff', overflow: 'hidden', padding: 12, gap: 10 },
   appBar: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
-  appName: { fontSize: 13, fontWeight: '800', color: theme.ink },
+  appName: { fontSize: 12, fontFamily: BRAND_FONT, color: theme.ink },
   video: { flex: 1, borderRadius: 18, backgroundColor: '#2A2A2E', justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 18, gap: 18, overflow: 'hidden' },
   caption: { color: '#fff', fontSize: 15, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 3 },
   panel: { backgroundColor: theme.card, borderRadius: 16, padding: 10, gap: 8 },

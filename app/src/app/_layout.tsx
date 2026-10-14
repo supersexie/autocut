@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { CAPTION_FONTS } from '../lib/fonts';
+import { APP_FONTS } from '../lib/fonts';
 import { AuthProvider, useAuth } from '../lib/auth';
 
 SplashScreen.preventAutoHideAsync();
@@ -23,7 +23,7 @@ export default function RootLayout() {
 function RootNavigator() {
   const { loading, account } = useAuth();
   // Caption and text styles preview in the same fonts the export uses.
-  const [fontsLoaded, fontError] = useFonts(CAPTION_FONTS);
+  const [fontsLoaded, fontError] = useFonts(APP_FONTS);
   const ready = !loading && (fontsLoaded || !!fontError);
   useEffect(() => {
     if (ready) SplashScreen.hide();

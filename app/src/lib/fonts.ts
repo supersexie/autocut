@@ -13,5 +13,11 @@ export const CAPTION_FONTS = {
   Poppins: require('../../assets/fonts/Poppins-Bold.ttf'),
 };
 
+/** The "Autocut" wordmark's typeface (Syne ExtraBold), next to the logo in headers. */
+export const BRAND_FONT = 'Syne ExtraBold';
+
+/** Everything loaded at launch: the caption fonts and the wordmark's. */
+export const APP_FONTS = { ...CAPTION_FONTS, [BRAND_FONT]: require('../../assets/fonts/Syne-ExtraBold.ttf') };
+
 /** Fonts offered for text overlays (the A button in the text editor). */
 export const TEXT_FONTS = ['Inter ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];

@@ -8,6 +8,7 @@ import { openLegal } from '../lib/api';
 import { useAuth, type Profile } from '../lib/auth';
 import { clearDraft, getDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
+import { BRAND_FONT } from '../lib/fonts';
 import { column, COLUMN, theme } from '../lib/theme';
 
 /**
@@ -156,7 +157,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, height: 44 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  brandText: { fontSize: 17, fontWeight: '800', color: theme.ink },
+  brandText: { fontSize: 16, fontFamily: BRAND_FONT, color: theme.ink },
   switch: { fontSize: 14, fontWeight: '600', color: theme.muted },
   title: { fontSize: 28, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.5, marginTop: 14 },
   sub: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },

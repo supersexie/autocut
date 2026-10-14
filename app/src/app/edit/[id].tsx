@@ -18,6 +18,7 @@ import {
   trimClip, updateClip, type ClipEdit, type Edit, type TextOverlay,
 } from '../../lib/edit';
 import { cutFile, editOf, getSettings, saveEdit, updateSettings, useCut, type CutRecord } from '../../lib/store';
+import { BRAND_FONT } from '../../lib/fonts';
 import { theme } from '../../lib/theme';
 
 export default function EditScreen() {
@@ -471,7 +472,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   meta: { fontSize: 13, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
-  brand: { fontSize: 17, fontWeight: '800', color: theme.ink, letterSpacing: -0.3 },
+  brand: { fontSize: 16, fontFamily: BRAND_FONT, color: theme.ink },
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 80, justifyContent: 'flex-end' },
   exportText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
