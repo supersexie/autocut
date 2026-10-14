@@ -24,6 +24,7 @@ type Props = {
   texts: TextOverlay[];
   selectedText: string | null;
   onScrubStart: () => void;
+  onScrubEnd: () => void;
   onScrub: (t: number) => void;
   onSelectClip: (i: number) => void;
   onTrim: (i: number, edges: { start?: number; end?: number }) => void;
@@ -88,10 +89,16 @@ export function Timeline(p: Props) {
             }}
             onScroll={(e) => dragging.current && p.onScrub(Math.max(0, Math.min(total, e.nativeEvent.contentOffset.x / PPS)))}
             onScrollEndDrag={(e) => {
-              if (!e.nativeEvent.velocity?.x) dragging.current = false;
+              // A fling keeps scrubbing until its momentum stops; a plain release ends it here.
+              if (!e.nativeEvent.velocity?.x) {
+                dragging.current = false;
+                p.onScrubEnd();
+              }
             }}
             onMomentumScrollEnd={() => {
+              if (!dragging.current) return;
               dragging.current = false;
+              p.onScrubEnd();
             }}
           >
             <View style={{ width: x(total) }}>

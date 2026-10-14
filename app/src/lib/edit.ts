@@ -12,10 +12,13 @@ export type CaptionSettings = {
   wordsPerLine: number;
   /** Text the user typed over a line, keyed by the line's first word (source time, cs). */
   edits: Record<string, string>;
+  /** Override the style's background box / black outline (undefined = the style's own). */
+  box?: boolean;
+  outline?: boolean;
 };
 export type TextAlign = 'left' | 'center' | 'right';
 /** Per-text changes made on top of its style (font, colour, background box, alignment). */
-export type TextLook = { font?: string; color?: string; box?: boolean; align?: TextAlign };
+export type TextLook = { font?: string; color?: string; box?: boolean; outline?: boolean; align?: TextAlign };
 export type TextOverlay = { id: string; text: string; style: string; start: number; end: number; x: number; y: number; scale: number } & TextLook;
 export type Edit = { clips: ClipEdit[]; muted: boolean; captions: CaptionSettings; texts: TextOverlay[] };
 
@@ -152,9 +155,14 @@ export function exportBody(edit: Edit, words: Word[], opts: { height?: number; f
   return {
     clips: edit.clips.map((c) => ({ ...c, volume: edit.muted ? 0 : c.volume })),
     captions: edit.captions.enabled
-      ? { style: edit.captions.style, lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => ({ start, end, words: w })) }
+      ? {
+          style: edit.captions.style,
+          box: edit.captions.box,
+          outline: edit.captions.outline,
+          lines: captionLines(words, edit.clips, edit.captions).map(({ start, end, words: w }) => ({ start, end, words: w })),
+        }
       : undefined,
-    texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, align }) => ({ text, style, start, end, x, y, scale, font, color, box, align })),
+    texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => ({ text, style, start, end, x, y, scale, font, color, box, outline, align })),
     ...opts,
   };
 }

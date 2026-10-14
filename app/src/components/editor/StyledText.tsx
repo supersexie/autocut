@@ -38,10 +38,25 @@ export function withLook(p: StylePreset, look?: TextLook): StylePreset {
   const out = { ...p };
   if (look.font) out.font = look.font;
   if (look.color) out.color = look.color;
-  if (look.box === true && !p.box) Object.assign(out, { box: isDark(out.color) ? '#FFFFFF' : '#111114', outlineWidth: 14, shadow: 0 });
-  if (look.box === false && p.box) Object.assign(out, { box: undefined, outline: '#000000', outlineWidth: 2 });
+  if (look.box === true && !p.box) Object.assign(out, { box: isDark(out.color) ? '#FFFFFF' : '#111114', outlineWidth: 14, shadow: 0, glow: 0 });
+  if (look.box === false && p.box) Object.assign(out, { box: undefined, outline: '#000000', outlineWidth: 3 });
+  // Outline only applies without a box: false = plain text, true = add a black outline.
+  if (!out.box && look.outline === false) Object.assign(out, { outlineWidth: 0, shadow: 0, glow: 0 });
+  if (!out.box && look.outline === true && !(out.outlineWidth ?? 0)) Object.assign(out, { outline: '#000000', outlineWidth: 3 });
   return out;
 }
+
+export type Frame = 'outline' | 'box' | 'plain';
+
+/** Which of Outline / Box / Plain a style currently shows, after the user's changes. */
+export function frameOf(p: StylePreset, look?: Pick<TextLook, 'box' | 'outline'>): Frame {
+  const s = withLook(p, look);
+  return s.box ? 'box' : (s.outlineWidth ?? 0) > 0 ? 'outline' : 'plain';
+}
+
+/** The look fields that give a style the chosen Outline / Box / Plain frame. */
+export const lookFor = (frame: Frame): Pick<TextLook, 'box' | 'outline'> =>
+  frame === 'box' ? { box: true, outline: undefined } : frame === 'outline' ? { box: false, outline: true } : { box: false, outline: false };
 
 // Same scale as the server (src/ass.js): font size is 8.5% of the video width for size 1,
 // and outline/shadow widths are in that same 1080-wide space.
@@ -73,10 +88,14 @@ export function StyledText({ preset, words, active = -1, frameWidth, scale = 1, 
   const shown = mode === 'single' ? (active >= 0 && words[active] ? [words[active]] : words.slice(0, 1)) : words;
   const text = (w: string) => (p.uppercase ? w.toUpperCase() : w);
 
+  // Display fonts (Bangers, Shrikhand, Playfair italic…) lean and overhang their own box, so
+  // leave room on every side or the edges get clipped.
   const base: TextStyle = {
     fontFamily: p.font,
     fontSize,
-    lineHeight: fontSize * 1.18,
+    lineHeight: fontSize * 1.32,
+    paddingHorizontal: fontSize * 0.14,
+    paddingTop: fontSize * 0.04,
     textAlign: align,
     color: p.color,
   };

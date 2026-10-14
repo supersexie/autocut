@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View, type LayoutRectangle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
-import { CaptionsPanel, FormatPanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
+import { CaptionsPanel, FormatPanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
 import { Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { Button, type SymbolName } from '../../components/ui';
@@ -42,7 +42,7 @@ const setPlayback = (p: VideoPlayer, rate: number, volume: number) => {
   p.volume = Math.min(1, volume);
 };
 
-type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'textStyle' | null;
+type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'textStyle' | 'textSize' | null;
 type History = { past: Edit[]; present: Edit; future: Edit[] };
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const newId = () => Math.random().toString(36).slice(2, 10);
@@ -142,6 +142,7 @@ function Editor({ cut }: { cut: CutRecord }) {
 
   function toggle() {
     if (playing) return player.pause();
+    live.current.scrubbing = false;
     if (time >= total - 0.05) goTo(0);
     applyClip(live.current.index);
     player.play();
@@ -187,7 +188,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const updateText = (id: string, patch: Partial<TextOverlay>) => commit({ ...edit, texts: edit.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)) }, { keepTime: true });
 
   function addText(d: TextDraft) {
-    const t: TextOverlay = { ...d, id: newId(), start: time, end: Math.min(total, time + 3), x: 0.5, y: 0.3, scale: 1 };
+    const t: TextOverlay = { ...d, id: newId(), start: time, end: Math.min(total, time + 3), x: 0.5, y: 0.3, scale: d.scale ?? 1 };
     commit({ ...edit, texts: [...edit.texts, t] }, { keepTime: true });
     setSelectedText(t.id);
   }
@@ -223,7 +224,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   // ---- Toolbar: plain data, with one handler that does the work.
   const clip = clips[selected];
   type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'volume' | 'speed' | 'restore'
-    | 'textEdit' | 'textStyle' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete';
+    | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete';
   type Tool = { id: ToolId; icon: SymbolName; label: string; disabled?: boolean; danger?: boolean };
   const clipTools: Tool[] = [
     { id: 'split', icon: 'square.split.2x1', label: 'Split' },
@@ -238,6 +239,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const textTools: Tool[] = [
     { id: 'textEdit', icon: 'pencil', label: 'Edit' },
     { id: 'textStyle', icon: 'paintpalette', label: 'Style' },
+    { id: 'textSize', icon: 'textformat.size', label: 'Size' },
     { id: 'textStart', icon: 'arrow.right.to.line', label: 'Start here' },
     { id: 'textEnd', icon: 'arrow.left.to.line', label: 'End here' },
     { id: 'textDuplicate', icon: 'plus.square.on.square', label: 'Duplicate' },
@@ -256,8 +258,9 @@ function Editor({ cut }: { cut: CutRecord }) {
     else if (tool === 'speed') setPanel('speed');
     else if (tool === 'restore') setRestoring(true);
     else if (!text) return;
-    else if (tool === 'textEdit') setComposer({ id: text.id, text: text.text, style: text.style, font: text.font, color: text.color, box: text.box, align: text.align });
+    else if (tool === 'textEdit') setComposer({ id: text.id, text: text.text, style: text.style, font: text.font, color: text.color, box: text.box, outline: text.outline, align: text.align, scale: text.scale });
     else if (tool === 'textStyle') setPanel('textStyle');
+    else if (tool === 'textSize') setPanel('textSize');
     else if (tool === 'textStart') updateText(text.id, { start: Math.min(time, text.end - 0.2) });
     else if (tool === 'textEnd') updateText(text.id, { end: Math.max(time, text.start + 0.2) });
     else if (tool === 'textDuplicate') commit({ ...edit, texts: [...edit.texts, { ...text, id: newId(), y: Math.min(0.9, text.y + 0.08) }] }, { keepTime: true });
@@ -345,6 +348,9 @@ function Editor({ cut }: { cut: CutRecord }) {
               goTo(t);
               live.current.scrubbing = true;
             }}
+            onScrubEnd={() => {
+              live.current.scrubbing = false;
+            }}
             onSelectClip={(i) => {
               live.current.scrubbing = false;
               setSelectedText(null);
@@ -409,7 +415,7 @@ function Editor({ cut }: { cut: CutRecord }) {
           />
         )}
         {panel === 'captionStyle' && (
-          <StylePicker kind="captions" value={edit.captions.style} onPick={(style) => commit({ ...edit, captions: { ...edit.captions, style } }, { keepTime: true })} onClose={() => setPanel('captions')} onDone={() => setPanel('captions')} />
+          <StylePicker kind="captions" value={edit.captions.style} onPick={(style) => commit({ ...edit, captions: { ...edit.captions, style, box: undefined, outline: undefined } }, { keepTime: true })} onClose={() => setPanel('captions')} onDone={() => setPanel('captions')} />
         )}
         {panel === 'format' && (
           <FormatPanel settings={edit.captions} onChange={(captions) => commit({ ...edit, captions }, { keepTime: true })} onClose={() => setPanel('captions')} onDone={() => setPanel('captions')} />
@@ -417,6 +423,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         {panel === 'textStyle' && text && (
           <StylePicker kind="texts" value={text.style} onPick={(style) => updateText(text.id, { style })} onClose={() => setPanel(null)} onDone={() => setPanel(null)} />
         )}
+        {panel === 'textSize' && text && <SizePanel scale={text.scale} onChange={(scale) => updateText(text.id, { scale })} onDone={() => setPanel(null)} />}
         {panel === 'volume' && clip && (
           <VolumePanel
             volume={clip.volume}

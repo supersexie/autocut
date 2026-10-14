@@ -64,11 +64,22 @@ export function withLook(s, t = {}) {
     out.box = isDark(out.color) ? '#FFFFFF' : '#111114';
     out.outlineWidth = 14;
     out.shadow = 0;
+    out.glow = 0;
   }
   if (t.box === false && s.box) {
     out.box = undefined;
     out.outline = '#000000';
-    out.outlineWidth = 2;
+    out.outlineWidth = 3;
+  }
+  // Outline only applies without a box: false = plain text, true = add a black outline.
+  if (!out.box && t.outline === false) {
+    out.outlineWidth = 0;
+    out.shadow = 0;
+    out.glow = 0;
+  }
+  if (!out.box && t.outline === true && !(out.outlineWidth > 0)) {
+    out.outline = '#000000';
+    out.outlineWidth = 3;
   }
   return out;
 }
@@ -83,7 +94,7 @@ export function buildAss({ width, height, captions, texts = [] }) {
   const events = [];
 
   if (captions?.lines?.length) {
-    const s = STYLES.captions.find((c) => c.id === captions.style) ?? STYLES.captions[0];
+    const s = withLook(STYLES.captions.find((c) => c.id === captions.style) ?? STYLES.captions[0], { box: captions.box, outline: captions.outline });
     styles.push(styleLine('Caption', s, playResY, 2, Math.round(playResY * 0.24)));
     const glow = s.glow ? `{\\blur${s.glow}}` : '';
     for (const line of captions.lines) {

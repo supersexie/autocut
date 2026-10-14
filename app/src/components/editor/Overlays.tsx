@@ -13,7 +13,8 @@ import { TEXT_FONTS } from '../../lib/fonts';
 import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
-import { captionStyle, StyledText, TEXT_STYLES, textStyle } from './StyledText';
+import Slider from '@react-native-community/slider';
+import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
 
 type PreviewProps = {
   player: VideoPlayer;
@@ -104,7 +105,7 @@ function DraggableText({ text, frameW, frameH, selected, onTap, onMove }: { text
 }
 
 /** What the text editor hands back: the words, the style, and any font/colour/box/align changes. */
-export type TextDraft = { text: string; style: string } & TextLook;
+export type TextDraft = { text: string; style: string; scale?: number } & TextLook;
 
 type Tray = 'styles' | 'fonts' | 'colors';
 const COLORS = ['#FFFFFF', '#111114', '#F2545B', '#FF9F1C', '#FFE14D', '#2FB463', '#58C4FF', '#7B61FF', '#FF6EF0'];
@@ -136,8 +137,19 @@ export function TextComposer({ initial, sourceUri, seconds, onDone, onCancel }: 
   };
   const cycleAlign = () => set({ align: draft.align === 'left' ? 'right' : draft.align === 'right' ? 'center' : 'left' });
   const preset = textStyle(draft.style);
-  const boxOn = draft.box ?? !!preset.box;
-  const look: TextLook = { font: draft.font, color: draft.color, box: draft.box, align: draft.align };
+  const frame = frameOf(preset, draft);
+  const look: TextLook = { font: draft.font, color: draft.color, box: draft.box, outline: draft.outline, align: draft.align };
+  const [flash, setFlash] = useState<string | null>(null);
+  const nextFrame = () => {
+    const next: Frame = frame === 'outline' ? 'box' : frame === 'box' ? 'plain' : 'outline';
+    set(lookFor(next));
+    setFlash(next === 'outline' ? 'Outline' : next === 'box' ? 'Background' : 'No outline');
+  };
+  useEffect(() => {
+    if (!flash) return;
+    const t = setTimeout(() => setFlash(null), 900);
+    return () => clearTimeout(t);
+  }, [flash]);
   const TRAY_H = 62;
   const top = insets.top + 52;
   const bottom = (keyboard || insets.bottom) + TRAY_H;
@@ -146,7 +158,7 @@ export function TextComposer({ initial, sourceUri, seconds, onDone, onCancel }: 
     { icon: 'sparkles', label: 'Styles', on: tray === 'styles', onPress: () => setTray('styles') },
     { icon: 'textformat', label: 'Font', on: tray === 'fonts', onPress: () => setTray('fonts') },
     { icon: 'paintpalette.fill', label: 'Colour', on: tray === 'colors', onPress: () => setTray('colors') },
-    { icon: boxOn ? 'a.square.fill' : 'a.square', label: 'Background', onPress: () => set({ box: !boxOn }) },
+    { icon: frame === 'box' ? 'a.square.fill' : frame === 'outline' ? 'a.square' : 'textformat', label: 'Outline, background or plain', onPress: nextFrame },
     { icon: draft.align === 'left' ? 'text.alignleft' : draft.align === 'right' ? 'text.alignright' : 'text.aligncenter', label: 'Align', onPress: cycleAlign },
   ];
 
@@ -169,18 +181,38 @@ export function TextComposer({ initial, sourceUri, seconds, onDone, onCancel }: 
 
       <Pressable onPress={() => input.current?.focus()} style={[styles.composerStage, { top, bottom }]}>
         <View style={{ alignSelf: 'stretch', paddingHorizontal: 18, opacity: draft.text ? 1 : 0.55 }}>
-          <StyledText preset={preset} look={look} words={(draft.text || 'Type something').split(' ')} frameWidth={width} />
+          <StyledText preset={preset} look={look} words={(draft.text || 'Type something').split(' ')} frameWidth={width} scale={draft.scale ?? 1} />
         </View>
         <TextInput ref={input} value={draft.text} onChangeText={(text) => setDraft((d) => ({ ...d, text }))} autoFocus multiline style={styles.hiddenInput} accessibilityLabel="Text" />
       </Pressable>
+
+      <View style={[styles.sizeRail, { top: top + 20, bottom: bottom + 20 }]} pointerEvents="box-none">
+        <View style={styles.sizeSlider}>
+          <Slider
+            style={{ width: 200 }}
+            minimumValue={0.5}
+            maximumValue={2.5}
+            value={draft.scale ?? 1}
+            onValueChange={(scale) => setDraft((d) => ({ ...d, scale: Math.round(scale * 100) / 100 }))}
+            minimumTrackTintColor="#fff"
+            maximumTrackTintColor="rgba(255,255,255,0.35)"
+            accessibilityLabel="Text size"
+          />
+        </View>
+      </View>
+      {flash && (
+        <Animated.View entering={FadeIn.duration(120)} exiting={FadeOut.duration(200)} style={[styles.flash, { top: top + 6 }]} pointerEvents="none">
+          <Text style={styles.flashText}>{flash}</Text>
+        </Animated.View>
+      )}
 
       <View style={[styles.tray, { bottom: keyboard || insets.bottom, height: TRAY_H }]}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" contentContainerStyle={styles.chips}>
           {tray === 'styles' &&
             TEXT_STYLES.map((s) => (
-              <Pressable key={s.id} onPress={() => set({ style: s.id, box: undefined, color: undefined, font: undefined })} style={[styles.styleChip, draft.style === s.id && styles.styleChipOn]}>
+              <Pressable key={s.id} onPress={() => set({ style: s.id, box: undefined, outline: undefined, color: undefined, font: undefined })} style={[styles.styleChip, draft.style === s.id && styles.styleChipOn]}>
                 <Thumb uri={sourceUri} seconds={seconds} style={StyleSheet.absoluteFill} />
-                <StyledText preset={s} words={[s.name]} frameWidth={130} scale={0.8} numberOfLines={1} />
+                <StyledText preset={s} words={[s.name]} frameWidth={110} scale={0.72} />
               </Pressable>
             ))}
           {tray === 'fonts' &&
@@ -310,6 +342,10 @@ const styles = StyleSheet.create({
   composerDone: { color: '#fff', fontSize: 17, fontWeight: '700', paddingHorizontal: 6 },
   composerStage: { position: 'absolute', left: 0, right: 0, alignItems: 'center', justifyContent: 'center' },
   hiddenInput: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, color: 'transparent', fontSize: 1 },
+  sizeRail: { position: 'absolute', left: 0, width: 44, alignItems: 'center', justifyContent: 'center', zIndex: 3 },
+  sizeSlider: { width: 200, transform: [{ rotate: '-90deg' }] },
+  flash: { position: 'absolute', alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, zIndex: 4 },
+  flashText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   tray: { position: 'absolute', left: 0, right: 0, justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.25)' },
   chips: { gap: 8, paddingHorizontal: 10, alignItems: 'center' },
   styleChip: { width: 96, height: 46, borderRadius: 10, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', borderWidth: 2.5, borderColor: 'transparent' },

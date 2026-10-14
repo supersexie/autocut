@@ -41,3 +41,10 @@ test('a text can switch font, colour, background box and alignment', () => {
   assert.match(ass, /Style: Text0,Anton,\d+,&H000000FF,&H000000FF,&H00FFFFFF,/);
   assert.match(ass.split('\n').find((l) => l.startsWith('Style: Text0')), /,3,14,0,5,/);
 });
+
+test('outline can be removed or added, for captions and texts', () => {
+  const plain = buildAss({ width: 1080, height: 1920, captions: { style: 'classic-outline', outline: false, lines: [line] } });
+  assert.match(plain.split('\n').find((l) => l.startsWith('Style: Caption')), /,1,0,0,2,/);
+  const outlined = buildAss({ width: 1080, height: 1920, texts: [{ text: 'x', style: 'white-box', box: false, outline: true, start: 0, end: 1 }] });
+  assert.match(outlined.split('\n').find((l) => l.startsWith('Style: Text0')), /,1,3,0,5,/);
+});

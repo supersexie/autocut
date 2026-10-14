@@ -6,7 +6,7 @@ import { FlatList, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, V
 import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import type { Caps, CaptionLine, CaptionSettings } from '../../lib/edit';
 import { theme } from '../../lib/theme';
-import { CAPTION_STYLES, StyledText, TEXT_STYLES, type StylePreset } from './StyledText';
+import { CAPTION_STYLES, captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, type Frame, type StylePreset } from './StyledText';
 import type { SymbolName } from '../ui';
 
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -154,7 +154,7 @@ function StyleCard({ preset, on, onPress }: { preset: StylePreset; on: boolean; 
       style={({ pressed }) => [styles.card, on && styles.cardOn, pressed && { transform: [{ scale: 0.97 }] }]}
     >
       <View style={styles.cardPreview}>
-        <StyledText preset={preset} words={['Make', 'it', 'pop']} active={1} frameWidth={150} scale={1.25} numberOfLines={1} />
+        <StyledText preset={preset} words={['Make', 'it', 'pop']} active={1} frameWidth={150} scale={1.05} />
       </View>
       <Text style={styles.cardName}>{preset.name}</Text>
     </Pressable>
@@ -180,6 +180,19 @@ export function FormatPanel({ settings, onChange, onClose, onDone }: { settings:
                 {c.icon ? <SymbolView name={c.icon} tintColor={settings.caps === c.value ? '#fff' : theme.ink} size={15} /> : <Text style={[styles.capsText, settings.caps === c.value && { color: '#fff' }]}>{c.label}</Text>}
               </Pressable>
             ))}
+          </View>
+        </View>
+        <View style={{ gap: 10 }}>
+          <Text style={styles.label}>Look</Text>
+          <View style={styles.capsRow}>
+            {(['outline', 'box', 'plain'] as Frame[]).map((f) => {
+              const on = frameOf(captionStyle(settings.style), settings) === f;
+              return (
+                <Pressable key={f} onPress={() => onChange({ ...settings, ...lookFor(f) })} style={[styles.capsBtn, on && styles.capsOn]}>
+                  <Text style={[styles.lookText, on && { color: '#fff' }]}>{f === 'outline' ? 'Outline' : f === 'box' ? 'Background' : 'Plain'}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
         <View style={styles.between}>
@@ -208,6 +221,21 @@ export function FormatPanel({ settings, onChange, onClose, onDone }: { settings:
             <Text style={styles.small}>1</Text>
             <Text style={styles.small}>9</Text>
           </View>
+        </View>
+      </View>
+    </Panel>
+  );
+}
+
+export function SizePanel({ scale, onChange, onDone }: { scale: number; onChange: (v: number) => void; onDone: () => void }) {
+  const [v, setV] = useState(scale);
+  return (
+    <Panel title="Size" value={<Text style={styles.valueStrong}>{Math.round(v * 100)}%</Text>} onDone={onDone}>
+      <View style={{ paddingHorizontal: 16, gap: 8 }}>
+        <View style={styles.sliderRow}>
+          <SymbolView name="textformat.size.smaller" tintColor={theme.muted} size={15} />
+          <Slider style={{ flex: 1 }} minimumValue={0.5} maximumValue={2.5} step={0.05} value={scale} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.ink} />
+          <SymbolView name="textformat.size.larger" tintColor={theme.muted} size={18} />
         </View>
       </View>
     </Panel>
@@ -300,7 +328,7 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: { width: '48%', borderRadius: 14, borderWidth: 2, borderColor: 'transparent', backgroundColor: theme.card, overflow: 'hidden' },
   cardOn: { borderColor: theme.ink },
-  cardPreview: { height: 64, backgroundColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center', margin: 6, borderRadius: 10, overflow: 'hidden' },
+  cardPreview: { height: 70, backgroundColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center', margin: 6, borderRadius: 10, overflow: 'hidden' },
   cardName: { fontSize: 11, color: theme.muted, textAlign: 'center', marginBottom: 7 },
   label: { fontSize: 15, fontWeight: '600', color: theme.ink },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
@@ -308,6 +336,7 @@ const styles = StyleSheet.create({
   capsRow: { flexDirection: 'row', gap: 10 },
   capsBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   capsOn: { backgroundColor: theme.ink },
+  lookText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   capsText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 14, paddingVertical: 9, marginTop: 6 },

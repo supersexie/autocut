@@ -242,6 +242,8 @@ async function createRender(req, res, job) {
   if (body.captions && Array.isArray(body.captions.lines)) {
     captions = {
       style: String(body.captions.style ?? 'classic'),
+      box: typeof body.captions.box === 'boolean' ? body.captions.box : undefined,
+      outline: typeof body.captions.outline === 'boolean' ? body.captions.outline : undefined,
       lines: body.captions.lines.slice(0, 2000).map((l) => ({ start: Number(l.start) || 0, end: Number(l.end) || 0, words: words(l.words) })),
     };
   } else if (body.captions === true) {
@@ -259,6 +261,7 @@ async function createRender(req, res, job) {
     font: typeof t.font === 'string' ? t.font.slice(0, 60) : undefined,
     color: /^#[0-9a-f]{6}$/i.test(t.color ?? '') ? t.color : undefined,
     box: typeof t.box === 'boolean' ? t.box : undefined,
+    outline: typeof t.outline === 'boolean' ? t.outline : undefined,
     align: ['left', 'center', 'right'].includes(t.align) ? t.align : undefined,
   }));
 
