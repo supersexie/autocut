@@ -89,6 +89,24 @@ export const overlayHeight = (o: Pick<Overlay, 'w' | 'h' | 'width'>, frameAspect
 /** Overlays showing at output time `t`, bottom to top. */
 export const overlaysAt = (overlays: Overlay[] | undefined, t: number) => (overlays ?? []).filter((o) => t >= o.start && t < o.end);
 
+/**
+ * After the video gets shorter (a speed-up, trim or delete), texts and overlays past the new end
+ * slide back to finish with it (keeping their length where they can), so none are left stranded
+ * off the end of the timeline.
+ */
+export function fitToLength(edit: Edit, total: number): Edit {
+  const fit = <T extends { start: number; end: number }>(x: T): T => {
+    if (x.end <= total) return x;
+    const span = Math.min(x.end - x.start, total);
+    const start = Math.max(0, Math.min(x.start, total - span));
+    return { ...x, start, end: Math.min(total, start + span) };
+  };
+  const texts = edit.texts.map(fit);
+  const overlays = edit.overlays?.map(fit);
+  const changed = texts.some((t, i) => t !== edit.texts[i]) || !!overlays?.some((o, i) => o !== edit.overlays![i]);
+  return changed ? { ...edit, texts, overlays } : edit;
+}
+
 /** Splits overlay `id` at `t` into two back-to-back overlays (a video carries on where it was). */
 export function splitOverlay(overlays: Overlay[], id: string, t: number, newId: () => string): Overlay[] {
   const i = overlays.findIndex((o) => o.id === id);

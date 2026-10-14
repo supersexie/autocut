@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
   makeClip, splitAt, removeClip, duplicateClip, moveClip, trimClip, restoreCut, isRestored, locate, clipOffset,
   totalDuration, captionLines, applyCaps, exportBody, DEFAULT_CAPTIONS, framingAt, clampFraming,
-  overlayHeight, overlaysAt, splitOverlay, retimeOverlay, splitCaption, deleteCaption,
+  overlayHeight, overlaysAt, splitOverlay, retimeOverlay, splitCaption, deleteCaption, fitToLength,
 } from '../src/lib/edit.ts';
 
 const clips = [makeClip(1, 3), makeClip(5, 6), makeClip(8, 10)];
@@ -184,4 +184,20 @@ test('caption lines never overlap: each ends by the time the next starts', () =>
   const lines = captionLines(close, [makeClip(0, 2)], { ...DEFAULT_CAPTIONS, wordsPerLine: 3 });
   assert.equal(lines.length, 2);
   for (let i = 0; i + 1 < lines.length; i++) assert.ok(lines[i].end <= lines[i + 1].start + 1e-9, `line ${i} runs into the next`);
+});
+
+test('texts and overlays past a shortened end slide back inside it', () => {
+  const edit = {
+    clips: [makeClip(0, 10)], muted: false, captions: DEFAULT_CAPTIONS,
+    texts: [{ id: 't', text: 'a', style: 'classic', start: 2, end: 4, x: 0.5, y: 0.5, scale: 1 }, { id: 'u', text: 'b', style: 'classic', start: 9, end: 12, x: 0.5, y: 0.5, scale: 1 }],
+    overlays: [{ ...photo, start: 18, end: 21 }],
+  };
+  const fitted = fitToLength(edit, 8);
+  assert.equal(fitted.texts[0], edit.texts[0]); // inside: untouched
+  assert.deepEqual([fitted.texts[1].start, fitted.texts[1].end], [5, 8]);
+  assert.deepEqual([fitted.overlays[0].start, fitted.overlays[0].end], [5, 8]);
+  // Longer than the whole video: fills it.
+  assert.deepEqual([fitToLength(edit, 2).overlays[0].start, fitToLength(edit, 2).overlays[0].end], [0, 2]);
+  // Nothing past the end: the same edit back.
+  assert.equal(fitToLength(edit, 30), edit);
 });

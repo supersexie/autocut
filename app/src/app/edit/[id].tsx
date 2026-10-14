@@ -15,7 +15,7 @@ import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
 import { Button, PressableScale, type SymbolName } from '../../components/ui';
 import {
-  CAPTION_X, CAPTION_Y, captionLines, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
+  CAPTION_X, CAPTION_Y, captionLines, fitToLength, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
   restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
 } from '../../lib/edit';
 import { getWaveform } from '../../lib/api';
@@ -139,6 +139,7 @@ function Editor({ cut }: { cut: CutRecord }) {
 
   // ---- History: every change is undoable and saved.
   function commit(next: Edit, opts: { keepTime?: boolean } = {}) {
+    if (next.clips !== clips) next = fitToLength(next, totalDuration(next.clips));
     setHistory((h) => ({ past: [...h.past, h.present].slice(-60), present: next, future: [] }));
     saveEdit(cut.id, next);
     if (next.clips !== clips && !opts.keepTime) playback.seek(Math.min(time, totalDuration(next.clips) - 0.05), next.clips);
