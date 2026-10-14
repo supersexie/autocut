@@ -51,31 +51,42 @@ const SNAP_CENTRE = 0.015; // within 1.5% of the middle snaps to it
  */
 function useFramingGesture(width: number, height: number, onStart: () => Framing, onFrame: (f: Framing) => void, onEnd: () => void) {
   const [shown, setShown] = useState<{ scale: number; centredX: boolean; centredY: boolean } | null>(null);
-  const pinch = useRef<{ distance: number; mid: { x: number; y: number }; base: Framing } | null>(null);
+  const pinch = useRef<{ ids: [string, string]; distance: number; mid: { x: number; y: number }; base: Framing } | null>(null);
   const endedAt = useRef(0);
+  const misses = useRef(0);
 
-  // Plain touch events, which say exactly how many fingers are down: two start a pinch, and the
-  // pinch ends the moment fewer than two are left.
-  const measure = (touches: readonly { pageX: number; pageY: number }[]) => {
-    const [a, b] = touches;
-    return { distance: Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY), mid: { x: (a.pageX + b.pageX) / 2, y: (a.pageY + b.pageY) / 2 } };
-  };
+  // Plain touch events: two fingers start a pinch and it follows those same two fingers (by id).
+  // Only a finger actually lifting ends it. Move events can list just the finger that moved, so a
+  // short list there means nothing; ending on it restarted the pinch every frame and it never zoomed.
+  type T = { identifier: string; pageX: number; pageY: number };
+  const measure = (a: T, b: T) => ({ distance: Math.hypot(a.pageX - b.pageX, a.pageY - b.pageY), mid: { x: (a.pageX + b.pageX) / 2, y: (a.pageY + b.pageY) / 2 } });
   const finish = () => {
     if (!pinch.current) return;
     pinch.current = null;
+    misses.current = 0;
     endedAt.current = Date.now();
     setShown(null);
     onEnd();
   };
   const handlers = {
     onTouchMove: (e: GestureResponderEvent) => {
-      const touches = e.nativeEvent.touches;
-      if (touches.length < 2) return finish();
-      const now = measure(touches);
+      const touches = e.nativeEvent.touches as unknown as T[];
       if (!pinch.current) {
-        pinch.current = { ...now, base: onStart() };
+        if (touches.length < 2) return;
+        const [a, b] = touches;
+        pinch.current = { ids: [String(a.identifier), String(b.identifier)], ...measure(a, b), base: onStart() };
         return;
       }
+      const a = touches.find((t) => String(t.identifier) === pinch.current!.ids[0]);
+      const b = touches.find((t) => String(t.identifier) === pinch.current!.ids[1]);
+      if (!a || !b) {
+        // This event didn't carry both fingers: wait for one that does. If they stop showing up
+        // altogether, the lift was missed somewhere; end rather than stay stuck.
+        if (!a && !b && ++misses.current > 30) finish();
+        return;
+      }
+      misses.current = 0;
+      const now = measure(a, b);
       const { distance, mid, base } = pinch.current;
       let f = clampFraming({
         scale: base.scale * (now.distance / Math.max(1, distance)),
@@ -88,8 +99,12 @@ function useFramingGesture(width: number, height: number, onStart: () => Framing
       setShown({ scale: f.scale, centredX: f.x === 0, centredY: f.y === 0 });
       onFrame(f);
     },
+    // A finger lifted: if it was one of the pinch's two, the pinch is over.
     onTouchEnd: (e: GestureResponderEvent) => {
-      if (e.nativeEvent.touches.length < 2) finish();
+      const ids = pinch.current?.ids;
+      if (!ids) return;
+      const lifted = (e.nativeEvent.changedTouches as unknown as T[]).map((t) => String(t.identifier));
+      if (lifted.some((id) => ids.includes(id))) finish();
     },
     onTouchCancel: () => finish(),
   };
