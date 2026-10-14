@@ -204,13 +204,18 @@ function SpendChart({ editorYear, autocutYear, kept, p }: { editorYear: number; 
   const top = Math.max(1, editorYear, autocutYear);
   const y = (amount: number) => PAD + (1 - amount / top) * (H - PAD * 2);
   // Both start at nothing in month 1 and add up over the year; drawn as far as p.
-  const steps = 24;
-  const pts = (yearly: number) => Array.from({ length: Math.max(2, Math.ceil(steps * p) + 1) }, (_, i) => Math.min(p, i / steps)).map((f) => [x(f), y(yearly * f)] as const);
-  const line = (yearly: number) => pts(yearly).map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
-  const editor = pts(editorYear);
-  const autocut = pts(autocutYear);
+  // Curved like Cal AI's chart, from nothing in month 1 to the year's total: the editor's bill
+  // sweeps up, Autocut rises a little early and levels off. Fine steps keep the curves smooth.
+  const sweep = (f: number) => Math.pow(f, 1.8);
+  const settle = (f: number) => 1 - Math.pow(1 - f, 2);
+  const steps = 60;
+  const pts = (yearly: number, shape: (f: number) => number) =>
+    Array.from({ length: Math.max(2, Math.ceil(steps * p) + 1) }, (_, i) => Math.min(p, i / steps)).map((f) => [x(f), y(yearly * shape(f))] as const);
+  const path = (points: (readonly [number, number])[]) => points.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
+  const editor = pts(editorYear, sweep);
+  const autocut = pts(autocutYear, settle);
   // The gap between the two lines: what you keep.
-  const gap = `${editor.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')} ${[...autocut].reverse().map(([a, b]) => `L${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')} Z`;
+  const gap = `${path(editor)} ${[...autocut].reverse().map(([a, b]) => `L${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')} Z`;
   const done = clamp01((p - 0.85) / 0.15);
   return (
     <View style={{ gap: 10 }}>
@@ -229,8 +234,8 @@ function SpendChart({ editorYear, autocutYear, kept, p }: { editorYear: number; 
             ))}
             <Line x1={PAD} x2={w - PAD} y1={H - PAD} y2={H - PAD} stroke={theme.ink} strokeWidth={1.5} />
             <Path d={gap} fill="url(#kept)" />
-            <Path d={line(editorYear)} stroke={theme.cut} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <Path d={line(autocutYear)} stroke={theme.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d={path(editor)} stroke={theme.cut} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <Path d={path(autocut)} stroke={theme.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
             <Circle cx={x(0)} cy={y(0)} r={6} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
             {done > 0 && (
               <>
@@ -242,11 +247,13 @@ function SpendChart({ editorYear, autocutYear, kept, p }: { editorYear: number; 
         )}
         {w > 0 && done > 0 && (
           <>
-            {/* Above the red line (top left is clear of it), just above the black one, and the pill in the gap. */}
-            <Text style={[styles.chartTag, { left: PAD + 2, top: PAD, opacity: done, color: theme.cut }]}>Editing now · {money(editorYear)}</Text>
-            <Text style={[styles.chartTag, { right: PAD + 2, top: y(autocutYear) - 24, opacity: done }]}>Autocut · {money(Math.round(autocutYear))}</Text>
+            {/* The key sits top left, which the curves never reach; the pill sits in the widest part of the gap. */}
+            <View style={[styles.legend, { left: PAD + 2, top: PAD, opacity: done }]}>
+              <Text style={[styles.chartTag, { color: theme.cut }]}>● Editing now · {money(editorYear)}</Text>
+              <Text style={styles.chartTag}>● Autocut · {money(Math.round(autocutYear))}</Text>
+            </View>
             {kept > 0 && (
-              <View style={[styles.keptPill, { left: x(0.45) - 62, top: (y(editorYear * 0.45) + y(autocutYear * 0.45)) / 2 - 12, opacity: done }]}>
+              <View style={[styles.keptPill, { left: x(0.7) - 62, top: (y(editorYear * sweep(0.7)) + y(autocutYear * settle(0.7))) / 2 - 12, opacity: done }]}>
                 <Text style={styles.keptText}>You keep {money(Math.round(kept))}</Text>
               </View>
             )}
@@ -427,7 +434,8 @@ const styles = StyleSheet.create({
   columnValue: { fontSize: 13, color: theme.muted, marginTop: 3, fontVariant: ['tabular-nums'] },
   columnFill: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 22, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 18 },
   chartTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  chartTag: { position: 'absolute', fontSize: 12, fontWeight: '700', color: theme.ink },
+  legend: { position: 'absolute', gap: 3 },
+  chartTag: { fontSize: 12, fontWeight: '700', color: theme.ink },
   keptPill: { position: 'absolute', width: 124, alignItems: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   keptText: { color: '#fff', fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
   axis: { fontSize: 13, color: theme.muted },
