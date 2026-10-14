@@ -36,10 +36,18 @@ export default function EditScreen() {
 const seek = (p: VideoPlayer, t: number) => {
   p.currentTime = t;
 };
-const setPlayback = (p: VideoPlayer, rate: number, volume: number) => {
-  p.playbackRate = rate;
-  p.preservesPitch = true;
+const setVolume = (p: VideoPlayer, volume: number) => {
   p.volume = Math.min(1, volume);
+};
+// On iOS, setting playbackRate also sets the native player's rate, which starts playback.
+// So speed is only ever set on a player that is (about to be) playing, never on a paused one.
+const setSpeed = (p: VideoPlayer, rate: number) => {
+  if (p.playbackRate !== rate) p.playbackRate = rate;
+};
+const start = (p: VideoPlayer, rate: number, volume: number) => {
+  setVolume(p, volume);
+  p.play();
+  setSpeed(p, rate);
 };
 
 type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'textStyle' | 'textSize' | null;
@@ -75,6 +83,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const setup = (p: VideoPlayer) => {
     p.timeUpdateEventInterval = 1 / 30;
     p.loop = false;
+    p.preservesPitch = true;
   };
   const playerA = useVideoPlayer(sourceUri, setup);
   const playerB = useVideoPlayer(sourceUri, setup);
@@ -89,7 +98,8 @@ function Editor({ cut }: { cut: CutRecord }) {
   }, [sourceUri]);
 
   // ---- Playback state that event handlers read (refs, so they always see the latest edit).
-  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false, front: 0 as 0 | 1 });
+  // `playing` is what we asked for (play / pause); the player's own flag lags behind.
+  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false, front: 0 as 0 | 1, playing: false });
   useEffect(() => {
     live.current.clips = clips;
     live.current.muted = edit.muted;
@@ -107,21 +117,27 @@ function Editor({ cut }: { cut: CutRecord }) {
       p.pause();
       if (!c) return;
       seek(p, c.start);
-      setPlayback(p, c.speed, 0);
+      setVolume(p, 0);
     };
     return { active, standby, volumeOf, prime };
   }, [players]);
   const { active: activePlayer, volumeOf, prime } = relay;
 
+  /** Bring the front player's volume (and speed, if it's playing) in line with clip `i`. */
   const applyClip = (i: number) => {
     const c = live.current.clips[i];
-    if (c) setPlayback(activePlayer(), c.speed, volumeOf(c));
+    const p = activePlayer();
+    if (!c) return;
+    setVolume(p, volumeOf(c));
+    if (live.current.playing) setSpeed(p, c.speed);
   };
 
   useEffect(() => {
     const subs = players.flatMap((pl, which) => [
       pl.addListener('playingChange', (e) => {
-        if (which === live.current.front) setPlaying(e.isPlaying);
+        if (which !== live.current.front) return;
+        setPlaying(e.isPlaying);
+        if (!e.isPlaying) live.current.playing = false; // e.g. a phone call paused it
       }),
       pl.addListener('timeUpdate', ({ currentTime }) => {
         const { clips: list, index, scrubbing, front: f } = live.current;
@@ -132,10 +148,11 @@ function Editor({ cut }: { cut: CutRecord }) {
         if (currentTime >= c.end - 0.04) {
           const next = list[i + 1];
           if (!next) {
+            live.current.playing = false;
             pl.pause();
             live.current.index = 0;
             seek(pl, list[0].start);
-            setPlayback(pl, list[0].speed, volumeOf(list[0]));
+            setVolume(pl, volumeOf(list[0]));
             setTime(0);
             prime(1);
             return;
@@ -144,9 +161,8 @@ function Editor({ cut }: { cut: CutRecord }) {
           const incoming = players[f === 0 ? 1 : 0];
           live.current.front = f === 0 ? 1 : 0;
           live.current.index = i + 1;
-          setPlayback(incoming, next.speed, volumeOf(next));
-          incoming.play();
-          setPlayback(pl, c.speed, 0);
+          start(incoming, next.speed, volumeOf(next));
+          setVolume(pl, 0);
           pl.pause();
           setFront(live.current.front);
           setTime(clipOffset(list, i + 1));
@@ -163,7 +179,7 @@ function Editor({ cut }: { cut: CutRecord }) {
           const first = list[0];
           if (first && pl.currentTime < first.start) {
             seek(pl, first.start);
-            setPlayback(pl, first.speed, volumeOf(first));
+            setVolume(pl, volumeOf(first));
           }
         } else prime(live.current.index + 1);
       }),
@@ -172,6 +188,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   }, [players, prime, volumeOf]);
 
   function pauseAll() {
+    live.current.playing = false;
     players.forEach((p) => p.pause());
   }
 
@@ -182,7 +199,10 @@ function Editor({ cut }: { cut: CutRecord }) {
     const p = activePlayer();
     seek(p, source);
     const c = list[i];
-    if (c) setPlayback(p, c.speed, volumeOf(c));
+    if (c) {
+      setVolume(p, volumeOf(c));
+      if (live.current.playing) setSpeed(p, c.speed);
+    }
     setTime(clamped);
     prime(i + 1);
   }
@@ -191,8 +211,10 @@ function Editor({ cut }: { cut: CutRecord }) {
     if (playing) return pauseAll();
     live.current.scrubbing = false;
     if (time >= total - 0.05) goTo(0);
-    applyClip(live.current.index);
-    activePlayer().play();
+    const c = live.current.clips[live.current.index];
+    if (!c) return;
+    live.current.playing = true;
+    start(activePlayer(), c.speed, volumeOf(c));
   }
 
   // ---- History: every change is undoable and saved.
@@ -260,7 +282,7 @@ function Editor({ cut }: { cut: CutRecord }) {
     return () => clearTimeout(t);
   }, []);
   const tourSteps: TourStep[] = [
-    { title: 'Your cut, clip by clip', body: 'Drag to scrub. Tap a clip, then pull its edges to trim. Hold a clip to reorder.', target: targets.timeline, cta: 'Next' },
+    { title: 'Your cut, clip by clip', body: 'Drag to scrub, pinch to zoom. Tap a clip, then pull its edges to trim. Hold a clip to reorder.', target: targets.timeline, cta: 'Next' },
     { title: 'The toolbox', body: 'Split or delete clips, add text and captions, change volume and speed.', target: targets.toolbar, cta: 'Next' },
     { title: 'When it looks right', body: 'Export renders your cut and saves it to Photos.', target: targets.export, cta: 'Got it' },
   ];

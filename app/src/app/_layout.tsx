@@ -2,6 +2,7 @@ import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { CAPTION_FONTS } from '../lib/fonts';
 import { AuthProvider, useAuth } from '../lib/auth';
 
@@ -9,10 +10,12 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <RootNavigator />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <RootNavigator />
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
 
@@ -43,7 +46,9 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="review" options={{ presentation: 'fullScreenModal' }} />
         <Stack.Screen name="cut/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-        <Stack.Screen name="edit/[id]" options={{ animation: 'fade' }} />
+        {/* A full-screen modal like "Cutting", so going from one to the other never shows the camera
+            underneath, and no edge swipe fights the timeline. */}
+        <Stack.Screen name="edit/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
       </Stack.Protected>
       <Stack.Screen name="auth-callback" />

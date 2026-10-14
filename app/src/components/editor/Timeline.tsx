@@ -2,11 +2,14 @@ import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type TextOverlay } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
 
-export const PPS = 56; // points per second of output
+export const PPS = 56; // points per second of output, before zooming
+const MIN_PPS = 14;
+const MAX_PPS = 400;
 const CLIP_H = 58;
 const ROW_H = 30;
 const LEFT = 64;
@@ -37,25 +40,62 @@ type Props = {
 
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 
-/** CapCut-style timeline: the playhead stays centred and the strip scrolls under it. */
+/** Seconds between ruler labels, so they stay readable at any zoom. */
+const tickStep = (pps: number) => [1, 2, 5, 10, 15, 30, 60].find((s) => s * pps >= 44) ?? 60;
+/** Source seconds between filmstrip frames: on a fixed grid, so zooming reuses frames already made. */
+const frameStep = (secondsPerTile: number) => [8, 4, 2, 1, 0.5, 0.25].find((g) => g <= secondsPerTile) ?? 0.25;
+
+/** CapCut-style timeline: the playhead stays centred and the strip scrolls under it. Pinch to zoom. */
 export function Timeline(p: Props) {
   const scroll = useRef<ScrollView>(null);
   const [width, setWidth] = useState(0);
   const dragging = useRef(false);
+  const momentum = useRef(false);
   const [scrollEnabled, setScrollEnabled] = useState(true);
   const [trim, setTrim] = useState<{ i: number; start: number; end: number } | null>(null);
+  const [pps, setPps] = useState(PPS);
 
   const clips = trim ? p.clips.map((c, k) => (k === trim.i ? { ...c, start: trim.start, end: trim.end } : c)) : p.clips;
   const total = clips.reduce((t, c) => t + outDuration(c), 0);
-  const x = (t: number) => t * PPS;
+  const x = (t: number) => t * pps;
 
-  // Follow playback (and programmatic seeks) unless the user is dragging the strip.
+  // Follow playback, seeks and zooming unless the user is dragging the strip.
   useEffect(() => {
-    if (!dragging.current) scroll.current?.scrollTo({ x: x(p.time), animated: false });
-  }, [p.time]);
+    if (!dragging.current) scroll.current?.scrollTo({ x: p.time * pps, animated: false });
+  }, [p.time, pps, width]);
+
+  const endScrub = () => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    p.onScrubEnd();
+  };
+
+  // Two fingers zoom the strip in and out around the playhead.
+  const latest = useRef({ pps, endScrub });
+  useEffect(() => {
+    latest.current = { pps, endScrub };
+  });
+  const zoomFrom = useRef(PPS);
+  // The gesture's handlers read the latest values from refs when fingers move, never during render.
+  // eslint-disable-next-line react-hooks/refs
+  const [pinch] = useState(() =>
+    Gesture.Pinch()
+      .runOnJS(true)
+      .onStart(() => {
+        zoomFrom.current = latest.current.pps;
+        latest.current.endScrub();
+        setScrollEnabled(false);
+      })
+      .onUpdate((e) => {
+        const next = Math.max(MIN_PPS, Math.min(MAX_PPS, zoomFrom.current * e.scale));
+        if (Math.abs(next - latest.current.pps) / latest.current.pps > 0.02) setPps(next);
+      })
+      .onFinalize(() => setScrollEnabled(true))
+  );
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
-  const seconds = Array.from({ length: Math.floor(total) + 1 }, (_, i) => i);
+  const step = tickStep(pps);
+  const seconds = Array.from({ length: Math.floor(total / step) + 1 }, (_, i) => i * step);
 
   return (
     <View style={styles.wrap}>
@@ -73,6 +113,7 @@ export function Timeline(p: Props) {
         </View>
       </View>
 
+      <GestureDetector gesture={pinch}>
       <View style={{ flex: 1 }} onLayout={onLayout}>
         {width > 0 && (
           <ScrollView
@@ -85,20 +126,21 @@ export function Timeline(p: Props) {
             contentContainerStyle={{ paddingHorizontal: width / 2 }}
             onScrollBeginDrag={() => {
               dragging.current = true;
+              momentum.current = false;
               p.onScrubStart();
             }}
-            onScroll={(e) => dragging.current && p.onScrub(Math.max(0, Math.min(total, e.nativeEvent.contentOffset.x / PPS)))}
-            onScrollEndDrag={(e) => {
-              // A fling keeps scrubbing until its momentum stops; a plain release ends it here.
-              if (!e.nativeEvent.velocity?.x) {
-                dragging.current = false;
-                p.onScrubEnd();
-              }
+            onScroll={(e) => dragging.current && p.onScrub(Math.max(0, Math.min(total, e.nativeEvent.contentOffset.x / pps)))}
+            onScrollEndDrag={() => {
+              // A fling keeps scrubbing until its momentum stops. If no momentum starts, the scrub
+              // ends here, so the strip can never be left thinking it's still being dragged.
+              setTimeout(() => !momentum.current && endScrub(), 80);
+            }}
+            onMomentumScrollBegin={() => {
+              momentum.current = true;
             }}
             onMomentumScrollEnd={() => {
-              if (!dragging.current) return;
-              dragging.current = false;
-              p.onScrubEnd();
+              momentum.current = false;
+              endScrub();
             }}
           >
             <View style={{ width: x(total) }}>
@@ -114,7 +156,9 @@ export function Timeline(p: Props) {
                 {clips.map((c, i) => {
                   const left = x(clipOffset(clips, i));
                   const w = Math.max(8, x(outDuration(c)) - 2);
-                  const tiles = Math.max(1, Math.min(8, Math.ceil(w / TILE)));
+                  const tiles = Math.max(1, Math.min(60, Math.ceil(w / TILE)));
+                  const perTile = (TILE / pps) * c.speed; // source seconds under one tile
+                  const grid = frameStep(perTile);
                   const on = i === p.selected;
                   return (
                     <Pressable
@@ -128,9 +172,10 @@ export function Timeline(p: Props) {
                       style={[styles.clip, { left, width: w }, on && styles.clipOn]}
                     >
                       <View style={styles.tiles}>
-                        {Array.from({ length: tiles }, (_, k) => (
-                          <Thumb key={k} uri={p.sourceUri} seconds={c.start + ((c.end - c.start) * (k + 0.5)) / tiles} style={{ flex: 1, height: '100%' }} />
-                        ))}
+                        {Array.from({ length: tiles }, (_, k) => {
+                          const at = Math.min(c.end, c.start + Math.round((perTile * (k + 0.5)) / grid) * grid);
+                          return <Thumb key={k} uri={p.sourceUri} seconds={at} style={{ width: TILE, height: '100%' }} />;
+                        })}
                       </View>
                       {c.speed !== 1 && (
                         <View style={styles.badge}>
@@ -142,6 +187,7 @@ export function Timeline(p: Props) {
                           <TrimHandle
                             side="start"
                             clip={p.clips[i]}
+                            pps={pps}
                             onBegin={() => setScrollEnabled(false)}
                             onMove={(start) => setTrim({ i, start, end: p.clips[i].end })}
                             onEnd={(start) => {
@@ -149,17 +195,26 @@ export function Timeline(p: Props) {
                               setScrollEnabled(true);
                               p.onTrim(i, { start });
                             }}
+                            onCancel={() => {
+                              setTrim(null);
+                              setScrollEnabled(true);
+                            }}
                             sourceDuration={p.sourceDuration}
                           />
                           <TrimHandle
                             side="end"
                             clip={p.clips[i]}
+                            pps={pps}
                             onBegin={() => setScrollEnabled(false)}
                             onMove={(end) => setTrim({ i, start: p.clips[i].start, end })}
                             onEnd={(end) => {
                               setTrim(null);
                               setScrollEnabled(true);
                               p.onTrim(i, { end });
+                            }}
+                            onCancel={() => {
+                              setTrim(null);
+                              setScrollEnabled(true);
                             }}
                             sourceDuration={p.sourceDuration}
                           />
@@ -209,17 +264,38 @@ export function Timeline(p: Props) {
         )}
         <View style={[styles.playhead, { left: width / 2 - 1 }]} pointerEvents="none" />
       </View>
+      </GestureDetector>
     </View>
   );
 }
 
+type HandleProps = {
+  side: 'start' | 'end';
+  clip: ClipEdit;
+  pps: number;
+  onBegin: () => void;
+  onMove: (v: number) => void;
+  onEnd: (v: number) => void;
+  /** The handle went away mid-drag (its clip stopped being selected). */
+  onCancel: () => void;
+  sourceDuration: number;
+};
+
 /** Drag a clip's edge to trim it. Movement is in output points, converted to source seconds. */
-function TrimHandle({ side, clip, onBegin, onMove, onEnd, sourceDuration }: { side: 'start' | 'end'; clip: ClipEdit; onBegin: () => void; onMove: (v: number) => void; onEnd: (v: number) => void; sourceDuration: number }) {
-  const latest = useRef({ clip, onBegin, onMove, onEnd, sourceDuration });
+function TrimHandle({ side, clip, pps, onBegin, onMove, onEnd, onCancel, sourceDuration }: HandleProps) {
+  const latest = useRef({ clip, pps, onBegin, onMove, onEnd, onCancel, sourceDuration });
   useEffect(() => {
-    latest.current = { clip, onBegin, onMove, onEnd, sourceDuration };
+    latest.current = { clip, pps, onBegin, onMove, onEnd, onCancel, sourceDuration };
   });
   const value = useRef(0);
+  const active = useRef(false);
+  // Without this, a handle removed mid-drag would leave the strip unable to scroll.
+  useEffect(
+    () => () => {
+      if (active.current) latest.current.onCancel();
+    },
+    []
+  );
   // PanResponder handlers read the latest props from a ref when a touch happens, never during render.
   // eslint-disable-next-line react-hooks/refs
   const [responder] = useState(() =>
@@ -230,17 +306,24 @@ function TrimHandle({ side, clip, onBegin, onMove, onEnd, sourceDuration }: { si
       onPanResponderGrant: () => {
         const { clip: c, onBegin: begin } = latest.current;
         value.current = side === 'start' ? c.start : c.end;
+        active.current = true;
         Haptics.selectionAsync();
         begin();
       },
       onPanResponderMove: (_, g) => {
-        const { clip: c, onMove: move, sourceDuration: max } = latest.current;
-        const delta = (g.dx / PPS) * c.speed;
+        const { clip: c, pps: scale, onMove: move, sourceDuration: max } = latest.current;
+        const delta = (g.dx / scale) * c.speed;
         value.current = side === 'start' ? Math.max(0, Math.min(c.end - 0.1, c.start + delta)) : Math.min(max, Math.max(c.start + 0.1, c.end + delta));
         move(value.current);
       },
-      onPanResponderRelease: () => latest.current.onEnd(value.current),
-      onPanResponderTerminate: () => latest.current.onEnd(value.current),
+      onPanResponderRelease: () => {
+        active.current = false;
+        latest.current.onEnd(value.current);
+      },
+      onPanResponderTerminate: () => {
+        active.current = false;
+        latest.current.onEnd(value.current);
+      },
     })
   );
   return (
