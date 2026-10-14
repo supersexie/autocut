@@ -55,11 +55,11 @@ export default function BatchScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
-  h1: { fontSize: 32, fontWeight: '800', color: theme.ink },
+  screen: { flex: 1, backgroundColor: theme.page },
+  h1: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -0.6, marginTop: 38 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16 },
-  title: { fontSize: 18, fontWeight: '700', color: theme.ink, textAlign: 'center' },
-  body: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20 },
-  status: { marginTop: 16, alignItems: 'center', backgroundColor: '#fff', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 18 },
+  title: { fontSize: 22, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.3 },
+  body: { fontSize: 15, color: theme.muted, textAlign: 'center', lineHeight: 21 },
+  status: { marginTop: 16, alignItems: 'center', backgroundColor: '#fff', borderRadius: 18, paddingVertical: 10, paddingHorizontal: 18 },
   statusText: { fontSize: 14, fontWeight: '600', color: theme.ink, fontVariant: ['tabular-nums'] },
 });

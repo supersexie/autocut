@@ -1,130 +1,127 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Card, listStyles, Meter, RoundButton } from '../../components/list';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
+import { Button } from '../../components/ui';
 import { useAuth } from '../../lib/auth';
-import { PLANS } from '../../lib/plans';
-import { editedDuration, useCuts } from '../../lib/store';
+import { useCuts } from '../../lib/store';
 import { column, COLUMN, theme } from '../../lib/theme';
+import { usageLine, useUsage } from '../../lib/usage';
 
-const LIMITS: Record<string, number> = { starter: 100, pro: 300, ultimate: Infinity };
+const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
 export default function YouScreen() {
   const insets = useSafeAreaInsets();
-  const { account, updateProfile } = useAuth();
+  const { account } = useAuth();
   const cuts = useCuts();
+  const { plan, used, limit, resets } = useUsage();
   const profile = account?.profile ?? {};
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your studio';
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
-  const plan = PLANS.find((p) => p.id === profile.plan);
-
-  const now = new Date();
-  const thisMonth = cuts.filter((c) => {
-    const d = new Date(c.createdAt);
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
-  const resets = new Date(now.getFullYear(), now.getMonth() + 1, 1).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  const limit = LIMITS[profile.plan ?? 'starter'];
-
-  const ready = cuts.filter((c) => c.status === 'ready');
-  const footage = ready.reduce((t, c) => t + c.duration, 0);
-  const kept = ready.reduce((t, c) => t + editedDuration(c), 0);
-  const trims = ready.reduce((t, c) => t + c.cuts.length, 0);
-  const exported = ready.reduce((t, c) => t + c.exports, 0);
-  // Rough rule of thumb: trimming by hand takes about 3 minutes per minute of raw footage.
-  const savedMinutes = Math.round((footage * 3) / 60);
+  const since = account && `Since ${new Date(account.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`;
+  const exported = cuts.reduce((t, c) => t + c.exports, 0);
+  const made = cuts.filter((c) => c.status === 'ready').length;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={[{ paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }, column(COLUMN + 36)]}>
-      <View style={styles.header}>
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={[{ paddingTop: insets.top + 6, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }, column(COLUMN + 36)]}>
+        <View style={styles.top}>
+          <RoundButton icon="gearshape" label="Settings" onPress={() => router.push('/settings')} />
+        </View>
         <Text style={styles.h1}>You</Text>
-        <Pressable onPress={() => router.push('/settings')} hitSlop={10} accessibilityLabel="Settings" style={styles.gear}>
-          <SymbolView name="gearshape" tintColor={theme.ink} size={18} />
-        </Pressable>
-      </View>
 
-      <View style={styles.profile}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
+        <View style={styles.profile}>
+          <View style={[listStyles.avatar, { width: 64, height: 64 }]}>
+            <Text style={[listStyles.avatarText, { fontSize: 21 }]}>{initials}</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            <Text style={styles.sub}>{[profile.handle && `@${profile.handle}`, since].filter(Boolean).join(' · ')}</Text>
+          </View>
         </View>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.name}>{name}</Text>
-          <Text style={styles.sub}>
-            {[profile.handle && `@${profile.handle}`, account && `Since ${new Date(account.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}`]
-              .filter(Boolean)
-              .join(' · ')}
-          </Text>
-        </View>
-      </View>
 
-      <View style={styles.card}>
-        <View style={styles.between}>
-          <Text style={styles.planName}>{plan?.name ?? 'No plan'}</Text>
-          <Pressable onPress={() => updateProfile({ onboarded: false })} hitSlop={8} style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-            <Text style={styles.link}>Manage</Text>
-            <SymbolView name="chevron.right" tintColor={theme.accent} size={11} />
-          </Pressable>
-        </View>
-        <Text style={styles.small}>Payments aren’t connected yet, so nothing is charged.</Text>
-        <View style={styles.divider} />
-        <View style={styles.between}>
-          <Text style={styles.text}>
-            {thisMonth} of {limit === Infinity ? 'unlimited' : limit} edits used
-          </Text>
-          <Text style={styles.small}>Resets {resets}</Text>
-        </View>
-        {limit !== Infinity && (
-          <View style={styles.meter}>
-            <View style={[styles.meterFill, { width: `${Math.min(100, (thisMonth / limit) * 100)}%` }]} />
+        <Card style={styles.pad}>
+          <View style={styles.between}>
+            <Text style={styles.plan}>
+              {plan.name} <Text style={styles.tag}>Beta</Text>
+            </Text>
+            <Pressable onPress={() => router.push('/plan')} hitSlop={8} style={styles.manage}>
+              <Text style={styles.link}>Manage</Text>
+              <SymbolView name="chevron.right" tintColor={theme.ink} size={11} weight="semibold" />
+            </Pressable>
+          </View>
+          <Text style={styles.small}>Free while Autocut is in beta · Edits reset {resets}</Text>
+          <View style={styles.divider} />
+          <Text style={styles.usage}>{usageLine(used, limit)}</Text>
+          {limit !== Infinity && <Meter fraction={used / limit} />}
+        </Card>
+
+        <Card style={[styles.pad, { marginTop: 12 }]}>
+          <View style={styles.between}>
+            <Text style={styles.cardTitle}>Your stats</Text>
+            <Pressable
+              hitSlop={10}
+              accessibilityLabel="About your stats"
+              onPress={() => Alert.alert('Your stats', `Counted on this ${DEVICE}. Cuts made are the takes Autocut has finished cutting; videos exported are the finished videos you've saved or shared.`)}
+            >
+              <SymbolView name="info.circle" tintColor={theme.muted} size={18} />
+            </Pressable>
+          </View>
+          <View style={styles.stats}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.statValue}>{exported}</Text>
+              <Text style={styles.statLabel}>Videos exported</Text>
+              <Text style={styles.statNote}>From this {DEVICE}</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.statValue}>{made}</Text>
+              <Text style={styles.statLabel}>Cuts made</Text>
+            </View>
+          </View>
+        </Card>
+
+        {cuts.length === 0 && (
+          <View style={styles.empty}>
+            <View style={styles.emptyIcon}>
+              <SymbolView name="film.stack" tintColor={theme.muted} size={26} />
+            </View>
+            <Text style={styles.emptyTitle}>Your cuts show up here</Text>
+            <Text style={styles.emptyBody}>Record a few takes and Autocut turns them into a post-ready cut.</Text>
+            <Button kind="outline" title="Start recording" onPress={() => router.navigate('/')} style={{ paddingHorizontal: 26, minHeight: 46 }} />
           </View>
         )}
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Your stats</Text>
-        <Text style={styles.big}>{savedMinutes} min</Text>
-        <Text style={styles.small}>saved vs cutting it yourself (estimate)</Text>
-        <Text style={styles.small}>
-          {Math.round(footage)} sec of footage · {Math.round(footage - kept)} sec trimmed · {trims} cuts
-        </Text>
-        <View style={styles.divider} />
-        <View style={styles.statsRow}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.statValue}>{exported || 'None yet'}</Text>
-            <Text style={styles.small}>Videos exported</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.statValue}>{ready.length}</Text>
-            <Text style={styles.small}>Cuts made</Text>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  h1: { fontSize: 32, fontWeight: '800', color: theme.ink },
-  gear: { width: 36, height: 36, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginVertical: 18 },
-  avatar: { width: 56, height: 56, borderRadius: 28, backgroundColor: theme.tint, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontSize: 19, fontWeight: '700', color: theme.accent },
-  name: { fontSize: 22, fontWeight: '800', color: theme.ink },
-  sub: { fontSize: 13, color: theme.muted, marginTop: 2 },
-  card: { backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 4, marginBottom: 12 },
+  screen: { flex: 1, backgroundColor: theme.page },
+  top: { flexDirection: 'row', justifyContent: 'flex-end', height: 44 },
+  h1: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -0.6 },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14, marginBottom: 20 },
+  name: { fontSize: 26, fontWeight: '800', color: theme.ink, letterSpacing: -0.4 },
+  sub: { fontSize: 14, color: theme.muted, marginTop: 3 },
+  pad: { padding: 16 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  planName: { fontSize: 18, fontWeight: '700', color: theme.ink },
-  link: { fontSize: 14, fontWeight: '600', color: theme.accent },
-  divider: { height: 1, backgroundColor: theme.line, marginVertical: 10 },
-  text: { fontSize: 14, color: theme.ink, fontVariant: ['tabular-nums'] },
-  small: { fontSize: 12, color: theme.muted, fontVariant: ['tabular-nums'] },
-  meter: { height: 6, borderRadius: 3, backgroundColor: theme.line, overflow: 'hidden', marginTop: 8 },
-  meterFill: { height: 6, backgroundColor: theme.accent },
-  cardLabel: { fontSize: 14, fontWeight: '700', color: theme.ink, marginBottom: 6 },
-  big: { fontSize: 34, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
-  statsRow: { flexDirection: 'row' },
-  statValue: { fontSize: 17, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
+  plan: { fontSize: 22, fontWeight: '800', color: theme.ink },
+  tag: { fontSize: 14, fontWeight: '500', color: theme.muted },
+  manage: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  link: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  small: { fontSize: 13, color: theme.muted, marginTop: 6 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.line, marginVertical: 14 },
+  usage: { fontSize: 16, color: theme.ink, fontVariant: ['tabular-nums'] },
+  cardTitle: { fontSize: 18, fontWeight: '700', color: theme.ink },
+  stats: { flexDirection: 'row', marginTop: 16 },
+  statValue: { fontSize: 24, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 15, color: theme.ink, marginTop: 2 },
+  statNote: { fontSize: 12, color: theme.muted, marginTop: 2 },
+  empty: { alignItems: 'center', gap: 8, marginTop: 44, paddingHorizontal: 20 },
+  emptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
+  emptyTitle: { fontSize: 18, fontWeight: '700', color: theme.ink },
+  emptyBody: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20, marginBottom: 10 },
 });

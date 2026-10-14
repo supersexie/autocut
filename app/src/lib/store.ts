@@ -52,6 +52,21 @@ export const cutsDir = new Directory(Paths.document, 'cuts');
 /** The editor's stitched previews (see previewOf in api.ts), named `<cut id>-<key>.mp4`. */
 export const previewsDir = new Directory(Paths.cache, 'previews');
 
+const thumbnailsDir = new Directory(Paths.cache, 'VideoThumbnails'); // where expo-video-thumbnails writes
+
+/** Bytes used by things Autocut can make again: editor previews and thumbnails. */
+export function cacheBytes() {
+  let bytes = 0;
+  for (const dir of [previewsDir, thumbnailsDir]) {
+    if (dir.exists) for (const f of dir.list()) if (f instanceof File) bytes += f.size ?? 0;
+  }
+  return bytes;
+}
+
+export function clearCache() {
+  for (const dir of [previewsDir, thumbnailsDir]) if (dir.exists) dir.delete();
+}
+
 /** Deletes a cut's previews, except `keep`. */
 export function deletePreviews(cutId: string, keep?: string) {
   if (!previewsDir.exists) return;

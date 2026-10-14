@@ -7,10 +7,10 @@ export const CURRENCY = '₹';
 
 export const FEATURES = ['Captions', 'Batch cuts'] as const;
 
-export const PLANS: { id: PlanId; name: string; monthly: number; edits: string; features: readonly string[]; pick?: boolean }[] = [
-  { id: 'starter', name: 'Starter', monthly: 1999, edits: '100 AI edits a month', features: ['Captions'] },
-  { id: 'pro', name: 'Pro', monthly: 4999, edits: '300 AI edits a month', features: FEATURES, pick: true },
-  { id: 'ultimate', name: 'Ultimate', monthly: 9900, edits: 'Unlimited AI edits', features: FEATURES },
+export const PLANS: { id: PlanId; name: string; monthly: number; edits: string; limit: number; features: readonly string[]; pick?: boolean }[] = [
+  { id: 'starter', name: 'Starter', monthly: 1999, edits: '100 AI edits a month', limit: 100, features: ['Captions'] },
+  { id: 'pro', name: 'Pro', monthly: 4999, edits: '300 AI edits a month', limit: 300, features: FEATURES, pick: true },
+  { id: 'ultimate', name: 'Ultimate', monthly: 9900, edits: 'Unlimited AI edits', limit: Infinity, features: FEATURES },
 ];
 
 export const pricePerMonth = (monthly: number, billing: Billing) =>

@@ -1,19 +1,69 @@
-import Slider from '@react-native-community/slider';
+import Constants from 'expo-constants';
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
+import * as StoreReview from 'expo-store-review';
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActionSheetIOS, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CuttingSettings } from '../components/CuttingSettings';
+import { Card, Footnote, listStyles, PageHeader, Row, SectionLabel } from '../components/list';
+import { forgetThumbnails } from '../components/Thumb';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
-import { useAuth } from '../lib/auth';
-import { updateSettings, useSettings } from '../lib/store';
+import { useAuth, type Language } from '../lib/auth';
+import { cacheBytes, clearCache, updateSettings, useSettings } from '../lib/store';
 import { column, COLUMN, theme } from '../lib/theme';
+import { useUsage } from '../lib/usage';
+
+const LANGUAGES: { value: Language; label: string }[] = [
+  { value: 'en', label: 'English' },
+  { value: 'es', label: 'Español' },
+];
+const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
+const VERSION = `v${Constants.expoConfig?.version ?? '1.0.0'}${Constants.expoConfig?.ios?.buildNumber ? ` (${Constants.expoConfig.ios.buildNumber})` : ''}`;
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { account, signOut, updateProfile, deleteAccount } = useAuth();
+  const { plan } = useUsage();
   const profile = account?.profile ?? {};
   const settings = useSettings();
+  const [cache, setCache] = useState(cacheBytes);
   const [serverStatus, setServerStatus] = useState<string | null>(null);
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ') || 'Your studio';
+  const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
+  const language = LANGUAGES.find((l) => l.value === profile.language) ?? LANGUAGES[0];
+
+  function pickLanguage() {
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: 'I record in', options: [...LANGUAGES.map((l) => l.label), 'Cancel'], cancelButtonIndex: LANGUAGES.length },
+      (i) => i < LANGUAGES.length && updateProfile({ language: LANGUAGES[i].value })
+    );
+  }
+
+  async function rate() {
+    if (await StoreReview.hasAction()) await StoreReview.requestReview();
+    else Alert.alert('Thank you!', 'Rating opens here once Autocut is on the App Store.');
+  }
+
+  function emptyCache() {
+    Alert.alert('Clear the cache?', 'Editor previews and thumbnails are made again when you need them. Your cuts aren’t touched.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: () => {
+          clearCache();
+          forgetThumbnails();
+          setCache(cacheBytes());
+        },
+      },
+    ]);
+  }
+
+  function replayTutorial() {
+    updateSettings({ tourDone: false });
+    Alert.alert('Tutorial is on', 'The editor tour shows again the next time you open a cut.');
+  }
 
   function confirmDelete() {
     Alert.alert(
@@ -24,8 +74,7 @@ export default function SettingsScreen() {
         {
           text: 'Delete account',
           style: 'destructive',
-          onPress: () =>
-            deleteAccount().catch((e) => Alert.alert('Couldn’t delete your account', e instanceof Error ? e.message : String(e))),
+          onPress: () => deleteAccount().catch((e) => Alert.alert('Couldn’t delete your account', e instanceof Error ? e.message : String(e))),
         },
       ]
     );
@@ -42,121 +91,107 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
-      <View style={styles.head}>
-        <Text style={styles.title}>Settings</Text>
-        <Pressable onPress={() => router.back()} hitSlop={10}>
-          <Text style={styles.done}>Done</Text>
-        </Pressable>
-      </View>
-      <ScrollView contentContainerStyle={[{ paddingHorizontal: 18, paddingBottom: insets.bottom + 30 }, column(COLUMN + 36)]}>
-        <Text style={styles.label}>Cutting</Text>
-        <View style={styles.group}>
-          <View style={[styles.item, { flexDirection: 'column', alignItems: 'stretch', gap: 6 }]}>
-            <View style={styles.between}>
-              <Text style={styles.text}>Longest pause to keep</Text>
-              <Text style={styles.value}>{settings.maxGap.toFixed(2)}s</Text>
+      <PageHeader title="Settings" />
+      <ScrollView contentContainerStyle={[{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: insets.bottom + 30 }, column(COLUMN + 36)]}>
+        <Card>
+          <View style={styles.profile}>
+            <View style={[listStyles.avatar, { width: 50, height: 50 }]}>
+              <Text style={[listStyles.avatarText, { fontSize: 17 }]}>{initials}</Text>
             </View>
-            <Slider
-              minimumValue={0.15}
-              maximumValue={0.8}
-              step={0.05}
-              value={settings.maxGap}
-              onSlidingComplete={(v) => updateSettings({ maxGap: Math.round(v * 100) / 100 })}
-              minimumTrackTintColor={theme.accent}
-            />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.name} numberOfLines={1}>
+                {name}
+              </Text>
+              <Text style={styles.email} numberOfLines={1}>
+                {account?.email ?? 'Not signed in'}
+              </Text>
+            </View>
+            <Pressable onPress={() => router.push('/edit-profile')} hitSlop={10}>
+              <Text style={styles.edit}>Edit</Text>
+            </Pressable>
           </View>
-          <Row label="Remove ums and uhs" value={settings.removeFillers} onChange={(v) => updateSettings({ removeFillers: v })} />
-          <Row label="Remove retakes" value={settings.removeRetakes} onChange={(v) => updateSettings({ removeRetakes: v })} />
-          <Row label="Captions on new cuts" value={settings.captions} onChange={(v) => updateSettings({ captions: v })} last />
-        </View>
-        <Text style={styles.foot}>Lower pause = snappier edit. With retakes on, when you say a line again Autocut keeps your last take.</Text>
+        </Card>
 
-        <Text style={styles.label}>Recording</Text>
-        <View style={styles.group}>
-          <Row label="Mirror selfie videos" value={settings.mirrorSelfie} onChange={(v) => updateSettings({ mirrorSelfie: v })} />
-          <Pressable style={[styles.item, styles.last]} onPress={() => updateProfile({ language: profile.language === 'es' ? 'en' : 'es' })}>
-            <Text style={styles.text}>I record in</Text>
-            <Text style={[styles.value, { color: theme.accent }]}>{profile.language === 'es' ? 'Español' : 'English'}</Text>
-          </Pressable>
-        </View>
+        <Card style={{ marginTop: 14 }}>
+          <Row label="Your plan" value={plan.name} onPress={() => router.push('/plan')} last />
+        </Card>
 
-        <Text style={styles.foot}>Off: selfie videos come out the way others see you, so text reads the right way round. On: they stay mirrored like the camera preview.</Text>
+        <SectionLabel>Preferences</SectionLabel>
+        <Card>
+          <Row icon="waveform" label="I record in" value={language.label} picker onPress={pickLanguage} />
+          <Row
+            icon="person.crop.square"
+            label="Mirror selfie videos"
+            right={<Switch value={settings.mirrorSelfie} onValueChange={(mirrorSelfie) => updateSettings({ mirrorSelfie })} trackColor={{ true: theme.ink }} />}
+            last
+          />
+        </Card>
+        <Footnote>Off: selfie videos come out the way others see you, so text reads the right way round.</Footnote>
+
+        <SectionLabel>Cutting</SectionLabel>
+        <CuttingSettings />
+
+        <SectionLabel>Support</SectionLabel>
+        <Card>
+          {SUPPORT_EMAIL && <Row icon="envelope" label="Help & contact" detail={SUPPORT_EMAIL} onPress={() => Linking.openURL(`mailto:${SUPPORT_EMAIL}`)} />}
+          <Row icon="star" label="Rate Autocut" onPress={rate} />
+          <Row icon="internaldrive" label="Cache" detail={`${(cache / 1e6).toFixed(1)} MB · previews and thumbnails`} onPress={emptyCache} />
+          <Row icon="graduationcap" label="Replay tutorial" onPress={replayTutorial} last />
+        </Card>
+
+        <SectionLabel>Legal</SectionLabel>
+        <Card>
+          <Row icon="checkmark.shield" label="Privacy Policy" onPress={() => openLegal('privacy')} />
+          <Row icon="doc.text" label="Terms of Service" onPress={() => openLegal('terms')} last />
+        </Card>
 
         {__DEV__ && (
           <>
-            <Text style={styles.label}>Server (development)</Text>
-            <View style={styles.group}>
-              <View style={[styles.item, styles.last, { flexDirection: 'column', alignItems: 'stretch', gap: 10 }]}>
-                <TextInput
-                  style={styles.input}
-                  value={settings.serverUrl}
-                  onChangeText={(serverUrl) => updateSettings({ serverUrl })}
-                  placeholder={autoServerUrl()}
-                  placeholderTextColor={theme.faint}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="url"
-                  accessibilityLabel="Server address"
-                />
-                <Pressable onPress={test} style={{ alignSelf: 'flex-start' }} hitSlop={6}>
-                  <Text style={styles.link}>Test connection</Text>
-                </Pressable>
-                {serverStatus && <Text style={styles.status}>{serverStatus}</Text>}
-              </View>
-            </View>
-            <Text style={styles.foot}>Leave empty to use the Mac running Expo. Your takes are cut there and come back to this phone.</Text>
+            <SectionLabel>Server (development)</SectionLabel>
+            <Card style={{ padding: 14, gap: 10 }}>
+              <TextInput
+                style={styles.input}
+                value={settings.serverUrl}
+                onChangeText={(serverUrl) => updateSettings({ serverUrl })}
+                placeholder={autoServerUrl()}
+                placeholderTextColor={theme.faint}
+                autoCapitalize="none"
+                autoCorrect={false}
+                keyboardType="url"
+                accessibilityLabel="Server address"
+              />
+              <Pressable onPress={test} style={{ alignSelf: 'flex-start' }} hitSlop={6}>
+                <Text style={styles.devLink}>Test connection</Text>
+              </Pressable>
+              {serverStatus && <Text style={styles.status}>{serverStatus}</Text>}
+            </Card>
+            <Footnote>Leave empty to use the Mac running Expo.</Footnote>
           </>
         )}
 
-        <Text style={styles.label}>Legal</Text>
-        <View style={styles.group}>
-          <Pressable style={styles.item} onPress={() => openLegal('privacy')}>
-            <Text style={styles.text}>Privacy Policy</Text>
-            <Text style={styles.value}>›</Text>
-          </Pressable>
-          <Pressable style={[styles.item, styles.last]} onPress={() => openLegal('terms')}>
-            <Text style={styles.text}>Terms of Service</Text>
-            <Text style={styles.value}>›</Text>
-          </Pressable>
-        </View>
-
-        <View style={[styles.group, { marginTop: 24 }]}>
-          <Pressable style={styles.item} onPress={signOut}>
-            <Text style={[styles.text, { color: '#D93B3B' }]}>Sign out</Text>
-            <Text style={styles.value}>{account?.email ?? 'dev mode'}</Text>
-          </Pressable>
-          <Pressable style={[styles.item, styles.last]} onPress={confirmDelete}>
-            <Text style={[styles.text, { color: '#D93B3B' }]}>Delete account</Text>
-          </Pressable>
-        </View>
+        <Pressable onPress={signOut} style={({ pressed }) => [styles.signOut, pressed && { opacity: 0.7 }]}>
+          <Text style={styles.signOutText}>Sign out</Text>
+        </Pressable>
+        <Text style={styles.version}>{VERSION}</Text>
+        <Pressable onPress={confirmDelete} hitSlop={10} style={{ alignSelf: 'center' }}>
+          <Text style={styles.delete}>Delete account</Text>
+        </Pressable>
       </ScrollView>
     </View>
   );
 }
 
-function Row({ label, value, onChange, last }: { label: string; value: boolean; onChange: (v: boolean) => void; last?: boolean }) {
-  return (
-    <View style={[styles.item, last && styles.last]}>
-      <Text style={styles.text}>{label}</Text>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: theme.ink }} />
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingBottom: 8 },
-  title: { fontSize: 20, fontWeight: '700', color: theme.ink },
-  done: { fontSize: 16, fontWeight: '600', color: theme.accent },
-  label: { fontSize: 12, color: theme.faint, textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 20, marginBottom: 6, marginLeft: 6 },
-  group: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' },
-  item: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: theme.line, gap: 12 },
-  last: { borderBottomWidth: 0 },
-  between: { flexDirection: 'row', justifyContent: 'space-between' },
-  text: { fontSize: 15, color: theme.ink, flexShrink: 1 },
-  value: { fontSize: 15, color: theme.faint, fontVariant: ['tabular-nums'] },
-  foot: { fontSize: 12, color: theme.faint, marginTop: 6, marginHorizontal: 6, lineHeight: 17 },
-  input: { fontSize: 15, color: theme.ink, backgroundColor: theme.bg, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  link: { color: theme.accent, fontSize: 15, fontWeight: '600' },
+  screen: { flex: 1, backgroundColor: theme.page },
+  profile: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  name: { fontSize: 17, fontWeight: '700', color: theme.ink },
+  email: { fontSize: 13, color: theme.muted, marginTop: 2 },
+  edit: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  input: { fontSize: 15, color: theme.ink, backgroundColor: theme.page, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  devLink: { color: theme.ink, fontSize: 15, fontWeight: '600' },
   status: { fontSize: 13, color: theme.muted, lineHeight: 18 },
+  signOut: { marginTop: 30, backgroundColor: '#fff', borderRadius: 16, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: theme.line },
+  signOutText: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  version: { fontSize: 13, color: theme.faint, textAlign: 'center', marginTop: 22 },
+  delete: { fontSize: 15, color: theme.danger, marginTop: 14, fontWeight: '500' },
 });

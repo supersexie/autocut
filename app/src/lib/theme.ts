@@ -6,6 +6,7 @@ export const theme = {
   faint: '#A1A1A8',
   line: '#EDEDF0',
   bg: '#FFFFFF',
+  page: '#F4F4F6', // behind cards on the You, Cuts and Settings screens
   card: '#F5F5F7',
   tint: 'rgba(17,17,20,0.06)', // soft fill behind icons and selected tracks
   disabled: '#C7C7CC',

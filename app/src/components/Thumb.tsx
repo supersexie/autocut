@@ -4,6 +4,9 @@ import { Image, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-n
 
 const cache = new Map<string, string>();
 
+/** After the thumbnail files are deleted (Settings › Cache), make them again when next shown. */
+export const forgetThumbnails = () => cache.clear();
+
 /** A still frame from a local video, generated once and cached for the session. */
 export function useThumbnail(uri: string | undefined, seconds = 0.3) {
   const key = uri ? `${uri}@${seconds.toFixed(2)}` : '';

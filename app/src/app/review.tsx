@@ -173,7 +173,7 @@ export default function Review() {
           <Text style={styles.optionText}>Captions</Text>
           <Switch value={settings.captions} onValueChange={(captions) => updateSettings({ captions })} trackColor={{ true: theme.ink }} />
         </View>
-        <Pressable style={styles.more} onPress={() => router.push('/settings')} hitSlop={8}>
+        <Pressable style={styles.more} onPress={() => router.push('/cut-options')} hitSlop={8}>
           <SymbolView name="ellipsis" tintColor={theme.muted} size={14} />
           <Text style={styles.moreText}>More options</Text>
         </Pressable>
