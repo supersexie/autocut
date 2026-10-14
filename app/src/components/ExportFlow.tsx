@@ -15,7 +15,7 @@ import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type 
 import { formatTime, sleep, theme } from '../lib/theme';
 import { ProgressCard } from './ProgressCard';
 import { Thumb } from './Thumb';
-import { Button } from './ui';
+import { Button, Logo } from './ui';
 
 const RESOLUTIONS = [720, 1080, 1440, 2160];
 const FRAME_RATES = [24, 30, 60];
@@ -198,9 +198,7 @@ function Done({ file, saved, onClose }: { file: string; saved: boolean; onClose:
 
       {rating ? (
         <Animated.View entering={SlideInDown.springify().damping(20)} style={styles.rateCard}>
-          <View style={styles.rateBadge}>
-            <SymbolView name="scissors" tintColor="#fff" size={22} weight="bold" />
-          </View>
+          <Logo size={52} />
           <Text style={styles.ratePill}>✂ Cut #{getCuts().reduce((t, c) => t + c.exports, 0)} is out</Text>
           <Text style={styles.rateTitle}>How’s Autocut working for you?</Text>
           <Text style={styles.sub}>Rate your experience so far.</Text>
@@ -258,7 +256,6 @@ const styles = StyleSheet.create({
   donePlayer: { flex: 1, alignSelf: 'stretch', marginHorizontal: 30, borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   rateCard: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 20, alignItems: 'center', gap: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -4 } },
-  rateBadge: { width: 52, height: 52, borderRadius: 16, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   ratePill: { fontSize: 11, fontWeight: '700', color: '#fff', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
   rateTitle: { fontSize: 17, fontWeight: '700', color: theme.ink, marginTop: 4 },
   stars: { flexDirection: 'row', gap: 14, marginVertical: 6 },

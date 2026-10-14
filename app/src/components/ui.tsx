@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import type { ComponentProps, ReactNode } from 'react';
 import {
-  ActivityIndicator, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Image, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextInputProps, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,10 +33,13 @@ export function Backdrop({ children, scroll = true, footer }: { children: ReactN
   );
 }
 
+const MARK = require('../../assets/logo-mark.png');
+
+/** The Autocut mark (a play symbol cut clean through) on its dark tile. */
 export function Logo({ size = 56 }: { size?: number }) {
   return (
-    <View style={[styles.logo, { width: size, height: size, borderRadius: size * 0.28 }]}>
-      <SymbolView name="scissors" tintColor="#fff" size={size * 0.48} weight="bold" />
+    <View style={[styles.logo, { width: size, height: size, borderRadius: size * 0.225 }]}>
+      <Image source={MARK} style={{ width: size, height: size }} accessibilityLabel="Autocut" />
     </View>
   );
 }
@@ -174,7 +177,7 @@ export function ErrorText({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  logo: { backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  logo: { backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   button: { minHeight: 56, borderRadius: 28, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22 },
   primary: { backgroundColor: theme.ink },
   primaryOff: { backgroundColor: theme.disabled },
