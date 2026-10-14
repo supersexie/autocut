@@ -68,10 +68,17 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [exporting, setExporting] = useState(false);
   const [aspect, setAspect] = useState(9 / 16);
 
-  const player = useVideoPlayer(sourceUri, (p) => {
+  // Two players over the same video, working in relay: the front one plays the current clip
+  // while the other waits, already seeked, at the start of the next. At a clip boundary they
+  // swap instantly, so there's no seek (and no freeze) between clips.
+  const setup = (p: VideoPlayer) => {
     p.timeUpdateEventInterval = 1 / 30;
     p.loop = false;
-  });
+  };
+  const playerA = useVideoPlayer(sourceUri, setup);
+  const playerB = useVideoPlayer(sourceUri, setup);
+  const players = useMemo(() => [playerA, playerB] as [VideoPlayer, VideoPlayer], [playerA, playerB]);
+  const [front, setFront] = useState<0 | 1>(0);
 
   // Video shape from a frame (already rotated the way it's shown).
   useEffect(() => {
@@ -80,72 +87,111 @@ function Editor({ cut }: { cut: CutRecord }) {
       .catch(() => {});
   }, [sourceUri]);
 
-  // ---- Playback: play the source, jumping between clips and applying each clip's speed/volume.
-  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false });
+  // ---- Playback state that event handlers read (refs, so they always see the latest edit).
+  const live = useRef({ clips, muted: edit.muted, index: 0, scrubbing: false, front: 0 as 0 | 1 });
   useEffect(() => {
     live.current.clips = clips;
     live.current.muted = edit.muted;
   }, [clips, edit.muted]);
 
+  // Stable helpers (they only touch the players and the `live` ref).
+  const relay = useMemo(() => {
+    const active = () => players[live.current.front];
+    const standby = () => players[live.current.front === 0 ? 1 : 0];
+    const volumeOf = (c: ClipEdit) => (live.current.muted ? 0 : c.volume);
+    /** Park the standby player, silent and paused, at the start of clip `i`. */
+    const prime = (i: number) => {
+      const c = live.current.clips[i];
+      const p = standby();
+      p.pause();
+      if (!c) return;
+      seek(p, c.start);
+      setPlayback(p, c.speed, 0);
+    };
+    return { active, standby, volumeOf, prime };
+  }, [players]);
+  const { active: activePlayer, volumeOf, prime } = relay;
+
   const applyClip = (i: number) => {
     const c = live.current.clips[i];
-    if (c) setPlayback(player, c.speed, live.current.muted ? 0 : c.volume);
+    if (c) setPlayback(activePlayer(), c.speed, volumeOf(c));
   };
 
   useEffect(() => {
-    const subs = [
-      player.addListener('playingChange', (e) => setPlaying(e.isPlaying)),
-      player.addListener('timeUpdate', ({ currentTime }) => {
-        const { clips: list, index, scrubbing } = live.current;
-        if (scrubbing) return;
+    const subs = players.flatMap((pl, which) => [
+      pl.addListener('playingChange', (e) => {
+        if (which === live.current.front) setPlaying(e.isPlaying);
+      }),
+      pl.addListener('timeUpdate', ({ currentTime }) => {
+        const { clips: list, index, scrubbing, front: f } = live.current;
+        if (which !== f || scrubbing) return;
         const i = Math.min(index, list.length - 1);
         const c = list[i];
         if (!c) return;
-        if (currentTime >= c.end - 0.03) {
-          if (i + 1 < list.length) {
-            live.current.index = i + 1;
-            seek(player, list[i + 1].start);
-            const n = list[i + 1];
-            setPlayback(player, n.speed, live.current.muted ? 0 : n.volume);
-            setTime(clipOffset(list, i + 1));
-          } else {
-            player.pause();
+        if (currentTime >= c.end - 0.04) {
+          const next = list[i + 1];
+          if (!next) {
+            pl.pause();
             live.current.index = 0;
-            seek(player, list[0].start);
+            seek(pl, list[0].start);
+            setPlayback(pl, list[0].speed, volumeOf(list[0]));
             setTime(0);
+            prime(1);
+            return;
           }
+          // Hand over to the waiting player, then park this one at the clip after next.
+          const incoming = players[f === 0 ? 1 : 0];
+          live.current.front = f === 0 ? 1 : 0;
+          live.current.index = i + 1;
+          setPlayback(incoming, next.speed, volumeOf(next));
+          incoming.play();
+          setPlayback(pl, c.speed, 0);
+          pl.pause();
+          setFront(live.current.front);
+          setTime(clipOffset(list, i + 1));
+          setTimeout(() => prime(i + 2), 60);
           return;
         }
-        if (currentTime < c.start - 0.3) seek(player, c.start);
+        if (currentTime < c.start - 0.3) seek(pl, c.start);
         setTime(clipOffset(list, i) + Math.max(0, currentTime - c.start) / c.speed);
       }),
-      player.addListener('statusChange', ({ status }) => {
-        const first = live.current.clips[0];
-        if (status === 'readyToPlay' && first && player.currentTime < first.start) {
-          seek(player, first.start);
-          setPlayback(player, first.speed, live.current.muted ? 0 : first.volume);
-        }
+      pl.addListener('statusChange', ({ status }) => {
+        if (status !== 'readyToPlay') return;
+        const list = live.current.clips;
+        if (which === live.current.front) {
+          const first = list[0];
+          if (first && pl.currentTime < first.start) {
+            seek(pl, first.start);
+            setPlayback(pl, first.speed, volumeOf(first));
+          }
+        } else prime(live.current.index + 1);
       }),
-    ];
+    ]);
     return () => subs.forEach((s) => s.remove());
-  }, [player]);
+  }, [players, prime, volumeOf]);
+
+  function pauseAll() {
+    players.forEach((p) => p.pause());
+  }
 
   function goTo(t: number, list: ClipEdit[] = clips) {
     const clamped = Math.max(0, Math.min(t, totalDuration(list) - 0.01));
     const [i, source] = locate(list, clamped);
     live.current.index = i;
-    seek(player, source);
+    const p = activePlayer();
+    seek(p, source);
     const c = list[i];
-    if (c) setPlayback(player, c.speed, live.current.muted ? 0 : c.volume);
+    if (c) setPlayback(p, c.speed, volumeOf(c));
     setTime(clamped);
+    prime(i + 1);
   }
 
   function toggle() {
-    if (playing) return player.pause();
+    if (playing) return pauseAll();
     live.current.scrubbing = false;
     if (time >= total - 0.05) goTo(0);
     applyClip(live.current.index);
-    player.play();
+    activePlayer().play();
   }
 
   // ---- History: every change is undoable and saved.
@@ -282,7 +328,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         <Pressable
           ref={exportRef}
           onPress={() => {
-            player.pause();
+            pauseAll();
             setExporting(true);
           }}
           hitSlop={10}
@@ -294,7 +340,8 @@ function Editor({ cut }: { cut: CutRecord }) {
       </View>
 
       <Preview
-        player={player}
+        players={players}
+        front={front}
         aspect={aspect}
         line={line}
         activeWord={activeWord}
@@ -343,7 +390,7 @@ function Editor({ cut }: { cut: CutRecord }) {
             texts={edit.texts}
             selectedText={selectedText}
             onScrubStart={() => {
-              player.pause();
+              pauseAll();
               live.current.scrubbing = true;
             }}
             onScrub={(t) => {
@@ -365,7 +412,11 @@ function Editor({ cut }: { cut: CutRecord }) {
               setClips(trimClip(clips, i, edges, cut.duration));
             }}
             onReorderStart={(i) => setReorderFrom(i)}
-            onToggleMute={() => commit({ ...edit, muted: !edit.muted }, { keepTime: true })}
+            onToggleMute={() => {
+              commit({ ...edit, muted: !edit.muted }, { keepTime: true });
+              live.current.muted = !edit.muted;
+              applyClip(live.current.index);
+            }}
             onCaptions={(l) => {
               live.current.scrubbing = false;
               if (l) goTo(l.start);

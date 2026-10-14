@@ -17,7 +17,9 @@ import Slider from '@react-native-community/slider';
 import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
 
 type PreviewProps = {
-  player: VideoPlayer;
+  /** Two players over the same video: one plays, the other waits at the next clip (see the editor). */
+  players: [VideoPlayer, VideoPlayer];
+  front: 0 | 1;
   aspect: number; // width / height of the video
   line?: CaptionLine;
   activeWord: number;
@@ -48,7 +50,9 @@ export function Preview(p: PreviewProps) {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} onLayout={onLayout}>
         {fw > 0 && (
           <Pressable onPress={p.onTap} style={[styles.frame, { width: fw, height: fh, borderRadius: p.fullscreen ? 0 : 16 }]}>
-            <VideoView player={p.player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
+            {p.players.map((pl, i) => (
+              <VideoView key={i} player={pl} style={[StyleSheet.absoluteFill, { opacity: i === p.front ? 1 : 0 }]} contentFit="cover" nativeControls={false} />
+            ))}
             {p.line && (
               <View style={[styles.captionSpot, { bottom: fh * 0.24 }]} pointerEvents="none">
                 <StyledText preset={captionStyle(p.captionStyleId)} look={p.captionLook} words={p.line.words.map((w) => w.text)} active={p.activeWord} frameWidth={fw} />

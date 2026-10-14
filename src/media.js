@@ -92,7 +92,8 @@ export async function joinTakes(inputs, output, { flips = [], onProgress } = {})
       '-y', ...inputs.flatMap((f) => ['-i', f]),
       '-filter_complex', parts.join(';'),
       '-map', '[v]', '-map', '[a]',
-      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18',
+      // A keyframe every 15 frames keeps seeking in the editor instant (the default is ~250).
+      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-g', '15', '-keyint_min', '15',
       '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
       output,
     ],
