@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import * as VideoThumbnails from 'expo-video-thumbnails';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
+import { ActionSheetIOS, ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
@@ -14,8 +14,8 @@ import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
 import { Button, PressableScale, type SymbolName } from '../../components/ui';
 import {
-  captionLines, clipOffset, coverSource, duplicateClip, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
-  trimClip, updateClip, type ClipEdit, type Edit, type TextOverlay,
+  captionLines, clipOffset, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, outDuration, removeClip, restoreCut, splitAt, totalDuration,
+  trimClip, updateClip, type ClipEdit, type Edit, type Framing, type Keyframe, type TextOverlay,
 } from '../../lib/edit';
 import { cutFile, editOf, getSettings, saveEdit, updateSettings, useCut, type CutRecord } from '../../lib/store';
 import { BRAND_FONT } from '../../lib/fonts';
@@ -57,12 +57,55 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [choosingCover, setChoosingCover] = useState(false);
+  // Keyframes: the one being framed (pinch and drag on the picture), and its framing mid-gesture.
+  const [framingId, setFramingId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<Framing | null>(null);
+  const draftRef = useRef<Framing | null>(null);
   const [exporting, setExporting] = useState(false);
   const [aspect, setAspect] = useState(9 / 16);
 
   const playback = usePlayback({ cutId: cut.id, serverId: cut.serverId, sourceUri, clips, muted: edit.muted });
   const { time, playing } = playback;
   useMusic(edit.music, time, playing);
+
+  // ---- Keyframes: zoom and pan over time.
+  const keyframes = edit.keyframes;
+  const here = keyframeAt(keyframes, time);
+  // Framing mode lasts while the playhead sits on that keyframe; playing or scrubbing away ends it.
+  const adjusting = !!framingId && here?.id === framingId;
+  const framing = (adjusting && draft) || framingAt(keyframes, time);
+
+  function addKeyframe() {
+    playback.pause();
+    const k: Keyframe = { id: newId(), t: time, ...framingAt(keyframes, time) };
+    commit({ ...edit, keyframes: putKeyframe(keyframes, k) }, { keepTime: true });
+    setFramingId(k.id);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
+
+  function deleteKeyframe(k: Keyframe) {
+    commit({ ...edit, keyframes: (keyframes ?? []).filter((x) => x.id !== k.id) }, { keepTime: true });
+    setFramingId(null);
+  }
+
+  function keyframeMenu(k: Keyframe) {
+    playback.pause();
+    ActionSheetIOS.showActionSheetWithOptions(
+      { title: 'Keyframe', options: ['Adjust framing', 'Delete keyframe', 'Cancel'], destructiveButtonIndex: 1, cancelButtonIndex: 2 },
+      (i) => {
+        if (i === 0) setFramingId(k.id);
+        if (i === 1) deleteKeyframe(k);
+      }
+    );
+  }
+
+  function saveFraming() {
+    const f = draftRef.current;
+    const k = keyframes?.find((x) => x.id === framingId);
+    draftRef.current = null;
+    setDraft(null);
+    if (f && k) commit({ ...edit, keyframes: putKeyframe(keyframes, { ...k, ...f }) }, { keepTime: true });
+  }
 
   // Video shape from a frame (already rotated the way it's shown).
   useEffect(() => {
@@ -233,20 +276,46 @@ function Editor({ cut }: { cut: CutRecord }) {
         texts={visibleTexts}
         selectedText={selectedText}
         fullscreen={fullscreen}
-        onTap={() => (selectedText ? setSelectedText(null) : playback.toggle())}
+        onTap={() => (adjusting ? undefined : selectedText ? setSelectedText(null) : playback.toggle())}
         onTapText={(id) => setSelectedText(id)}
         onMoveText={(id, x, y) => updateText(id, { x, y })}
         onCloseFullscreen={() => setFullscreen(false)}
+        framing={framing}
+        adjusting={adjusting}
+        onFrame={(f) => {
+          draftRef.current = f;
+          setDraft(f);
+        }}
+        onFrameEnd={saveFraming}
       />
 
+      {adjusting && here ? (
+        <View style={styles.transport}>
+          <Pressable onPress={() => deleteKeyframe(here)} hitSlop={10} style={{ width: 120 }} accessibilityLabel="Delete keyframe">
+            <SymbolView name="trash" tintColor={theme.danger} size={17} />
+          </Pressable>
+          <Text style={styles.framingHint}>Pinch and drag the video</Text>
+          <Pressable onPress={() => setFramingId(null)} hitSlop={10} style={{ width: 120, alignItems: 'flex-end' }}>
+            <Text style={styles.framingDone}>Done</Text>
+          </Pressable>
+        </View>
+      ) : (
       <View style={styles.transport}>
-        <Pressable onPress={() => setFullscreen(true)} hitSlop={10} accessibilityLabel="Full screen" style={{ width: 80 }}>
+        <Pressable onPress={() => setFullscreen(true)} hitSlop={10} accessibilityLabel="Full screen" style={{ width: 120 }}>
           <SymbolView name="arrow.up.left.and.arrow.down.right" tintColor={theme.ink} size={16} />
         </Pressable>
         <Pressable onPress={playback.toggle} hitSlop={14} accessibilityLabel={playing ? 'Pause' : 'Play'}>
           <SymbolView name={playing ? 'pause.fill' : 'play.fill'} tintColor={theme.ink} size={22} />
         </Pressable>
-        <View style={{ flexDirection: 'row', gap: 20, width: 80, justifyContent: 'flex-end' }}>
+        <View style={{ flexDirection: 'row', gap: 20, width: 120, justifyContent: 'flex-end', alignItems: 'center' }}>
+          {/* Filled when the playhead is on a keyframe (tap for options); outlined adds one here. */}
+          <Pressable
+            onPress={() => (here ? keyframeMenu(here) : addKeyframe())}
+            hitSlop={8}
+            accessibilityLabel={here ? 'Keyframe options' : 'Add a keyframe'}
+          >
+            <SymbolView name={here ? 'diamond.fill' : 'diamond'} tintColor={theme.ink} size={18} />
+          </Pressable>
           <Pressable onPress={undo} disabled={!history.past.length} hitSlop={8} accessibilityLabel="Undo">
             <SymbolView name="arrow.uturn.backward" tintColor={history.past.length ? theme.ink : '#C7C7CC'} size={17} />
           </Pressable>
@@ -255,6 +324,7 @@ function Editor({ cut }: { cut: CutRecord }) {
           </Pressable>
         </View>
       </View>
+      )}
 
       <View style={styles.bottom}>
         <View style={styles.clockRow}>
@@ -278,6 +348,11 @@ function Editor({ cut }: { cut: CutRecord }) {
             coverSource={coverSource(edit)}
             captionsOn={edit.captions.enabled}
             music={edit.music}
+            keyframes={keyframes}
+            onKeyframe={(k) => {
+              playback.pause();
+              playback.seek(k.t);
+            }}
             lines={lines}
             texts={edit.texts}
             selectedText={selectedText}
@@ -477,6 +552,8 @@ const styles = StyleSheet.create({
   exportBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, width: 80, justifyContent: 'flex-end' },
   exportText: { fontSize: 15, fontWeight: '700', color: theme.ink },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
+  framingHint: { fontSize: 13, color: theme.muted, fontWeight: '500' },
+  framingDone: { fontSize: 15, fontWeight: '700', color: theme.ink },
   bottom: { height: 330, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
   clock: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },

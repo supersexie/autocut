@@ -7,7 +7,10 @@ import {
 } from 'react-native';
 import Animated, { FadeIn, FadeInDown, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { locate, moveClip, outDuration, totalDuration, type CaptionLine, type ClipEdit, type TextLook, type TextOverlay } from '../../lib/edit';
+import {
+  clampFraming, locate, moveClip, outDuration, totalDuration, type CaptionLine, type ClipEdit, type Framing, type TextLook, type TextOverlay,
+} from '../../lib/edit';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { TEXT_FONTS } from '../../lib/fonts';
 import type { SymbolName } from '../ui';
 import { theme } from '../../lib/theme';
@@ -31,7 +34,83 @@ type PreviewProps = {
   onTapText: (id: string) => void;
   onMoveText: (id: string, x: number, y: number) => void;
   onCloseFullscreen: () => void;
+  /** How the picture is zoomed and moved right now (keyframes). */
+  framing: Framing;
+  /** Pinching and dragging the picture frames the keyframe being adjusted. */
+  adjusting: boolean;
+  onFrame: (f: Framing) => void;
+  onFrameEnd: () => void;
 };
+
+/**
+ * Over the picture while a keyframe is being framed: pinch to zoom, drag to move. Both at once
+ * work, and the picture is never moved far enough to show its edge.
+ */
+function FramingLayer({ width, height, framing, onFrame, onEnd }: { width: number; height: number; framing: Framing; onFrame: (f: Framing) => void; onEnd: () => void }) {
+  const latest = useRef({ width, height, framing, onFrame, onEnd });
+  useEffect(() => {
+    latest.current = { width, height, framing, onFrame, onEnd };
+  });
+  const start = useRef(framing);
+  const live = useRef({ scale: 1, dx: 0, dy: 0 });
+  // Made once, reading the latest props from a ref, so a re-render mid-gesture doesn't cancel it.
+  // eslint-disable-next-line react-hooks/refs
+  const [gesture] = useState(() => {
+    const update = () => {
+      const { width: w, height: h, onFrame: emit } = latest.current;
+      const s = start.current;
+      emit(clampFraming({ scale: s.scale * live.current.scale, x: s.x + live.current.dx / w, y: s.y + live.current.dy / h }));
+    };
+    // Pinch and drag can start and stop separately; the framing is saved when both have let go.
+    let pinching = false;
+    let panning = false;
+    const begin = () => {
+      if (!pinching && !panning) start.current = latest.current.framing;
+    };
+    const finish = () => {
+      if (pinching || panning) return;
+      live.current = { scale: 1, dx: 0, dy: 0 };
+      latest.current.onEnd();
+    };
+    const pinch = Gesture.Pinch()
+      .runOnJS(true)
+      .onStart(() => {
+        begin();
+        pinching = true;
+      })
+      .onUpdate((e) => {
+        live.current.scale = e.scale;
+        update();
+      })
+      .onFinalize(() => {
+        if (!pinching) return;
+        pinching = false;
+        finish();
+      });
+    const pan = Gesture.Pan()
+      .runOnJS(true)
+      .onStart(() => {
+        begin();
+        panning = true;
+      })
+      .onUpdate((e) => {
+        live.current.dx = e.translationX;
+        live.current.dy = e.translationY;
+        update();
+      })
+      .onFinalize(() => {
+        if (!panning) return;
+        panning = false;
+        finish();
+      });
+    return Gesture.Simultaneous(pinch, pan);
+  });
+  return (
+    <GestureDetector gesture={gesture}>
+      <View style={[StyleSheet.absoluteFill, styles.framing]} />
+    </GestureDetector>
+  );
+}
 
 /** The video with live captions and text overlays, sized to the video's shape. */
 export function Preview(p: PreviewProps) {
@@ -49,7 +128,13 @@ export function Preview(p: PreviewProps) {
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }} onLayout={onLayout}>
         {fw > 0 && (
           <Pressable onPress={p.onTap} style={[styles.frame, { width: fw, height: fh, borderRadius: p.fullscreen ? 0 : 16 }]}>
-            {p.video}
+            {/* Only the picture zooms and moves; captions and text stay where they are. */}
+            <View
+              pointerEvents="none"
+              style={[StyleSheet.absoluteFill, { transform: [{ translateX: p.framing.x * fw }, { translateY: p.framing.y * fh }, { scale: p.framing.scale }] }]}
+            >
+              {p.video}
+            </View>
             {p.line && (
               <View style={[styles.captionSpot, { bottom: fh * 0.24 }]} pointerEvents="none">
                 <StyledText preset={captionStyle(p.captionStyleId)} look={p.captionLook} words={p.line.words.map((w) => w.text)} active={p.activeWord} frameWidth={fw} />
@@ -58,6 +143,7 @@ export function Preview(p: PreviewProps) {
             {p.texts.map((t) => (
               <DraggableText key={t.id} text={t} frameW={fw} frameH={fh} selected={p.selectedText === t.id} onTap={() => p.onTapText(t.id)} onMove={(x, y) => p.onMoveText(t.id, x, y)} />
             ))}
+            {p.adjusting && <FramingLayer width={fw} height={fh} framing={p.framing} onFrame={p.onFrame} onEnd={p.onFrameEnd} />}
           </Pressable>
         )}
       </View>
@@ -440,6 +526,7 @@ const styles = StyleSheet.create({
   coverStrip: { height: 64, borderRadius: 12, overflow: 'visible' },
   coverTiles: { flex: 1, flexDirection: 'row', borderRadius: 12, overflow: 'hidden', opacity: 0.55 },
   coverHandle: { position: 'absolute', top: -6, bottom: -6, borderRadius: 9, borderWidth: 3, borderColor: theme.ink, overflow: 'hidden', backgroundColor: theme.card },
+  framing: { borderWidth: 2, borderColor: '#fff', borderStyle: 'dashed', borderRadius: 16 },
   holeRing: { position: 'absolute', borderRadius: 14, borderWidth: 2, borderColor: '#fff' },
   tourCard: { position: 'absolute', backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 8, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

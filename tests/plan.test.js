@@ -151,3 +151,19 @@ test('the silent tail Whisper adds to a last word is still trimmed', () => {
   const plan = planCuts(words, {}, lv);
   assert.ok(plan.segments[0].end < 3.25, `first clip ends at ${plan.segments[0].end}`);
 });
+
+test('export keyframes follow the same eased curve as the editor', async () => {
+  const { keyframeExpr } = await import('../src/media.js');
+  const { framingAt } = await import('../app/src/lib/edit.ts');
+  const k = [
+    { id: 'a', t: 0.5, scale: 1, x: 0, y: 0 },
+    { id: 'b', t: 2, scale: 2.2, x: 0.3, y: -0.2 },
+    { id: 'c', t: 4, scale: 1.4, x: -0.1, y: 0.1 },
+  ];
+  // Evaluate ffmpeg's expression language (if, lt, pow) in JS.
+  const run = (expr, it) => new Function('it', 'iff', 'lt', 'pow', `return ${expr.replace(/\bif\(/g, 'iff(')};`)(it, (c, a, b) => (c ? a : b), (a, b) => (a < b ? 1 : 0), Math.pow);
+  for (let t = 0; t <= 5; t += 0.125) {
+    const want = framingAt(k, t);
+    for (const key of ['scale', 'x', 'y']) assert.ok(Math.abs(run(keyframeExpr(k, key), t) - want[key]) < 1e-3, `${key} at ${t}`);
+  }
+});

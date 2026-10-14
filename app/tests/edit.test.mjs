@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   makeClip, splitAt, removeClip, duplicateClip, moveClip, trimClip, restoreCut, isRestored, locate, clipOffset,
-  totalDuration, captionLines, applyCaps, exportBody, DEFAULT_CAPTIONS,
+  totalDuration, captionLines, applyCaps, exportBody, DEFAULT_CAPTIONS, framingAt, clampFraming,
 } from '../src/lib/edit.ts';
 
 const clips = [makeClip(1, 3), makeClip(5, 6), makeClip(8, 10)];
@@ -83,4 +83,23 @@ test('export body puts the cover frame first and moves captions, text and music 
   assert.ok(Math.abs(body.captions.lines[0].words[0].start - plain.captions.lines[0].words[0].start - 0.06) < 1e-9);
   assert.deepEqual(body.music, { upload: 'upload-1', volume: 0.4 });
   assert.equal(plain.music, undefined);
+});
+
+test('keyframes hold before the first, ease between and hold after the last', () => {
+  const k = [
+    { id: 'a', t: 1, scale: 1, x: 0, y: 0 },
+    { id: 'b', t: 3, scale: 2, x: 0.2, y: -0.1 },
+  ];
+  assert.deepEqual(framingAt(k, 0), { scale: 1, x: 0, y: 0 });
+  assert.deepEqual(framingAt(k, 5), { scale: 2, x: 0.2, y: -0.1 });
+  const mid = framingAt(k, 2); // halfway: the eased curve is exactly halfway too
+  assert.ok(Math.abs(mid.scale - 1.5) < 1e-9 && Math.abs(mid.x - 0.1) < 1e-9);
+  assert.ok(framingAt(k, 1.5).scale < 1.25, 'eases in: slower than a straight line at the start');
+  assert.deepEqual(framingAt(undefined, 2), { scale: 1, x: 0, y: 0 });
+});
+
+test('framing never shows the edge of the picture', () => {
+  assert.deepEqual(clampFraming({ scale: 0.5, x: 0.3, y: 0 }), { scale: 1, x: 0, y: 0 });
+  assert.deepEqual(clampFraming({ scale: 2, x: 0.9, y: -0.9 }), { scale: 2, x: 0.5, y: -0.5 });
+  assert.equal(clampFraming({ scale: 9, x: 0, y: 0 }).scale, 4);
 });

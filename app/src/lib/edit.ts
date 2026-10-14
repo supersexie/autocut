@@ -23,6 +23,11 @@ export type TextOverlay = { id: string; text: string; style: string; start: numb
 /** A song under the whole video: a file in the cuts folder, looped if it's shorter than the video. */
 export type Music = { file: string; name: string; mime: string; duration: number; volume: number };
 
+/** How the picture is framed: zoomed by `scale` (≥ 1) about the centre, then moved by x·width, y·height. */
+export type Framing = { scale: number; x: number; y: number };
+/** A framing pinned to a moment of the output; the picture glides between keyframes. */
+export type Keyframe = Framing & { id: string; t: number };
+
 export type Edit = {
   clips: ClipEdit[];
   muted: boolean;
@@ -31,7 +36,44 @@ export type Edit = {
   /** Output time of the frame used as the cover (the first frame of the export). */
   cover?: number;
   music?: Music;
+  /** Zoom and pan over time, sorted by `t` (output seconds). */
+  keyframes?: Keyframe[];
 };
+
+export const NO_FRAMING: Framing = { scale: 1, x: 0, y: 0 };
+export const MAX_ZOOM = 4;
+
+/** Ease in and out (cubic): the same curve the server renders with. */
+const ease = (u: number) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+
+/** The framing at output time `t`: held before the first and after the last keyframe, eased between. */
+export function framingAt(keyframes: Keyframe[] | undefined, t: number): Framing {
+  if (!keyframes?.length) return NO_FRAMING;
+  const first = keyframes[0];
+  const last = keyframes[keyframes.length - 1];
+  if (t <= first.t) return { scale: first.scale, x: first.x, y: first.y };
+  if (t >= last.t) return { scale: last.scale, x: last.x, y: last.y };
+  const i = keyframes.findIndex((k, n) => t >= k.t && t < keyframes[n + 1].t);
+  const a = keyframes[i];
+  const b = keyframes[i + 1];
+  const u = ease((t - a.t) / Math.max(0.001, b.t - a.t));
+  return { scale: a.scale + (b.scale - a.scale) * u, x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u };
+}
+
+/** Keeps the picture filling the frame: zoom 1–4×, and never moved far enough to show an edge. */
+export function clampFraming({ scale, x, y }: Framing): Framing {
+  const s = Math.max(1, Math.min(MAX_ZOOM, scale));
+  const room = (s - 1) / 2;
+  return { scale: s, x: Math.max(-room, Math.min(room, x)), y: Math.max(-room, Math.min(room, y)) };
+}
+
+/** The keyframe at (or within a frame or so of) `t`, if there is one. */
+export const keyframeAt = (keyframes: Keyframe[] | undefined, t: number, within = 0.05) =>
+  keyframes?.find((k) => Math.abs(k.t - t) <= within);
+
+/** `keyframes` with `k` added, or replacing the one at its id, kept in time order. */
+export const putKeyframe = (keyframes: Keyframe[] | undefined, k: Keyframe) =>
+  [...(keyframes ?? []).filter((x) => x.id !== k.id), k].sort((a, b) => a.t - b.t);
 
 /** Source time of the edit's cover frame: the chosen one, or a moment into the first clip. */
 export function coverSource(edit: Pick<Edit, 'clips' | 'cover'>) {
@@ -192,6 +234,7 @@ export function exportBody(edit: Edit, words: Word[], opts: { height?: number; f
       : undefined,
     texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => later({ text, style, start, end, x, y, scale, font, color, box, outline, align })),
     music: musicUpload && edit.music ? { upload: musicUpload, volume: edit.music.volume } : undefined,
+    keyframes: (edit.keyframes ?? []).map(({ t, scale, x, y }) => ({ t: t + shift, scale, x, y })),
     ...opts,
   };
 }

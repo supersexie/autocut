@@ -109,6 +109,24 @@ export async function joinTakes(inputs, output, { flips = [], blend = false, onP
   );
 }
 
+/**
+ * An ffmpeg expression for a keyframed value at time `t` (seconds): held before the first and
+ * after the last keyframe, eased in and out (cubic) between them — the same curve the app plays.
+ */
+export function keyframeExpr(keyframes, key, t = 'it') {
+  const n = (v) => Number(v).toFixed(4);
+  if (keyframes.length === 1) return n(keyframes[0][key]);
+  let expr = n(keyframes.at(-1)[key]);
+  for (let i = keyframes.length - 2; i >= 0; i--) {
+    const a = keyframes[i];
+    const b = keyframes[i + 1];
+    const u = `((${t}-${n(a.t)})/${n(Math.max(0.001, b.t - a.t))})`;
+    const ease = `if(lt(${u},0.5),4*pow(${u},3),1-pow(-2*${u}+2,3)/2)`;
+    expr = `if(lt(${t},${n(b.t)}),${n(a[key])}+(${n(b[key] - a[key])})*${ease},${expr})`;
+  }
+  return `if(lt(${t},${n(keyframes[0].t)}),${n(keyframes[0][key])},${expr})`;
+}
+
 // atempo only accepts 0.5–2, so chain it for faster or slower speeds.
 function atempo(speed) {
   const parts = [];
@@ -126,8 +144,10 @@ function atempo(speed) {
  * `height` scales (keeping aspect), `fps` resamples, `bitrate` is in Mbps. `fast` trades quality
  * for speed (for the editor's preview): quick to encode, small, and a keyframe every half second.
  * `music` = { file, volume } lays a song under the whole video, looped if it's short, fading out at the end.
+ * `motion` = { keyframes: [{ t, scale, x, y }], width, height } zooms and pans the picture over time
+ * (scale ≥ 1 about the centre, then moved by x·width, y·height), under the captions.
  */
-export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, onProgress } = {}) {
+export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, motion, onProgress } = {}) {
   const fade = 0.012;
   const parts = [];
   const labels = [];
@@ -148,7 +168,20 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   // `height` is the resolution's short side (1080p = 1080×1920 for vertical video), never upscaled.
   const scale = height && `scale=w='if(gt(iw,ih),-2,min(${height},iw))':h='if(gt(iw,ih),min(${height},ih),-2)'`;
   const post = [scale, fps && `fps=${fps}`].filter(Boolean).join(',');
-  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${post ? 'vr' : 'vc'}][${music ? 'voice' : 'ac'}]`);
+  const moving = motion?.keyframes?.length > 0;
+  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[${moving ? 'vm' : post ? 'vr' : 'vc'}][${music ? 'voice' : 'ac'}]`);
+  if (moving) {
+    // zoompan turns each input frame into one output frame (d=1) at a fixed rate, so the rate is
+    // fixed first. Working at twice the size keeps slow zooms from shimmering on whole pixels.
+    const rate = fps || 30;
+    const k = motion.keyframes;
+    const z = keyframeExpr(k, 'scale');
+    const x = `iw/2-(iw/2+(${keyframeExpr(k, 'x')})*iw)/zoom`;
+    const y = `ih/2-(ih/2+(${keyframeExpr(k, 'y')})*ih)/zoom`;
+    const w = motion.width - (motion.width % 2);
+    const h = motion.height - (motion.height % 2);
+    parts.push(`[vm]fps=${rate},scale=${w * 2}:${h * 2}:flags=bicubic,zoompan=z='${z}':x='${x}':y='${y}':d=1:s=${w}x${h}:fps=${rate}[${post ? 'vr' : 'vc'}]`);
+  }
   if (music) {
     // normalize=0 keeps the voice at full volume instead of halving both.
     const vol = Math.min(1, Math.max(0, music.volume ?? 0.5));

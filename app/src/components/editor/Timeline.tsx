@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type Music, type TextOverlay } from '../../lib/edit';
+import { clipOffset, outDuration, type CaptionLine, type ClipEdit, type Keyframe, type Music, type TextOverlay } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { Thumb } from '../Thumb';
 import { PressableScale, type SymbolName } from '../ui';
@@ -14,6 +14,7 @@ const MAX_PPS = 400;
 const CLIP_H = 58;
 const ROW_H = 34;
 const ROW_GAP = 6;
+const KEY = 14; // keyframe diamond
 const LEFT = 70;
 const TILE = 46;
 
@@ -27,6 +28,8 @@ type Props = {
   coverSource: number;
   captionsOn: boolean;
   music?: Music;
+  keyframes?: Keyframe[];
+  onKeyframe: (k: Keyframe) => void;
   lines: CaptionLine[];
   texts: TextOverlay[];
   selectedText: string | null;
@@ -243,6 +246,15 @@ export function Timeline(p: Props) {
                     </Pressable>
                   );
                 })}
+                {(p.keyframes ?? []).map((k) => (
+                  <Pressable
+                    key={k.id}
+                    onPress={() => p.onKeyframe(k)}
+                    hitSlop={10}
+                    accessibilityLabel={`Keyframe at ${mmss(k.t)}`}
+                    style={[styles.keyframe, { left: x(k.t) - KEY / 2 }]}
+                  />
+                ))}
               </View>
 
               {/* Captions, audio and text each run the full length of the video, like the clips. */}
@@ -402,6 +414,7 @@ const styles = StyleSheet.create({
   chipText: { color: '#fff', fontSize: 11, fontWeight: '600' },
   textChip: { backgroundColor: '#E4E4E8' },
   textChipOn: { borderWidth: 2, borderColor: theme.ink },
+  keyframe: { position: 'absolute', top: CLIP_H / 2 - KEY / 2, width: KEY, height: KEY, borderRadius: 3, backgroundColor: '#fff', borderWidth: 2, borderColor: theme.ink, transform: [{ rotate: '45deg' }] },
   zoom: { position: 'absolute', top: 0, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
   zoomText: { fontSize: 10, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 2, borderRadius: 1, backgroundColor: theme.ink },

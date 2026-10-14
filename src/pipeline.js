@@ -64,12 +64,14 @@ export async function renderCut(input, output, segments, words, { captions = fal
 /**
  * Renders an edit from the app: clips with speed/volume, styled captions and text overlays.
  * edit = { clips: [{ start, end, speed, volume }], captions?: { style, lines }, texts?: [...],
- *          music?: { file, volume }, height?, fps?, bitrate? }  (caption lines and texts are on the output timeline)
+ *          music?: { file, volume }, keyframes?: [{ t, scale, x, y }], height?, fps?, bitrate? }
+ * (caption lines, texts and keyframes are on the output timeline)
  */
 export async function renderEdit(input, output, edit, { onProgress } = {}) {
   let ass;
+  const needsSize = edit.captions?.lines?.length || edit.texts?.length || edit.keyframes?.length;
+  const { width, height } = needsSize ? await probe(input) : {};
   if (edit.captions?.lines?.length || edit.texts?.length) {
-    const { width, height } = await probe(input);
     ass = output.replace(/\.mp4$/, '') + '.ass';
     await writeFile(ass, buildAss({ width, height, captions: edit.captions, texts: edit.texts }));
   }
@@ -80,6 +82,7 @@ export async function renderEdit(input, output, edit, { onProgress } = {}) {
     fps: edit.fps,
     bitrate: edit.bitrate,
     music: edit.music,
+    motion: edit.keyframes?.length ? { keyframes: edit.keyframes, width, height } : undefined,
     onProgress,
   });
 }

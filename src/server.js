@@ -6,7 +6,7 @@
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, music: {upload, volume}, height, fps, bitrate } -> { renderId }
+//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}], height, fps, bitrate } -> { renderId }
 //                                        (music.upload is an id from POST /uploads with the song's bytes)
 //   GET  /cuts/:id/video                                                  -> the latest finished render
 //   POST /cuts/:id/preview             { clips }                          -> { key, stage }  (a small stitched preview of the edit)
@@ -265,6 +265,17 @@ async function createRender(req, res, job) {
     align: ['left', 'center', 'right'].includes(t.align) ? t.align : undefined,
   }));
 
+  // Zoom and pan over time, on the output timeline: the picture's scale and how far it's moved.
+  const keyframes = (Array.isArray(body.keyframes) ? body.keyframes : [])
+    .slice(0, 200)
+    .map((k) => ({
+      t: Math.max(0, Number(k.t) || 0),
+      scale: Math.min(4, Math.max(1, Number(k.scale) || 1)),
+      x: Math.min(1.5, Math.max(-1.5, Number(k.x) || 0)),
+      y: Math.min(1.5, Math.max(-1.5, Number(k.y) || 0)),
+    }))
+    .sort((a, b) => a.t - b.t);
+
   // A song to lay under the video: uploaded first through /uploads, like a take.
   let music;
   if (body.music?.upload) {
@@ -283,7 +294,7 @@ async function createRender(req, res, job) {
     r.stage = 'rendering';
     console.log(`[${job.id.slice(0, 8)}] exporting`);
     try {
-      await renderEdit(job.source, r.output, { clips, captions, texts, music, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
+      await renderEdit(job.source, r.output, { clips, captions, texts, music, keyframes, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
       Object.assign(r, { stage: 'ready', progress: 1, size: (await stat(r.output)).size });
     } catch (err) {
       console.error(err);
