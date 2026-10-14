@@ -4,7 +4,8 @@ import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import Svg, { Circle } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Logo } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
@@ -24,6 +25,7 @@ type Mode = 'idle' | 'recording' | 'paused';
 
 export default function CreateScreen() {
   const insets = useSafeAreaInsets();
+  const screen = useWindowDimensions();
   const navigation = useNavigation();
   const { account } = useAuth();
   const cuts = useCuts();
@@ -44,10 +46,15 @@ export default function CreateScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [showTip, setShowTip] = useState(true);
 
+  // Keep the camera running until the next screen has slid in, so the transition never flashes black.
+  const blurTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useFocusEffect(
     useCallback(() => {
+      clearTimeout(blurTimer.current);
       setFocused(true);
-      return () => setFocused(false);
+      return () => {
+        blurTimer.current = setTimeout(() => setFocused(false), 700);
+      };
     }, [])
   );
 
@@ -144,7 +151,11 @@ export default function CreateScreen() {
     );
   }
 
-  const bottom = busy ? insets.bottom + 28 : 22 + TAB_BAR_HEIGHT + 22;
+  // The camera shows a 9:16 frame under the status bar — exactly what gets recorded.
+  const frameH = Math.min((screen.width * 16) / 9, screen.height - insets.top);
+  const belowFrame = screen.height - insets.top - frameH;
+  // Controls sit at a fixed spot near the bottom of the frame, whatever the recording state.
+  const bottom = Math.max(belowFrame, 22 + TAB_BAR_HEIGHT + 6) + 22;
   const takeLabel =
     mode === 'recording'
       ? `Take ${takes.length + 1} · ${formatTime(elapsed)}`
@@ -156,8 +167,10 @@ export default function CreateScreen() {
       {focused && (
         <CameraView
           ref={camera}
-          style={StyleSheet.absoluteFill}
+          style={{ position: 'absolute', top: insets.top, left: 0, width: screen.width, height: frameH }}
           mode="video"
+          // 'auto' switches to cinematic stabilisation when recording starts, which crops (zooms) in.
+          videoStabilizationMode="off"
           facing={facing}
           enableTorch={torch}
           videoQuality="1080p"
@@ -210,11 +223,6 @@ export default function CreateScreen() {
             ))}
           </View>
         )}
-        {busy && (
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${Math.min(100, (total / limit) * 100)}%` }]} />
-          </View>
-        )}
 
         <View style={styles.controls}>
           <View style={styles.side}>
@@ -226,8 +234,9 @@ export default function CreateScreen() {
           <Pressable
             onPress={mode === 'recording' ? pause : record}
             accessibilityLabel={mode === 'recording' ? 'Pause' : mode === 'paused' ? 'Record next take' : 'Record'}
-            style={({ pressed }) => [styles.shutter, pressed && { transform: [{ scale: 0.94 }] }]}
+            style={({ pressed }) => [styles.shutter, pressed && { transform: [{ scale: 0.95 }] }]}
           >
+            <ShutterRing progress={busy ? Math.min(1, total / limit) : 0} dim={busy} />
             {mode === 'recording' ? (
               <SymbolView name="pause.fill" tintColor="#fff" size={30} />
             ) : (
@@ -246,6 +255,34 @@ export default function CreateScreen() {
         </View>
       </View>
     </View>
+  );
+}
+
+const RING = 84;
+const RING_STROKE = 5;
+const RING_R = (RING - RING_STROKE) / 2;
+const RING_LEN = 2 * Math.PI * RING_R;
+
+/** The shutter's outline; while recording, a red arc fills it as the length limit approaches. */
+function ShutterRing({ progress, dim }: { progress: number; dim: boolean }) {
+  return (
+    <Svg width={RING} height={RING} style={StyleSheet.absoluteFill}>
+      <Circle cx={RING / 2} cy={RING / 2} r={RING_R} stroke={dim ? 'rgba(255,255,255,0.45)' : '#fff'} strokeWidth={RING_STROKE} fill="none" />
+      {progress > 0 && (
+        <Circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={RING_R}
+          stroke={theme.cut}
+          strokeWidth={RING_STROKE}
+          fill="none"
+          strokeLinecap="round"
+          strokeDasharray={`${RING_LEN} ${RING_LEN}`}
+          strokeDashoffset={RING_LEN * (1 - progress)}
+          transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
+        />
+      )}
+    </Svg>
   );
 }
 
@@ -281,11 +318,9 @@ const styles = StyleSheet.create({
   length: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 999 },
   lengthOn: { backgroundColor: '#fff' },
   lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontWeight: '700' },
-  progressTrack: { width: '70%', height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.3)', overflow: 'hidden' },
-  progressFill: { height: 4, backgroundColor: theme.cut },
   controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, width: '100%' },
   side: { flex: 1 },
-  shutter: { width: 82, height: 82, borderRadius: 41, borderWidth: 5, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  shutter: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
   shutterInner: { width: 62, height: 62, borderRadius: 31, backgroundColor: '#fff' },
   done: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   tip: { position: 'absolute', left: 24, right: 24, backgroundColor: 'rgba(255,255,255,0.95)', borderRadius: 16, padding: 14, gap: 6 },
