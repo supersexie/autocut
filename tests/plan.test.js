@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { planCuts, retakeScore, findRestarts } from '../src/plan.js';
+import { planCuts, retakeScore, findRestarts, noiseFloor } from '../src/plan.js';
 
 import { remapWords, toSrt } from '../src/captions.js';
 
@@ -107,4 +107,47 @@ test('restarts are removed in the full plan', () => {
   const plan = planCuts(w);
   assert.equal(plan.segments.flatMap((s) => s.words.map((x) => x.text)).join(' '), 'so these joggers are actually so soft.');
   assert.ok(plan.cuts.some((c) => c.reason === 'retake'));
+});
+
+// Loudness from [start, end, dB] spans over a background level, 10 ms frames.
+const levels = (seconds, background, spans) => {
+  const frameSec = 0.01;
+  const db = Float32Array.from({ length: Math.round(seconds / frameSec) }, (_, f) => {
+    const span = spans.find(([a, b]) => f * frameSec >= a && f * frameSec < b);
+    return span ? span[2] : background;
+  });
+  return { db, frameSec };
+};
+
+test('silence floor sits between the room and the voice, even in a noisy room', () => {
+  const words = W('There@0.5', 'is@0.8', 'no@1.1', 'such@1.4', 'thing@1.7', 'as@2.0', 'cold.@2.3');
+  // Speech peaking at -20 dB, soft syllables at -29, over a -31 dB room: barely any real silence.
+  const spans = words.flatMap((w) => [[w.start, w.start + 0.2, -20], [w.start + 0.2, w.end, -29]]);
+  const noisy = levels(4, -31, spans);
+  const floor = noiseFloor(noisy.db, words, noisy.frameSec);
+  // The old floor (quietest tenth + 12 dB) would be -19: above the speech itself.
+  assert.ok(floor > -31 && floor < -24, `floor ${floor} should be just over the room, well under the speech`);
+  // A clean take: speech at -24 over a -49 dB room keeps a floor well above the room.
+  const clean = levels(4, -49, words.map((w) => [w.start, w.end, -24]));
+  const cleanFloor = noiseFloor(clean.db, words, clean.frameSec);
+  assert.ok(cleanFloor > -45 && cleanFloor < -30, `clean floor ${cleanFloor}`);
+});
+
+test('soft syllables in a noisy take are never cut as silence', () => {
+  const words = W('There@0.5', 'is@0.8', 'no@1.1', 'such@1.4', 'thing@1.7', 'as@2.0', 'cold.@2.3');
+  // Every word dips below the room level on its second half (a quiet consonant).
+  const lv = levels(3, -30, words.map((w) => [w.start, w.start + 0.15, -20]));
+  lv.floor = -26; // as high as a noisy room pushes it
+  const plan = planCuts(words, {}, lv);
+  assert.equal(keptText(plan), 'There is no such thing as cold.');
+  assert.equal(plan.segments.length, 1);
+  assert.ok(plan.segments[0].start <= 0.5 && plan.segments[0].end >= 2.45);
+});
+
+test('the silent tail Whisper adds to a last word is still trimmed', () => {
+  // "AutoCut." is said 2.7-2.95 s but Whisper stretches it to 3.6 s.
+  const words = [...W('This@2.1', 'is@2.4'), { text: 'AutoCut.', start: 2.7, end: 3.6 }, ...W('Next@5')];
+  const lv = level(6, [[2.1, 2.95], [5, 5.3]]);
+  const plan = planCuts(words, {}, lv);
+  assert.ok(plan.segments[0].end < 3.25, `first clip ends at ${plan.segments[0].end}`);
 });

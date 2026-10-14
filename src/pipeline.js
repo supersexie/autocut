@@ -31,7 +31,7 @@ export async function analyze(input, { plan: planOpts = {}, model, language, onP
 
   onProgress('cutting', 0.93);
   const level = loudness(samples);
-  level.floor = noiseFloor(level.db);
+  level.floor = noiseFloor(level.db, words, level.frameSec);
   const plan = planCuts(words, planOpts, level);
   words = plan.words;
   onProgress('cutting', 1);

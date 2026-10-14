@@ -142,6 +142,12 @@ export function planCuts(words, opts = {}, level = null) {
     let start = Math.max(0, s.start - o.padIn, (prevEnd + s.start) / 2);
     let end = Math.min(s.end + o.padOut, (s.end + nextStart) / 2);
     if (level) [start, end] = snapToAudio(level, start, end, s, o);
+    // Never reach into a neighbouring word that's being cut (an "um" right after, say), or past the audio.
+    const before = words[s.firstIndex - 1];
+    const after = words[s.lastIndex + 1];
+    if (before) start = Math.max(start, (before.end + s.start) / 2);
+    if (after) end = Math.min(end, (s.end + after.start) / 2);
+    if (level) end = Math.min(end, level.db.length * level.frameSec);
     return { start, end, words: words.slice(s.firstIndex, s.lastIndex + 1).filter((_, j) => !drop.has(s.firstIndex + j)) };
   }).filter((s) => s.end - s.start >= o.minSegment);
 
@@ -194,7 +200,8 @@ export function splitOnSilence(segments, level, o) {
   for (const seg of segments) {
     const pieces = [];
     let cursor = seg.start;
-    for (const [a, b] of quietRuns(level, seg.start, seg.end)) {
+    // Quiet stretches, but never inside a word: soft syllables can dip as low as the room.
+    for (const [a, b] of outsideWords(quietRuns(level, seg.start, seg.end), seg.words)) {
       const atStart = a <= seg.start + level.frameSec;
       const atEnd = b >= seg.end - level.frameSec;
       if (atStart && atEnd) break; // all quiet: more likely soft speech than silence, keep it
@@ -239,10 +246,54 @@ function snapToAudio({ db, frameSec, floor }, start, end, s, o) {
   return [st, e];
 }
 
-export function noiseFloor(db) {
+// Whisper sometimes stretches a word over a pause ("and" lasting 4 s). Words longer than this
+// are treated as hiding silence: they don't vouch for the audio under them.
+const MAX_WORD = 1.2;
+
+/**
+ * The level at or below which the audio counts as silence. With `words` it sits between the room's
+ * background (the audio between words) and the speech (each word's peak), 40% of the way up but no
+ * more than 12 dB over the background. In a noisy room, over music or with a quiet voice the two
+ * are close, and a floor taken from the quietest audio alone would call soft speech silence.
+ */
+export function noiseFloor(db, words = [], frameSec = 0.01) {
   const sorted = Float32Array.from(db).sort();
   const p10 = sorted[Math.floor(sorted.length * 0.1)] ?? -60;
-  return Math.max(p10 + 12, -48);
+  const simple = Math.max(p10 + 12, -48);
+  const median = (a) => a.sort((x, y) => x - y)[Math.floor(a.length / 2)];
+  const inWord = new Uint8Array(db.length);
+  const peaks = [];
+  for (const w of words) {
+    if (w.end - w.start > MAX_WORD) continue;
+    const f0 = Math.max(0, Math.floor(w.start / frameSec));
+    const f1 = Math.min(db.length, Math.ceil(w.end / frameSec));
+    if (f1 <= f0) continue;
+    inWord.fill(1, f0, f1);
+    const frames = Array.from(db.subarray(f0, f1)).sort((a, b) => a - b);
+    peaks.push(frames[Math.floor(frames.length * 0.9)]); // the word's loud part
+  }
+  if (peaks.length < 3) return simple;
+  const speech = median(peaks);
+  const between = Array.from(db).filter((_, f) => !inWord[f]);
+  if (between.length < 30) return Math.min(simple, speech - 15); // no pauses to measure the room from
+  const noise = median(between);
+  return noise + Math.min(12, Math.max(3, (speech - noise) * 0.4));
+}
+
+/**
+ * `runs` with the start of each recognized word taken out, so a soft syllable is never cut. Only
+ * the first PROTECT_WORD seconds: Whisper often runs a sentence's last word on into the pause after
+ * it, and that tail should still be trimmed.
+ */
+const PROTECT_WORD = 0.35;
+function outsideWords(runs, words) {
+  let out = runs;
+  for (const w of words) {
+    if (w.end - w.start > MAX_WORD) continue;
+    const end = Math.min(w.end, w.start + PROTECT_WORD);
+    out = out.flatMap(([a, b]) => (end <= a || w.start >= b ? [[a, b]] : [[a, w.start], [end, b]].filter(([x, y]) => y - x > 0.005)));
+  }
+  return out;
 }
 
 function describeCuts(words, drop, segments, duration) {
