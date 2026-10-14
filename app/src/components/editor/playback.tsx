@@ -1,8 +1,9 @@
 import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, type SharedValue } from 'react-native-reanimated';
 import { CompositionPlayer, hasCompositionPlayer, type CompositionPlayerHandle } from '../../../modules/autocut-player';
+import { previewOf } from '../../lib/api';
 import { clipOffset, locate, totalDuration, type ClipEdit } from '../../lib/edit';
 
 /** What the editor needs from a player, whichever one is underneath. Times are output times. */
@@ -19,13 +20,14 @@ export type Playback = {
   video: ReactNode;
 };
 
-type Options = { sourceUri: string; clips: ClipEdit[]; muted: boolean };
+type Options = { cutId: string; sourceUri: string; clips: ClipEdit[]; muted: boolean };
 
 /**
- * App builds have Autocut's native player, which plays the edit as one stitched video: smooth
- * through every cut. Expo Go doesn't, so it gets two expo-video players taking turns.
+ * App builds have Autocut's native player, which stitches the clips on the phone: smooth through
+ * every cut, instantly after every edit. Expo Go can't load it, so there the server stitches a
+ * preview of the edit and the editor plays that (see useExpoGoPlayback).
  */
-export const usePlayback: (o: Options) => Playback = hasCompositionPlayer ? useCompositionPlayback : useRelayPlayback;
+export const usePlayback: (o: Options) => Playback = hasCompositionPlayer ? useCompositionPlayback : useExpoGoPlayback;
 
 // ---- Native: one AVPlayer over an AVMutableComposition of the clips.
 
@@ -71,11 +73,167 @@ function useCompositionPlayback({ sourceUri, clips, muted }: Options): Playback 
   return { time, playing, toggle, pause, seek, setScrubbing: (on) => (scrubbing.current = on), video };
 }
 
-// ---- Expo Go: two expo-video players in relay.
+// ---- Expo Go: the server's stitched preview, with two players in relay until it arrives.
+
+/**
+ * Plays the server's preview of the edit when there's one for the current clips: one file, so no
+ * hitch at the cuts. After an edit the relay takes over at the same spot until the new preview is
+ * ready a few seconds later (or for good, if the server can't make one).
+ */
+function useExpoGoPlayback(o: Options): Playback {
+  const relay = useRelayPlayback(o);
+  const preview = usePreviewPlayback(o);
+  const onPreview = preview.ready;
+  const [shown, setShown] = useState(false); // the preview's video is on top
+
+  // Hand over between the two at the same time, carrying on playing if it was.
+  const latest = useRef({ relay, preview });
+  useEffect(() => {
+    latest.current = { relay, preview };
+  });
+  // A seek that came with new clips already put the relay in the right place.
+  const relayPlaced = useRef(false);
+  useEffect(() => {
+    const { relay: r, preview: p } = latest.current;
+    if (onPreview) {
+      const wasPlaying = r.playing;
+      r.pause();
+      p.seek(r.time);
+      if (wasPlaying) p.play();
+      relayPlaced.current = false;
+    } else {
+      const wasPlaying = p.playing;
+      p.pause();
+      if (!relayPlaced.current) r.seek(p.time);
+      relayPlaced.current = false;
+      if (wasPlaying) r.toggle();
+    }
+    // Swap what's on screen a frame later, once the incoming player has jumped to the spot.
+    const frame = requestAnimationFrame(() => setShown(onPreview));
+    return () => cancelAnimationFrame(frame);
+  }, [onPreview]);
+
+  const active = shown ? preview : relay;
+  return {
+    time: active.time,
+    playing: active.playing,
+    toggle: active.toggle,
+    pause: () => {
+      relay.pause();
+      preview.pause();
+    },
+    seek: (t, list) => {
+      if (shown && preview.matches(list ?? o.clips)) return preview.seek(t);
+      relayPlaced.current = true;
+      relay.seek(t, list);
+    },
+    setScrubbing: (on) => {
+      relay.setScrubbing(on);
+      preview.setScrubbing(on);
+    },
+    video: (
+      <>
+        {relay.video}
+        <View style={[StyleSheet.absoluteFill, { opacity: shown ? 1 : 0 }]} pointerEvents="none">
+          {preview.video}
+        </View>
+      </>
+    ),
+  };
+}
+
+/** One player over the server's stitched preview of the clips (once it's downloaded and loaded). */
+function usePreviewPlayback({ cutId, clips, muted }: Options) {
+  const player = useVideoPlayer(null, (p) => {
+    p.timeUpdateEventInterval = 1 / 30;
+    p.loop = false;
+  });
+  const [file, setFile] = useState<{ clips: ClipEdit[]; uri: string } | null>(null);
+  const [loaded, setLoaded] = useState<string | null>(null);
+  const [time, setTime] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const scrubbing = useRef(false);
+  const total = totalDuration(clips);
+
+  // Ask for a preview of the clips once they've settled for a moment.
+  useEffect(() => {
+    let alive = true;
+    const t = setTimeout(() => {
+      previewOf(cutId, clips, () => alive)
+        .then((uri) => alive && uri && setFile({ clips, uri }))
+        .catch(() => {}); // no preview: the relay carries on
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [cutId, clips]);
+
+  useEffect(() => {
+    if (!file) return;
+    let alive = true;
+    player
+      .replaceAsync(file.uri)
+      .then(() => alive && setLoaded(file.uri))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [file, player]);
+
+  useEffect(() => setMuted(player, muted), [player, muted]);
+
+  useEffect(() => {
+    const subs = [
+      player.addListener('playingChange', (e) => setPlaying(e.isPlaying)),
+      player.addListener('timeUpdate', ({ currentTime }) => {
+        if (!scrubbing.current) setTime(currentTime);
+      }),
+      player.addListener('playToEnd', () => {
+        player.pause();
+        seekTo(player, 0);
+        setTime(0);
+      }),
+    ];
+    return () => subs.forEach((s) => s.remove());
+  }, [player]);
+
+  const ready = !!file && file.clips === clips && loaded === file.uri;
+  const seek = (t: number) => {
+    const clamped = Math.max(0, Math.min(t, total - 0.01));
+    seekTo(player, clamped);
+    setTime(clamped);
+  };
+  const play = () => {
+    scrubbing.current = false;
+    if (time >= total - 0.05) seek(0);
+    player.play();
+  };
+  const pause = () => player.pause();
+  return {
+    ready,
+    matches: (list: ClipEdit[]) => ready && file?.clips === list,
+    time,
+    playing,
+    play,
+    pause,
+    seek,
+    toggle: () => (playing ? pause() : play()),
+    setScrubbing: (on: boolean) => {
+      scrubbing.current = on;
+    },
+    video: <VideoView player={player} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />,
+  };
+}
+
+// ---- Two expo-video players in relay.
 
 // expo-video is driven by setting properties on the player.
 const seekTo = (p: VideoPlayer, t: number) => {
   p.currentTime = t;
+};
+const setMuted = (p: VideoPlayer, muted: boolean) => {
+  p.muted = muted;
 };
 const setVolume = (p: VideoPlayer, volume: number) => {
   p.volume = Math.min(1, volume);

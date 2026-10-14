@@ -8,18 +8,20 @@
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
 //   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, lines}, texts, height, fps, bitrate } -> { renderId }
 //   GET  /cuts/:id/video                                                  -> the latest finished render
+//   POST /cuts/:id/preview             { clips }                          -> { key, stage }  (a small stitched preview of the edit)
+//   GET  /cuts/:id/preview?key=K[&status=1]                               -> the preview video, or { stage } while it renders
 //   DELETE /account                                                       -> deletes the user, their takes and cuts
 // Every route but /health, /privacy and /terms needs `Authorization: Bearer <Supabase access token>` (see auth.js).
 import http from 'node:http';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { copyFile, mkdir, readdir, readFile, rm, writeFile, stat } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile, stat } from 'node:fs/promises';
 import { pipeline as streamTo } from 'node:stream/promises';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
 import { authEnabled, deleteAuthUser, LOCAL_USER, userIdFrom } from './auth.js';
 import { legalPage } from './legal.js';
-import { joinTakes } from './media.js';
+import { joinTakes, render } from './media.js';
 import { analyze, renderEdit } from './pipeline.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -187,6 +189,8 @@ async function createCut(req, res, url, userId) {
       if (job.stage === 'stopped') return;
       Object.assign(job, result, { progress: 1, stage: result.segments.length ? 'ready' : 'failed' });
       if (!result.segments.length) job.error = "We couldn't hear any speech in this video.";
+      // Have the editor's first preview waiting by the time the app opens it.
+      else queuePreview(job, parseClips(result.segments, job));
     } catch (err) {
       console.error(err);
       Object.assign(job, { stage: 'failed', error: 'Something went wrong while cutting this take.' });
@@ -224,15 +228,7 @@ async function createRender(req, res, job) {
   }
   // `clips` (speed/volume per clip) from the editor, or plain `segments` [[start, end]].
   const raw = Array.isArray(body.clips) ? body.clips : Array.isArray(body.segments) ? body.segments.map(([start, end]) => ({ start, end })) : [];
-  const clips = raw
-    .slice(0, 500)
-    .map((c) => ({
-      start: Math.max(0, Number(c.start)),
-      end: Math.min(job.duration, Number(c.end)),
-      speed: Math.min(4, Math.max(0.25, Number(c.speed) || 1)),
-      volume: Math.min(2, Math.max(0, c.volume === undefined ? 1 : Number(c.volume))),
-    }))
-    .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end - c.start >= 0.05);
+  const clips = parseClips(raw, job);
   if (!clips.length) return send(res, 400, { error: 'There is nothing left in this cut to export.' });
   const height = [480, 720, 1080, 1440, 2160].includes(Number(body.height)) ? Number(body.height) : undefined;
   const fps = [24, 25, 30, 60].includes(Number(body.fps)) ? Number(body.fps) : undefined;
@@ -284,6 +280,89 @@ async function createRender(req, res, job) {
     }
     await saveJob(job);
   });
+}
+
+/** Clips from a request (or the cut's own segments), checked and clamped to the source. */
+function parseClips(raw, job) {
+  return (Array.isArray(raw) ? raw : [])
+    .slice(0, 500)
+    .map((c) => ({
+      start: Math.max(0, Number(c.start)),
+      end: Math.min(job.duration, Number(c.end)),
+      speed: Math.min(4, Math.max(0.25, Number(c.speed) || 1)),
+      volume: Math.min(2, Math.max(0, c.volume === undefined ? 1 : Number(c.volume))),
+    }))
+    .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end - c.start >= 0.05);
+}
+
+// ---- Previews: the edit stitched into one small video, so the editor can play straight through
+// the cuts (the phone can't stitch clips itself in Expo Go). Named by a hash of the clips, so an
+// edit that's been previewed before (an undo, reopening the editor) is ready at once. One renders
+// at a time across the server; a newer edit of a cut replaces one of its previews still waiting.
+const previewQueue = [];
+const previewing = new Set(); // `${jobId}:${key}`, waiting or rendering
+let previewBusy = false;
+const PREVIEW_KEY = /^[0-9a-f]{16}$/;
+const previewKey = (clips) =>
+  createHash('sha1')
+    .update(JSON.stringify(clips.map((c) => [c.start, c.end, c.speed, c.volume].map((n) => Math.round(n * 1000)))))
+    .digest('hex')
+    .slice(0, 16);
+const previewFile = (job, key) => path.join(job.dir, `preview-${key}.mp4`);
+
+function queuePreview(job, clips) {
+  const key = previewKey(clips);
+  if (previewing.has(`${job.id}:${key}`)) return key;
+  const stale = previewQueue.findIndex((p) => p.job.id === job.id);
+  if (stale >= 0) previewing.delete(`${job.id}:${previewQueue.splice(stale, 1)[0].key}`);
+  previewing.add(`${job.id}:${key}`);
+  previewQueue.push({ job, key, clips });
+  pumpPreviews();
+  return key;
+}
+
+async function pumpPreviews() {
+  if (previewBusy || !previewQueue.length) return;
+  previewBusy = true;
+  const { job, key, clips } = previewQueue.shift();
+  const file = previewFile(job, key);
+  const part = file.replace(/\.mp4$/, '.part.mp4');
+  try {
+    await render(job.source, part, clips, { height: 540, fast: true });
+    await rename(part, file);
+    // Keep the newest few previews of a cut.
+    const names = (await readdir(job.dir)).filter((f) => /^preview-[0-9a-f]{16}\.mp4$/.test(f));
+    const dated = await Promise.all(names.map(async (f) => ({ f, t: (await stat(path.join(job.dir, f))).mtimeMs })));
+    for (const { f } of dated.sort((a, b) => b.t - a.t).slice(4)) await rm(path.join(job.dir, f), { force: true });
+  } catch (err) {
+    console.error(err);
+    await rm(part, { force: true });
+  } finally {
+    previewing.delete(`${job.id}:${key}`);
+    previewBusy = false;
+    pumpPreviews();
+  }
+}
+
+async function previewStage(job, key) {
+  if (await stat(previewFile(job, key)).catch(() => null)) return 'ready';
+  return previewing.has(`${job.id}:${key}`) ? 'rendering' : 'failed';
+}
+
+async function createPreview(req, res, job) {
+  if (job.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready yet.' });
+  let body;
+  try {
+    body = await jsonBody(req);
+  } catch {
+    return send(res, 400, { error: 'Bad preview request.' });
+  }
+  const clips = parseClips(body.clips, job);
+  if (!clips.length) return send(res, 400, { error: 'There is nothing in this edit to preview.' });
+  const key = previewKey(clips);
+  if ((await previewStage(job, key)) === 'ready') return send(res, 200, { key, stage: 'ready' });
+  queuePreview(job, clips);
+  send(res, 202, { key, stage: 'rendering' });
 }
 
 // Caption lines (4 words max) on the output timeline, for clients that don't send their own.
@@ -380,6 +459,14 @@ const server = http.createServer(async (req, res) => {
       if (req.method === 'GET' && action === 'source') {
         if (!job.source) return send(res, 409, { error: 'Not ready yet.' });
         return await sendFile(req, res, job.source, job.source.endsWith('.mp4') ? 'video/mp4' : 'video/quicktime');
+      }
+      if (req.method === 'POST' && action === 'preview') return await createPreview(req, res, job);
+      if (req.method === 'GET' && action === 'preview') {
+        const key = url.searchParams.get('key') ?? '';
+        if (!PREVIEW_KEY.test(key)) return send(res, 400, { error: 'Bad preview key.' });
+        const stage = await previewStage(job, key);
+        if (url.searchParams.has('status') || stage !== 'ready') return send(res, stage === 'ready' ? 200 : 202, { stage });
+        return await sendFile(req, res, previewFile(job, key), 'video/mp4');
       }
       if (req.method === 'GET' && action === 'video') {
         if (job.render?.stage !== 'ready') return send(res, 409, { error: 'Not exported yet.' });

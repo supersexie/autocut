@@ -56,7 +56,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   const [exporting, setExporting] = useState(false);
   const [aspect, setAspect] = useState(9 / 16);
 
-  const playback = usePlayback({ sourceUri, clips, muted: edit.muted });
+  const playback = usePlayback({ cutId: cut.id, sourceUri, clips, muted: edit.muted });
   const { time, playing } = playback;
 
   // Video shape from a frame (already rotated the way it's shown).

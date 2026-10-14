@@ -115,9 +115,10 @@ function atempo(speed) {
  * Renders the clips back to back. A clip is [start, end] or { start, end, speed, volume }
  * (volume 0 mutes it). Audio gets tiny fades at each join so cuts don't click.
  * `subtitles` burns an SRT; `ass` burns an ASS file using fonts from `fontsDir`.
- * `height` scales (keeping aspect), `fps` resamples, `bitrate` is in Mbps.
+ * `height` scales (keeping aspect), `fps` resamples, `bitrate` is in Mbps. `fast` trades quality
+ * for speed (for the editor's preview): quick to encode, small, and a keyframe every half second.
  */
-export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, onProgress } = {}) {
+export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, onProgress } = {}) {
   const fade = 0.012;
   const parts = [];
   const labels = [];
@@ -151,12 +152,15 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     vOut = '[vs]';
   }
   const quality = bitrate ? ['-b:v', `${bitrate}M`, '-maxrate', `${bitrate}M`, '-bufsize', `${bitrate * 2}M`] : ['-crf', '18'];
+  const video = fast
+    ? ['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-g', '15', '-threads', '2']
+    : ['-c:v', 'libx264', '-preset', 'veryfast', ...quality];
   await run([
     '-y', '-i', input,
     '-filter_complex', parts.join(';'),
     '-map', vOut, '-map', '[ac]',
-    '-c:v', 'libx264', '-preset', 'veryfast', ...quality, '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
+    ...video, '-pix_fmt', 'yuv420p',
+    '-c:a', 'aac', '-b:a', fast ? '96k' : '192k', '-movflags', '+faststart',
     output,
   ], { total, onProgress });
 }

@@ -49,6 +49,14 @@ export type Settings = {
 const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, ratingAsked: false, serverUrl: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
+/** The editor's stitched previews (see previewOf in api.ts), named `<cut id>-<key>.mp4`. */
+export const previewsDir = new Directory(Paths.cache, 'previews');
+
+/** Deletes a cut's previews, except `keep`. */
+export function deletePreviews(cutId: string, keep?: string) {
+  if (!previewsDir.exists) return;
+  for (const f of previewsDir.list()) if (f instanceof File && f.name.startsWith(`${cutId}-`) && f.name !== keep) f.delete();
+}
 const indexFile = new File(cutsDir, 'index-v2.json');
 const settingsFile = new File(Paths.document, 'settings.json');
 
@@ -102,6 +110,7 @@ export function deleteCut(id: string) {
     const file = cutFile(record.source);
     if (file.exists) file.delete();
   }
+  deletePreviews(id);
   state = { ...state, cuts: state.cuts.filter((c) => c.id !== id) };
   persist();
   emit();

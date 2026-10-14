@@ -1,7 +1,8 @@
 import Constants from 'expo-constants';
 import { File, UploadType } from 'expo-file-system';
 import { openBrowserAsync } from 'expo-web-browser';
-import { cutsDir, getSettings, type Cut, type Word } from './store';
+import { cutsDir, deletePreviews, getSettings, previewsDir, type Cut, type Word } from './store';
+import { sleep } from './theme';
 import { supabase } from './supabase';
 
 export type Stage = 'queued' | 'joining' | 'reading' | 'listening' | 'cutting' | 'ready' | 'failed' | 'stopped';
@@ -110,6 +111,28 @@ export async function startRender(id: string, body: object) {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })).renderId as string;
+}
+
+/**
+ * The edit stitched into one small video by the server and downloaded to the cache, so the editor
+ * can play straight through the cuts. Resolves to the file's URI, or undefined if `alive()` turns
+ * false first or the server couldn't make it. An edit previewed before comes straight from cache.
+ */
+export async function previewOf(cutId: string, clips: { start: number; end: number; speed: number; volume: number }[], alive: () => boolean) {
+  const body = JSON.stringify({ clips: clips.map(({ start, end, speed, volume }) => ({ start, end, speed, volume })) });
+  let { key, stage } = await call(`/cuts/${cutId}/preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  if (!previewsDir.exists) previewsDir.create({ intermediates: true });
+  const file = new File(previewsDir, `${cutId}-${key}.mp4`);
+  if (file.exists) return file.uri;
+  while (stage === 'rendering') {
+    await sleep(700);
+    if (!alive()) return;
+    ({ stage } = await call(`/cuts/${cutId}/preview?key=${key}&status=1`));
+  }
+  if (stage !== 'ready' || !alive()) return;
+  await File.downloadFileAsync(`${serverUrl()}/cuts/${cutId}/preview?key=${key}`, file, { headers: await authHeaders() });
+  deletePreviews(cutId, file.name);
+  return file.uri;
 }
 
 /** Downloads a file from the server into the cuts folder and returns its file name. */
