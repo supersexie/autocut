@@ -1,5 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { useSyncExternalStore } from 'react';
+import { DEFAULT_CAPTIONS, makeClip, totalDuration, type Edit } from './edit';
 
 export type CutReason = 'dead air' | 'filler' | 'stutter' | 'retake';
 export type Cut = { start: number; end: number; reason: CutReason; text: string };
@@ -24,7 +25,8 @@ export type CutRecord = {
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally
-  clips: Clip[]; // the current edit
+  clips: Clip[]; // what Autocut kept originally (source ranges)
+  edit?: Edit; // the user's edit; created from `clips` the first time the editor opens
   source?: string; // file name of the downloaded source video in the cuts folder
   exports: number;
 };
@@ -36,10 +38,12 @@ export type Settings = {
   captions: boolean;
   /** Keep iOS's default of flipping front-camera videos like a mirror. */
   mirrorFront: boolean;
+  tourDone: boolean;
+  ratingAsked: boolean;
   serverUrl: string; // empty = use the Mac running the dev server
 };
 
-const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorFront: true, serverUrl: '' };
+const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorFront: true, tourDone: false, ratingAsked: false, serverUrl: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
 const indexFile = new File(cutsDir, 'index-v2.json');
@@ -120,3 +124,19 @@ export const useCut = (id: string) => useSyncExternalStore(subscribe, () => getC
 export const useSettings = () => useSyncExternalStore(subscribe, () => state.settings);
 
 export const clipsDuration = (clips: Clip[]) => clips.reduce((t, [s, e]) => t + e - s, 0);
+
+/** The cut's edit, or a fresh one built from what Autocut kept. */
+export const editOf = (c: CutRecord): Edit =>
+  c.edit ?? {
+    clips: c.clips.map(([s, e]) => makeClip(s, e)),
+    muted: false,
+    captions: { ...DEFAULT_CAPTIONS, enabled: state.settings.captions },
+    texts: [],
+  };
+
+/** Length of the cut as the user will export it. */
+export const editedDuration = (c: CutRecord) => totalDuration(editOf(c).clips);
+
+export function saveEdit(id: string, edit: Edit) {
+  updateCut(id, { edit });
+}

@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { File, UploadType } from 'expo-file-system';
-import { cutsDir, getSettings, type Clip, type Cut, type Word } from './store';
+import { cutsDir, getSettings, type Cut, type Word } from './store';
 import { supabase } from './supabase';
 
 export type Stage = 'queued' | 'joining' | 'reading' | 'listening' | 'cutting' | 'ready' | 'failed' | 'stopped';
@@ -99,11 +99,11 @@ export const deleteAccountOnServer = () => call('/account', { method: 'DELETE' }
 export const getJob = (id: string): Promise<Job> => call(`/cuts/${id}`);
 export const stopJob = (id: string): Promise<Job> => call(`/cuts/${id}/stop`, { method: 'POST' });
 
-export async function startRender(id: string, clips: Clip[], options: { captions: boolean; height?: number; fps?: number }) {
+export async function startRender(id: string, body: object) {
   return (await call(`/cuts/${id}/render`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ segments: clips, ...options }),
+    body: JSON.stringify(body),
   })).renderId as string;
 }
 

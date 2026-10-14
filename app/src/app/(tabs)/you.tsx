@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { useAuth } from '../../lib/auth';
 import { PLANS } from '../../lib/plans';
-import { clipsDuration, useCuts } from '../../lib/store';
+import { editedDuration, useCuts } from '../../lib/store';
 import { theme } from '../../lib/theme';
 
 const LIMITS: Record<string, number> = { starter: 100, pro: 300, ultimate: Infinity };
@@ -29,7 +29,7 @@ export default function YouScreen() {
 
   const ready = cuts.filter((c) => c.status === 'ready');
   const footage = ready.reduce((t, c) => t + c.duration, 0);
-  const kept = ready.reduce((t, c) => t + clipsDuration(c.clips), 0);
+  const kept = ready.reduce((t, c) => t + editedDuration(c), 0);
   const trims = ready.reduce((t, c) => t + c.cuts.length, 0);
   const exported = ready.reduce((t, c) => t + c.exports, 0);
   // Rough rule of thumb: trimming by hand takes about 3 minutes per minute of raw footage.

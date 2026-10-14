@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Thumb } from '../../components/Thumb';
 import { Backdrop, Button } from '../../components/ui';
@@ -22,9 +23,25 @@ export default function Cutting() {
   const cut = useCut(id);
   const [tip, setTip] = useState(0);
 
+  // A short "Your cut is ready" moment, then into the editor.
   useEffect(() => {
-    if (cut?.status === 'ready') router.replace({ pathname: '/edit/[id]', params: { id } });
+    if (cut?.status !== 'ready') return;
+    const t = setTimeout(() => router.replace({ pathname: '/edit/[id]', params: { id } }), 1100);
+    return () => clearTimeout(t);
   }, [cut?.status, id]);
+
+  // Notice when an upload stops moving, to say the connection is slow.
+  const lastMove = useRef({ progress: -1, at: 0 });
+  const [stalled, setStalled] = useState(false);
+  useEffect(() => {
+    if (cut?.status !== 'uploading') return;
+    if (cut.progress !== lastMove.current.progress) {
+      lastMove.current = { progress: cut.progress, at: Date.now() };
+      setStalled(false);
+    }
+    const t = setInterval(() => setStalled(Date.now() - lastMove.current.at > 6000), 1000);
+    return () => clearInterval(t);
+  }, [cut?.status, cut?.progress]);
 
   useEffect(() => {
     const t = setInterval(() => setTip((i) => (i + 1) % TIPS.length), 6000);
@@ -73,6 +90,29 @@ export default function Cutting() {
   const percent = Math.round(100 * (uploading ? cut.progress * 0.25 : 0.25 + 0.75 * cut.progress));
   const preview = cut.previewUri ?? (cut.source ? cutFile(cut.source).uri : undefined);
 
+  if (cut.status === 'ready') {
+    return (
+      <Backdrop>
+        <Animated.Text entering={FadeIn.duration(200)} style={[styles.title, { marginTop: 40 }]}>
+          Your cut is ready
+        </Animated.Text>
+        <Animated.View entering={ZoomIn.springify().damping(16)}>
+          <Thumb uri={preview} seconds={0.5} style={[styles.card, styles.cardDone]} />
+        </Animated.View>
+      </Backdrop>
+    );
+  }
+
+  const status = uploading
+    ? cut.stage === 'waiting'
+      ? 'Waiting for your other videos to upload'
+      : cut.progress === 0
+        ? stalled ? 'Your connection is slow, still trying' : 'Connecting'
+        : stalled ? 'Your connection is slow, still trying' : null
+    : cut.stage === 'queued'
+      ? 'Waiting for the last cut to finish'
+      : null;
+
   return (
     <Backdrop
       footer={
@@ -89,11 +129,12 @@ export default function Cutting() {
     >
       <Header onBack={leave} />
       <Text style={styles.title}>Cutting</Text>
+      {status && <Text style={[styles.subtitle, { color: theme.ink }]}>{status}</Text>}
       <Text style={styles.subtitle}>
-        {uploading ? 'Keep Autocut open while your take uploads.' : 'You’re free to go. Your cut will be waiting in Cuts.'}
+        {uploading ? 'Keep Autocut open.' : 'You can lock your phone or leave. Your cut will be waiting in Cuts.'}
       </Text>
 
-      <Thumb uri={preview} seconds={0.5} style={styles.card}>
+      <Thumb uri={preview} seconds={0.5} style={[styles.card, !uploading && styles.cardDone]}>
         <View style={styles.shade} />
         <Text style={styles.percent}>{percent}%</Text>
       </Thumb>
@@ -127,8 +168,9 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 13, color: theme.muted, textAlign: 'center', marginTop: 4, marginHorizontal: 20, lineHeight: 18 },
   card: {
     width: 170, height: 300, borderRadius: 20, alignSelf: 'center', marginTop: 24, alignItems: 'center', justifyContent: 'center',
-    borderWidth: 3, borderColor: theme.accent, backgroundColor: '#1C1C1F',
+    borderWidth: 3, borderColor: '#D9D9DE', backgroundColor: '#1C1C1F',
   },
+  cardDone: { borderColor: theme.ink },
   shade: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0,0,0,0.25)' },
   percent: { color: '#fff', fontSize: 34, fontWeight: '800', fontVariant: ['tabular-nums'], textShadowColor: 'rgba(0,0,0,0.4)', textShadowRadius: 6 },
   tip: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 16, padding: 14, marginTop: 24 },

@@ -1,6 +1,8 @@
 import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
+import { CAPTION_FONTS } from '../lib/fonts';
 import { AuthProvider, useAuth } from '../lib/auth';
 
 SplashScreen.preventAutoHideAsync();
@@ -17,10 +19,13 @@ export default function RootLayout() {
 /** Signed out → welcome and setup questions. Signed in but no plan yet → paywall. Otherwise the app. */
 function RootNavigator() {
   const { loading, account } = useAuth();
+  // Caption and text styles preview in the same fonts the export uses.
+  const [fontsLoaded, fontError] = useFonts(CAPTION_FONTS);
+  const ready = !loading && (fontsLoaded || !!fontError);
   useEffect(() => {
-    if (!loading) SplashScreen.hide();
-  }, [loading]);
-  if (loading) return null;
+    if (ready) SplashScreen.hide();
+  }, [ready]);
+  if (!ready) return null;
 
   const signedIn = !!account;
   const onboarded = !!account?.profile.onboarded;

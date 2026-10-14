@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../../components/Thumb';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button } from '../../components/ui';
-import { clipsDuration, cutFile, deleteCut, useCuts, type CutRecord } from '../../lib/store';
+import { editedDuration, cutFile, deleteCut, useCuts, type CutRecord } from '../../lib/store';
 import { formatTime, theme } from '../../lib/theme';
 
 export default function CutsScreen() {
@@ -72,7 +72,7 @@ function Card({ cut }: { cut: CutRecord }) {
     ]);
 
   let status: string;
-  if (cut.status === 'ready') status = `${formatTime(cut.duration)} → ${formatTime(clipsDuration(cut.clips))}`;
+  if (cut.status === 'ready') status = `${formatTime(cut.duration)} → ${formatTime(editedDuration(cut))}`;
   else if (cut.status === 'failed') status = cut.error ?? "The edit didn't finish.";
   else if (cut.status === 'uploading') status = cut.stage === 'waiting' ? 'Waiting to upload' : `Uploading ${Math.round(cut.progress * 100)}%`;
   else if (cut.stage === 'queued') status = 'Waiting in line';
@@ -86,7 +86,7 @@ function Card({ cut }: { cut: CutRecord }) {
             <SymbolView name="exclamationmark" tintColor="#fff" size={10} weight="bold" />
           </View>
         )}
-        {cut.status === 'ready' && <Text style={styles.duration}>{formatTime(clipsDuration(cut.clips))}</Text>}
+        {cut.status === 'ready' && <Text style={styles.duration}>{formatTime(editedDuration(cut))}</Text>}
         {(cut.status === 'uploading' || cut.status === 'processing') && (
           <View style={styles.progressTrack}>
             <View style={[styles.progressFill, { width: `${Math.round(100 * (cut.status === 'uploading' ? cut.progress * 0.25 : 0.25 + 0.75 * cut.progress))}%` }]} />
