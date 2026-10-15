@@ -17,7 +17,7 @@ test('the default look is white TikTok Sans with no outline, and an outline can 
   assert.equal(plain[3], '&H00FFFFFF');
   assert.deepEqual([plain[16], plain[17]], ['0', '0']); // outline, shadow
   const outlined = style(buildAss({ width: 1080, height: 1920, captions: { style: 'classic', outline: true, lines: [line] } }), 'Caption');
-  assert.equal(outlined[16], '3');
+  assert.equal(outlined[16], '7'); // as thick as Classic Outline
   const text = style(buildAss({ width: 1080, height: 1920, texts: [{ text: 'x', style: 'classic', start: 0, end: 1 }] }), 'Text0');
   assert.deepEqual([text[1], text[16]], ['TikTok Sans Bold', '0']);
 });
@@ -77,7 +77,7 @@ test('outline can be removed or added, for captions and texts', () => {
   const plain = buildAss({ width: 1080, height: 1920, captions: { style: 'classic-outline', outline: false, lines: [line] } });
   assert.match(plain.split('\n').find((l) => l.startsWith('Style: Caption')), /,1,0,0,2,/);
   const outlined = buildAss({ width: 1080, height: 1920, texts: [{ text: 'x', style: 'white-box', box: false, outline: true, start: 0, end: 1 }] });
-  assert.match(outlined.split('\n').find((l) => l.startsWith('Style: Text0')), /,1,3,0,5,/);
+  assert.match(outlined.split('\n').find((l) => l.startsWith('Style: Text0')), /,1,7,0,5,/);
 });
 
 test('a caption colour the user picked is used in the export', () => {

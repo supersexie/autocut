@@ -4,6 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { useRef, useState, type ReactNode } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { askToUpgrade } from '../../lib/usage';
 import type { Caps, CaptionLine, CaptionSettings, Music } from '../../lib/edit';
 import { theme } from '../../lib/theme';
@@ -126,6 +127,8 @@ export function CaptionsPanel({
       {editing && (
         <LineEditor
           line={editing}
+          settings={settings}
+          onSettings={onChange}
           onDone={(text) => {
             setEditing(null);
             if (text && text !== editing.text) onChange({ ...settings, edits: { ...settings.edits, [editing.key]: text } });
@@ -140,13 +143,56 @@ export function CaptionsPanel({
  * Editing one caption line: a field that sits right on top of the keyboard, so what you type is
  * always in view, with the video still showing above it.
  */
-export function LineEditor({ line, onDone }: { line: CaptionLine; onDone: (text: string) => void }) {
+/**
+ * Editing a caption (the pencil): its words at the bottom, above the keyboard, and at the top the
+ * look of all captions, so it's where you'd expect it: plain, outline or background, the colour and
+ * the capitals. Those change the captions behind it as you tap.
+ */
+export function LineEditor({ line, onDone, settings, onSettings }: { line: CaptionLine; onDone: (text: string) => void; settings: CaptionSettings; onSettings: (s: CaptionSettings) => void }) {
+  const insets = useSafeAreaInsets();
   const [text, setText] = useState(line.text);
   const done = () => onDone(text.trim());
+  const style = captionStyle(settings.style);
+  const frame = frameOf(style, settings);
+  const colour = (settings.color ?? style.color).toUpperCase();
+  const tap = (s: CaptionSettings) => {
+    Haptics.selectionAsync();
+    onSettings(s);
+  };
   return (
     <Modal visible transparent animationType="fade" onRequestClose={done}>
       <KeyboardAvoidingView behavior="padding" style={styles.editScreen}>
         <Pressable style={StyleSheet.absoluteFill} onPress={done} accessibilityLabel="Done editing" />
+        <View style={[styles.lookCard, { top: insets.top + 8 }]}>
+          <Text style={styles.editLabel}>All captions</Text>
+          <View style={styles.capsRow}>
+            {(['plain', 'outline', 'box'] as Frame[]).map((f) => (
+              <Pressable key={f} onPress={() => tap({ ...settings, ...lookFor(f) })} style={[styles.lookBtn, frame === f && styles.capsOn]} accessibilityState={{ selected: frame === f }}>
+                <Text style={[styles.lookText, frame === f && { color: '#fff' }]}>{f === 'outline' ? 'Outline' : f === 'box' ? 'Background' : 'Plain'}</Text>
+              </Pressable>
+            ))}
+          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches} keyboardShouldPersistTaps="always">
+            {COLORS.map((c) => (
+              <Pressable
+                key={c}
+                onPress={() => tap({ ...settings, color: c === style.color.toUpperCase() ? undefined : c })}
+                accessibilityLabel={`Colour ${c}`}
+                accessibilityState={{ selected: colour === c }}
+                style={[styles.swatch, { backgroundColor: c }, colour === c && styles.swatchOn]}
+              >
+                {colour === c && <SymbolView name="checkmark" tintColor={isLight(c) ? theme.ink : '#fff'} size={13} weight="bold" />}
+              </Pressable>
+            ))}
+          </ScrollView>
+          <View style={styles.capsRow}>
+            {CAPS.map((c) => (
+              <Pressable key={c.value} onPress={() => tap({ ...settings, caps: c.value })} style={[styles.lookBtn, settings.caps === c.value && styles.capsOn]} accessibilityLabel={c.value === 'none' ? 'As spoken' : c.label}>
+                {c.icon ? <SymbolView name={c.icon} tintColor={settings.caps === c.value ? '#fff' : theme.ink} size={15} /> : <Text style={[styles.capsText, settings.caps === c.value && { color: '#fff' }]}>{c.label}</Text>}
+              </Pressable>
+            ))}
+          </View>
+        </View>
         <View style={styles.editBar}>
           <Text style={styles.editLabel}>Caption at {mmss(line.start)}</Text>
           <View style={styles.editRow}>
@@ -290,29 +336,6 @@ export function FormatPanel({ settings, onChange, onClose, onDone }: { settings:
         <View style={styles.between}>
           <Text style={styles.label}>Show punctuation</Text>
           <Switch value={settings.punctuation} onValueChange={(punctuation) => onChange({ ...settings, punctuation })} trackColor={{ true: theme.ink }} />
-        </View>
-        <View style={{ gap: 4 }}>
-          <View style={styles.between}>
-            <Text style={styles.label}>Words at a time</Text>
-            <Text style={styles.value}>
-              {settings.wordsPerLine} word{settings.wordsPerLine === 1 ? '' : 's'} at a time
-            </Text>
-          </View>
-          <Slider
-            minimumValue={1}
-            maximumValue={9}
-            step={1}
-            value={settings.wordsPerLine}
-            onValueChange={(v) => {
-              if (v !== settings.wordsPerLine) Haptics.selectionAsync();
-            }}
-            onSlidingComplete={(wordsPerLine) => onChange({ ...settings, wordsPerLine: Math.round(wordsPerLine) })}
-            minimumTrackTintColor={theme.ink}
-          />
-          <View style={styles.between}>
-            <Text style={styles.small}>1</Text>
-            <Text style={styles.small}>9</Text>
-          </View>
         </View>
       </View>
     </Panel>
@@ -550,6 +573,11 @@ const styles = StyleSheet.create({
   pillText: { fontSize: 13, fontWeight: '600', color: theme.ink },
   lineText: { flex: 1, fontSize: 15, color: theme.ink },
   editScreen: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.12)' },
+  lookCard: {
+    position: 'absolute', left: 12, right: 12, backgroundColor: '#fff', borderRadius: 20, padding: 14, gap: 12,
+    shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 },
+  },
+  lookBtn: { flex: 1, height: 40, borderRadius: 12, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   editBar: {
     backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 16, paddingTop: 12, paddingBottom: 10, gap: 8,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 14, shadowOffset: { width: 0, height: -4 },

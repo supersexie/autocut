@@ -55,6 +55,9 @@ const isDark = (hex) => {
   return 0.299 * r + 0.587 * g + 0.114 * b < 140;
 };
 
+/** The black outline added when Outline is picked (same as the app's OUTLINE in StyledText.tsx). */
+const OUTLINE = 7;
+
 /** A text's own font/colour/box choices on top of its style (mirrors StyledText in the app). */
 export function withLook(s, t = {}) {
   const out = { ...s };
@@ -69,7 +72,7 @@ export function withLook(s, t = {}) {
   if (t.box === false && s.box) {
     out.box = undefined;
     out.outline = '#000000';
-    out.outlineWidth = 3;
+    out.outlineWidth = OUTLINE;
   }
   // Outline only applies without a box: false = plain text, true = add a black outline.
   if (!out.box && t.outline === false) {
@@ -79,7 +82,7 @@ export function withLook(s, t = {}) {
   }
   if (!out.box && t.outline === true && !(out.outlineWidth > 0)) {
     out.outline = '#000000';
-    out.outlineWidth = 3;
+    out.outlineWidth = OUTLINE;
   }
   return out;
 }

@@ -695,6 +695,8 @@ export function Editor({ cut }: { cut: CutRecord }) {
       {editingLine && (
         <LineEditor
           line={editingLine}
+          settings={edit.captions}
+          onSettings={(captions) => commit({ ...edit, captions }, { keepTime: true })}
           onDone={(t) => {
             const l = editingLine;
             setEditingLine(null);
