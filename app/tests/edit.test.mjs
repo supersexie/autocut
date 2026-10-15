@@ -208,10 +208,10 @@ test('overlap audio is on unless switched off, and goes to the export', () => {
   assert.equal(exportBody({ ...base, overlapAudio: false }, words, {}).overlapAudio, false);
 });
 
-test('plans: Starter has neither overlap audio nor batch cuts; Pro and Ultimate have both', async () => {
-  const { planAllows, OVERLAP, BATCH } = await import('../src/lib/plans.ts');
-  assert.deepEqual([planAllows('starter', OVERLAP), planAllows('starter', BATCH)], [false, false]);
-  assert.deepEqual([planAllows('pro', OVERLAP), planAllows('pro', BATCH)], [true, true]);
-  assert.deepEqual([planAllows('ultimate', OVERLAP), planAllows('ultimate', BATCH)], [true, true]);
+test('plans: Starter has neither overlap audio nor scheduled batch edits; Pro and Ultimate have both', async () => {
+  const { planAllows, OVERLAP, SCHEDULED } = await import('../src/lib/plans.ts');
+  assert.deepEqual([planAllows('starter', OVERLAP), planAllows('starter', SCHEDULED)], [false, false]);
+  assert.deepEqual([planAllows('pro', OVERLAP), planAllows('pro', SCHEDULED)], [true, true]);
+  assert.deepEqual([planAllows('ultimate', OVERLAP), planAllows('ultimate', SCHEDULED)], [true, true]);
   assert.equal(planAllows(undefined, OVERLAP), false); // no plan yet: Starter
 });
