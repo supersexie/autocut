@@ -6,7 +6,7 @@ import * as StoreReview from 'expo-store-review';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Alert, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActionSheetIOS, Alert, Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
@@ -228,6 +228,10 @@ function Exporting({ phase, preview, seconds, onRetry, onClose }: { phase: Phase
   );
 }
 
+// The apps' own marks, for the buttons that open them.
+const TIKTOK = require('../../assets/tiktok-logo.png');
+const INSTAGRAM = require('../../assets/instagram-logo.png');
+
 /** Opens Instagram with the saved video picked, or TikTok (where it's the newest video in Photos). */
 async function postTo(app: 'instagram' | 'tiktok', assetId?: string) {
   const urls =
@@ -305,8 +309,8 @@ function Done({ file, saved, assetId, aspect, onClose }: { file: string; saved: 
           </View>
           {saved && (
             <View style={styles.postRow}>
-              <Button kind="outline" title="TikTok" icon={<SymbolView name="music.note" tintColor={theme.ink} size={15} />} onPress={() => postTo('tiktok')} style={{ flex: 1 }} />
-              <Button kind="outline" title="Instagram" icon={<SymbolView name="camera.aperture" tintColor={theme.ink} size={15} />} onPress={() => postTo('instagram', assetId)} style={{ flex: 1 }} />
+              <Button kind="outline" title="TikTok" icon={<Image source={TIKTOK} style={styles.brandIcon} accessibilityIgnoresInvertColors />} onPress={() => postTo('tiktok')} style={{ flex: 1 }} />
+              <Button kind="outline" title="Instagram" icon={<Image source={INSTAGRAM} style={styles.brandIcon} accessibilityIgnoresInvertColors />} onPress={() => postTo('instagram', assetId)} style={{ flex: 1 }} />
             </View>
           )}
           <Button title="Share" icon={<SymbolView name="square.and.arrow.up" tintColor="#fff" size={16} />} onPress={() => Sharing.shareAsync(uri, { mimeType: 'video/mp4', UTI: 'public.mpeg-4' })} />
@@ -326,6 +330,7 @@ function Done({ file, saved, assetId, aspect, onClose }: { file: string; saved: 
 }
 
 const styles = StyleSheet.create({
+  brandIcon: { width: 22, height: 22, borderRadius: 5 },
   sheet: { flex: 1, backgroundColor: '#fff', padding: 20, paddingTop: 10, gap: 14 },
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: '#DCDCE0', marginBottom: 6 },
   sheetHead: { flexDirection: 'row', gap: 12, alignItems: 'center' },
