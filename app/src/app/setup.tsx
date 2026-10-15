@@ -191,68 +191,49 @@ function spline(pts: [number, number][], samples = 240): [number, number][] {
 /** "45 min", "1 hr", "13.5 hrs". */
 const hrs = (h: number) => (h < 1 ? `${Math.max(5, Math.round((h * 60) / 5) * 5)} min` : `${Math.round(h * 2) / 2} hr${h >= 1.25 ? 's' : ''}`);
 
-const RING = 210;
-const RING_STROKE = 16;
+const COL_H = 250; // each column's height
+const COL_TOP = 66; // room above the fill for the label and time
 
 /**
- * "Autocut gives you back 13.5 hrs a week": a ring fills to the share of editing time they get
- * back while the hours count up inside it, then the two ways of cutting race as bars (by hand
- * fills the track, Autocut barely starts), and what that comes to over a year lands last.
+ * "Autocut gives you back 5 hrs every week": the hours count up, then two columns rise one after
+ * the other, like Cal AI's "Without / With": cutting by hand fills a tall grey column, Autocut a
+ * short black one. What that comes to over a year lands last.
  */
 function TimeSaved({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const p = useProgress(2600, 350);
+  const p = useProgress(2400, 350);
   const videos = videosPerWeek(draft.perWeek) || 2;
   const byHand = (videos * BY_HAND_MINUTES) / 60;
   const withAutocut = (videos * AUTOCUT_MINUTES) / 60;
   const saved = byHand - withAutocut;
-  const share = saved / byHand;
   const days = Math.round((saved * 52) / 24);
-  const ring = easeOut(clamp01(p / 0.55));
-  const bars = clamp01((p - 0.4) / 0.4);
+  const hand = easeOut(clamp01(p / 0.45));
+  const auto = easeOut(clamp01((p - 0.4) / 0.4));
   const year = clamp01((p - 0.82) / 0.18);
+  const landed = (hand >= 1 ? 1 : 0) + (auto >= 1 ? 1 : 0) + (year >= 1 ? 1 : 0);
   useEffect(() => {
-    if (year >= 1) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [year]);
-  const r = (RING - RING_STROKE) / 2;
-  const c = 2 * Math.PI * r;
-  const bar = (label: string, hours: number, fill: number, strong: boolean) => (
-    <View style={{ gap: 6 }}>
-      <View style={styles.compare}>
-        <Text style={styles.barLabel}>{label}</Text>
-        <Text style={[styles.barValue, { opacity: clamp01(bars * 2) }]}>{hrs(hours * easeOut(bars))} a week</Text>
-      </View>
-      <View style={styles.track}>
-        <View style={[styles.trackFill, { width: `${Math.max(2, 100 * fill * easeOut(bars))}%`, backgroundColor: strong ? theme.ink : '#C9C9CF' }]} />
+    if (landed === 1 || landed === 2) Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (landed === 3) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [landed]);
+  const MIN = 44; // a fill never gets too small to hold its icon
+  const column = (label: string, hours: number, fraction: number, q: number, strong: boolean) => (
+    <View style={[styles.column, { height: COL_H }]}>
+      <Text style={styles.columnLabel}>{label}</Text>
+      <Text style={[styles.columnValue, { opacity: clamp01(q * 3) }]}>{hrs(hours * q)}</Text>
+      <View style={[styles.columnFill, { height: (MIN + (COL_H - COL_TOP - MIN) * fraction) * q, backgroundColor: strong ? theme.ink : '#D9D9DE' }]}>
+        {q > 0.6 && <SymbolView name={strong ? 'bolt.fill' : 'clock'} tintColor={strong ? '#fff' : theme.ink} size={22} style={{ opacity: (q - 0.6) / 0.4 }} />}
       </View>
     </View>
   );
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} disabled={p < 1} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle center>Autocut gives you back</OnbTitle>
-        <View style={styles.ringWrap}>
-          <Svg width={RING} height={RING} style={{ transform: [{ rotate: '-90deg' }] }}>
-            <Circle cx={RING / 2} cy={RING / 2} r={r} stroke="rgba(17,17,20,0.08)" strokeWidth={RING_STROKE} fill="none" />
-            <Circle
-              cx={RING / 2}
-              cy={RING / 2}
-              r={r}
-              stroke={theme.ink}
-              strokeWidth={RING_STROKE}
-              fill="none"
-              strokeLinecap="round"
-              strokeDasharray={`${c} ${c}`}
-              strokeDashoffset={c * (1 - share * ring)}
-            />
-          </Svg>
-          <View style={styles.ringCenter}>
-            <Text style={styles.ringValue}>{hrs(saved * ring)}</Text>
-            <Text style={styles.ringSub}>every week</Text>
+        <Text style={styles.kicker}>Every week, Autocut gives you back</Text>
+        <Text style={styles.huge}>{hrs(saved * easeOut(clamp01(p / 0.8)))}</Text>
+        <View style={[styles.card, { marginTop: 20 }]}>
+          <View style={styles.columns}>
+            {column('Cutting by hand', byHand, 1, hand, false)}
+            {column('With Autocut', withAutocut, withAutocut / byHand, auto, true)}
           </View>
-        </View>
-        <View style={[styles.card, { marginTop: 22, gap: 16 }]}>
-          {bar('Cutting by hand', byHand, 1, false)}
-          {bar('With Autocut', withAutocut, withAutocut / byHand, true)}
         </View>
         <View style={[styles.yearPill, { opacity: year, transform: [{ translateY: 10 * (1 - year) }, { scale: 0.96 + 0.04 * year }] }]}>
           <SymbolView name="calendar" tintColor="#fff" size={15} />
@@ -497,14 +478,13 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
 
 const styles = StyleSheet.create({
   signIn: { fontSize: 16, fontWeight: '600', color: theme.ink },
-  ringWrap: { alignSelf: 'center', width: RING, height: RING, marginTop: 4 },
-  ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  ringValue: { fontSize: 40, fontWeight: '800', color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
-  ringSub: { fontSize: 15, color: theme.muted, marginTop: 2 },
-  barLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  barValue: { fontSize: 15, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
-  track: { height: 12, borderRadius: 6, backgroundColor: 'rgba(17,17,20,0.06)', overflow: 'hidden' },
-  trackFill: { height: 12, borderRadius: 6 },
+  kicker: { fontSize: 17, color: theme.muted, marginTop: 4 },
+  huge: { fontSize: 56, fontWeight: '800', color: theme.ink, letterSpacing: -1.8, marginTop: 2, fontVariant: ['tabular-nums'] },
+  columns: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
+  column: { flex: 1, maxWidth: 160, borderRadius: 22, backgroundColor: '#F4F4F6', alignItems: 'center', paddingTop: 14, overflow: 'hidden' },
+  columnLabel: { fontSize: 14, fontWeight: '700', color: theme.ink, textAlign: 'center' },
+  columnValue: { fontSize: 14, color: theme.muted, marginTop: 3, fontVariant: ['tabular-nums'] },
+  columnFill: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 22, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 12 },
   yearPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, marginTop: 20 },
   yearText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   amount: { position: 'absolute', width: 100, textAlign: 'center', fontSize: 15, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
