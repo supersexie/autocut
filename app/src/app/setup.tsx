@@ -134,16 +134,39 @@ function useProgress(ms: number, delay = 300) {
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
-/** A smooth curve through the points (Catmull-Rom), sampled finely so it can be drawn part-way. */
-function spline(pts: [number, number][], samples = 120): [number, number][] {
+/**
+ * A smooth curve through the points that never overshoots them (monotone cubic Hermite), sampled
+ * finely so it can be drawn part-way. No bumps, dips or corners. Each point's slope is the average
+ * of the lines either side, capped at 3× the gentler one: the most a curve can lean in while staying
+ * monotone, so it starts rising before a steep stretch instead of turning sharply at the point.
+ */
+function spline(pts: [number, number][], samples = 240): [number, number][] {
+  const n = pts.length;
+  const h = pts.slice(1).map(([x], i) => x - pts[i][0]);
+  const d = pts.slice(1).map(([, y], i) => (y - pts[i][1]) / (h[i] || 1));
+  const sign = (v: number) => (v > 0 ? 1 : v < 0 ? -1 : 0);
+  // The slope at each point: gentle where the line is flat, never steeper than its neighbours allow.
+  const m = pts.map((_, i) => {
+    if (i === 0) return h[0] ? (3 * d[0] - inner(1)) / 2 : 0;
+    if (i === n - 1) return h[n - 2] ? (3 * d[n - 2] - inner(n - 2)) / 2 : 0;
+    return inner(i);
+  });
+  function inner(i: number) {
+    if (i <= 0 || i >= n - 1) return d[Math.max(0, Math.min(n - 2, i))];
+    if (sign(d[i - 1]) !== sign(d[i]) || !d[i]) return 0;
+    const mean = (d[i - 1] + d[i]) / 2;
+    return sign(mean) * Math.min(Math.abs(mean), 3 * Math.min(Math.abs(d[i - 1]), Math.abs(d[i])));
+  }
   const out: [number, number][] = [];
+  const x0 = pts[0][0], x1 = pts[n - 1][0];
   for (let s = 0; s <= samples; s++) {
-    const u = (s / samples) * (pts.length - 1);
-    const i = Math.min(pts.length - 2, Math.floor(u));
-    const t = u - i;
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-    const f = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
-    out.push([f(p0[0], p1[0], p2[0], p3[0]), Math.min(f(p0[1], p1[1], p2[1], p3[1]), Math.max(p1[1], p2[1]))]);
+    const x = x0 + ((x1 - x0) * s) / samples;
+    let i = 0;
+    while (i < n - 2 && x > pts[i + 1][0]) i++;
+    const t = (x - pts[i][0]) / (h[i] || 1);
+    const t2 = t * t, t3 = t2 * t;
+    const y = (2 * t3 - 3 * t2 + 1) * pts[i][1] + (t3 - 2 * t2 + t) * h[i] * m[i] + (-2 * t3 + 3 * t2) * pts[i + 1][1] + (t3 - t2) * h[i] * m[i + 1];
+    out.push([x, y]);
   }
   return out;
 }
