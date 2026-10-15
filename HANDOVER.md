@@ -159,9 +159,9 @@ Nothing charges today. The app says "Free during the beta", but the plan screens
   - Give a working email and password for a test account.
   - Mention that videos are cut on the server, so the first cut of a take takes a minute or two.
 - **iPad:** supported. Apple reviews on iPad too, and it's been checked on the iPad Simulator.
-- **Screenshots (iPhone 6.9"):** ready in `design/App Store/`, numbered 1–5 in upload order (1320×2868).
-  They show another creator's sponsored video, so **get his permission first** (or re-shoot with your own take).
-  iPad screenshots (13", 2064×2752) still need taking, from the iPad Simulator.
+- **Screenshots:** ready in `design/App Store/`, numbered 1–5 in upload order: iPhone 6.9" (1320×2868) and
+  iPad 13" (2064×2752). They show another creator's sponsored video, so **get his permission first** (or re-shoot
+  with your own take).
 - **App icon:** already in the app. The master is `app/assets/logo.svg`; other formats are in `design/Logo/Final/`.
 
 ### ⚠️ The intro video
