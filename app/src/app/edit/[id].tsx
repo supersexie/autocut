@@ -394,7 +394,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
       <View style={styles.top}>
-        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back" style={{ width: 96 }}>
+        <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back" style={{ width: 82 }}>
           <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
         </Pressable>
         <Text style={styles.brand}>Autocut</Text>
@@ -407,7 +407,7 @@ function Editor({ cut }: { cut: CutRecord }) {
           hitSlop={10}
           style={styles.exportBtn}
         >
-          <SymbolView name="square.and.arrow.up" tintColor="#fff" size={14} weight="semibold" />
+          <SymbolView name="square.and.arrow.up" tintColor="#fff" size={12} weight="semibold" />
           <Text style={styles.exportText}>Export</Text>
         </Pressable>
       </View>
@@ -760,8 +760,8 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
   brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
-  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, width: 96, height: 34, borderRadius: 10, backgroundColor: theme.ink },
-  exportText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, width: 82, height: 30, borderRadius: 9, backgroundColor: theme.ink },
+  exportText: { fontSize: 13, fontWeight: '700', color: '#fff' },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
   bottom: { height: BOTTOM_H, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
