@@ -22,7 +22,7 @@ import { pipeline as streamTo } from 'node:stream/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { accountFrom, authEnabled, deleteAuthUser, LOCAL_USER } from './auth.js';
+import { accountFrom, authEnabled, deleteAuthUser, LOCAL_USER, planOf } from './auth.js';
 import { rulesFor, usageStore } from './plans.js';
 import { legalPage } from './legal.js';
 import { joinTakes, render } from './media.js';
@@ -141,7 +141,8 @@ async function findUpload(id, userId) {
   return null;
 }
 
-async function createCut(req, res, url, userId, rules) {
+async function createCut(req, res, url, userId) {
+  const rules = rulesFor(await planOf(userId));
   const q = url.searchParams;
   // What the plan includes: batch cutting, and a number of edits a month.
   if (q.get('batch') === '1' && !rules.batch) {
@@ -241,7 +242,8 @@ async function jsonBody(req) {
   return JSON.parse(text || '{}');
 }
 
-async function createRender(req, res, job, rules) {
+async function createRender(req, res, job, userId) {
+  const rules = rulesFor(await planOf(userId));
   if (job.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready to export yet.' });
   if (job.render && ['queued', 'rendering'].includes(job.render.stage)) return send(res, 409, { error: 'Already exporting this cut.' });
   let body;
@@ -518,17 +520,16 @@ const server = http.createServer(async (req, res) => {
     const account = await accountFrom(req);
     const userId = account?.id;
     if (!userId || !USER.test(userId)) return send(res, 401, { error: 'Your session ended. Sign in again.' });
-    const rules = rulesFor(account.plan);
 
     if (req.method === 'POST' && root === 'uploads' && !id) return await createUpload(req, res, userId);
-    if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url, userId, rules);
+    if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url, userId);
     if (req.method === 'DELETE' && root === 'account' && !id) return await deleteAccount(res, userId);
     if (root === 'cuts' && id) {
       const job = await loadJob(id, userId);
       if (!job) return send(res, 404, { error: 'No cut with that id.' });
       if (req.method === 'GET' && !action) return send(res, 200, publicJob(job));
       if (req.method === 'POST' && action === 'stop') return await stopCut(res, job);
-      if (req.method === 'POST' && action === 'render') return await createRender(req, res, job, rules);
+      if (req.method === 'POST' && action === 'render') return await createRender(req, res, job, userId);
       if (req.method === 'GET' && action === 'source') {
         if (!job.source) return send(res, 409, { error: 'Not ready yet.' });
         return await sendFile(req, res, job.source, job.source.endsWith('.mp4') ? 'video/mp4' : 'video/quicktime');

@@ -14,20 +14,28 @@ const supabase = url && secret ? createClient(url, secret, { auth: { persistSess
 export const authEnabled = !!supabase;
 export const LOCAL_USER = 'local';
 
-/**
- * The signed-in user and their plan, or null when the token is missing, expired or forged. The
- * plan is read from the account (`user_metadata.plan`). Until App Store subscriptions are connected
- * the app sets it, so it isn't proof of payment: see HANDOVER.md.
- */
+/** The signed-in user, or null when the token is missing, expired or forged. */
 export async function accountFrom(req) {
-  // Local development: Ultimate, or the plan in DEV_PLAN (starter, pro) to try the limits.
-  if (!supabase) return { id: LOCAL_USER, plan: process.env.DEV_PLAN || 'ultimate' };
+  if (!supabase) return { id: LOCAL_USER };
   const token = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1];
   if (!token) return null;
   const { data, error } = await supabase.auth.getClaims(token);
   const sub = data?.claims?.sub;
   if (error || typeof sub !== 'string') return null;
-  return { id: sub, plan: data.claims.user_metadata?.plan };
+  return { id: sub };
+}
+
+/**
+ * The user's plan, read from the account itself (`user_metadata.plan`). Not from the token: its copy
+ * is as old as the token (up to an hour), so a plan just changed wouldn't count yet. Until App Store
+ * subscriptions are connected the app sets it, so it isn't proof of payment: see HANDOVER.md.
+ */
+export async function planOf(id) {
+  // Local development: Ultimate, or the plan in DEV_PLAN (starter, pro) to try the limits.
+  if (!supabase || id === LOCAL_USER) return process.env.DEV_PLAN || 'ultimate';
+  const { data, error } = await supabase.auth.admin.getUserById(id);
+  if (error) throw error;
+  return data.user?.user_metadata?.plan;
 }
 
 /** The signed-in user's id, or null. */
