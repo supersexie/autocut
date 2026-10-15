@@ -311,7 +311,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 12,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
-  transcript: { fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, lineHeight: 26, minHeight: 52, textAlign: 'center' },
+  transcript: { fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, lineHeight: 26, minHeight: 52 },
   unsaid: { color: 'transparent' },
   saying: { fontWeight: '900' },
   // Centred as a group; the ticks still line up down the left of it.
