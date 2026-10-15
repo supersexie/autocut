@@ -65,7 +65,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
 
   const title = (
     <>
-      <Text style={styles.title}>
+      <Text style={styles.title} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
         <Text style={{ color: HIGHLIGHT }}>{chosen.name}</Text> fits how you post.
       </Text>
       <Text style={styles.sub}>

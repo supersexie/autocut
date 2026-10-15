@@ -10,9 +10,8 @@ export default function TabLayout() {
       tabBar={(props) => <PillTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        // Screens fade into each other instead of swapping in a single frame.
-        animation: 'fade',
-        transitionSpec: { animation: 'timing', config: { duration: 200 } },
+        // No fade between tabs: started while the editor (a full-screen cover) was closing, it could
+        // get stuck, leaving the tab blank.
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Create' }} />

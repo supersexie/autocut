@@ -236,7 +236,7 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
           {w > 0 &&
             pts.map(([px, py], i) =>
               reached(i) > 0 ? (
-                <Text key={i} style={[styles.amount, i === 3 && styles.amountBig, { left: px - 50, top: py - (i === 3 ? 36 : 28), opacity: clamp01(reached(i) * 2) }]}>
+                <Text key={i} style={[styles.amount, i === 3 && styles.amountBig, { left: px - 50 - (i === 2 ? 18 : 0) /* the month's, clear of the rising line */, top: py - (i === 3 ? 36 : 28), opacity: clamp01(reached(i) * 2) }]}>
                   {money(Math.round(values[i] * easeOut(reached(i))))}
                 </Text>
               ) : null
@@ -345,7 +345,7 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
   }
 
   const points: { icon: SymbolName; text: string }[] = [
-    { icon: 'scissors', text: who && who.value !== 'me' ? `Cuts tuned for ${/^[aeiou]/i.test(who.label) ? 'an' : 'a'} ${midSentence(who.label)}` : 'Dead air, ums and retakes cut for you' },
+    { icon: 'scissors', text: who && who.value !== 'me' ? `Cuts tuned for ${/^[aeio]/i.test(who.label) ? 'an' : 'a'} ${midSentence(who.label)}` : 'Dead air, ums and retakes cut for you' },
     { icon: 'captions.bubble', text: 'Captions on every word' },
     { icon: 'checkmark.seal', text: `${plan.name}: ${midSentence(plan.edits)}` },
   ];
@@ -403,7 +403,7 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
 const styles = StyleSheet.create({
   signIn: { fontSize: 16, fontWeight: '600', color: theme.ink },
   amount: { position: 'absolute', width: 100, textAlign: 'center', fontSize: 15, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
-  amountBig: { fontSize: 18 },
+  amountBig: { fontSize: 18, color: theme.cut }, // the year, in red
   axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 14, color: theme.muted },
   caption: { fontSize: 15, color: theme.muted, textAlign: 'center', marginTop: 10 },
   card: {

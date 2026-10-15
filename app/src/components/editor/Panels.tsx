@@ -336,7 +336,10 @@ export function VolumePanel({
             </View>
             <Text style={styles.small}>Blends the sound across each cut so jumps don’t click. Applies to the export.</Text>
           </View>
-          <Switch value={overlap && !overlapLocked} onValueChange={onOverlap} disabled={overlapLocked} trackColor={{ true: theme.ink }} />
+          {/* Locked, the switch lets taps through to the row (which offers the upgrade): a disabled switch would swallow them. */}
+          <View pointerEvents={overlapLocked ? 'none' : 'auto'}>
+            <Switch value={overlap && !overlapLocked} onValueChange={onOverlap} disabled={overlapLocked} trackColor={{ true: theme.ink }} />
+          </View>
         </Pressable>
       </View>
     </Panel>
