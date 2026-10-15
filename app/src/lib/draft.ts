@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import { useSyncExternalStore } from 'react';
-import type { Language } from './auth';
+import type { Language, Profile } from './auth';
+import type { Billing, PlanId } from './plans';
 
 /**
  * Answers from the setup questions. They're asked before sign-up, so they live on the phone
@@ -15,6 +16,8 @@ export type Draft = {
   firstName?: string;
   lastName?: string;
   handle?: string;
+  plan?: PlanId; // picked before the account exists
+  billing?: Billing;
 };
 
 const file = new File(Paths.document, 'setup-draft.json');
@@ -49,3 +52,10 @@ export const useDraft = () =>
     },
     () => draft
   );
+
+/** The setup answers that belong on the profile, without the empty ones. */
+export function profileFromDraft(d: Draft = draft): Profile {
+  return Object.fromEntries(
+    Object.entries({ who: d.who, goal: d.goal, editorCost: d.editorCost, perWeek: d.perWeek, language: d.language }).filter(([, v]) => v)
+  );
+}

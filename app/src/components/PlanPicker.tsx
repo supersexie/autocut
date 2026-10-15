@@ -4,36 +4,43 @@ import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { HIGHLIGHT, OnbScreen } from './Onboarding';
 import { Button, ErrorText, Logo, PressableScale, Segmented } from './ui';
 import { openLegal } from '../lib/api';
-import { useAuth, type Profile } from '../lib/auth';
-import { clearDraft, getDraft } from '../lib/draft';
+import { useAuth } from '../lib/auth';
+import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
 import { BRAND_FONT } from '../lib/fonts';
 import { column, COLUMN, midSentence, theme } from '../lib/theme';
 
-/**
- * The plans. `onboarding`: the last step of setup, where picking one saves the setup answers and
- * opens the app. `change`: from Your plan, with a way back, and picking one just switches plan.
- */
 /** "a, b and c". */
 const sentence = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
 
-export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
+/**
+ * The plans. `setup`: a step of setup, before the account exists: the choice is kept with the
+ * answers and saved once they sign up. `onboarding`: signed in without a plan yet; picking one saves
+ * the answers and opens the app. `change`: from Your plan, with a way back; picking one switches plan.
+ */
+export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboarding' | 'change'; header?: React.ReactNode; onDone?: () => void }) {
   const insets = useSafeAreaInsets();
   const { account, updateProfile, signOut } = useAuth();
   const changing = mode === 'change';
   const current = account?.profile.plan;
   const best = recommendedPlan(getDraft().editorCost ?? account?.profile.editorCost, getDraft().perWeek ?? account?.profile.perWeek);
   // New users start on yearly, the price the setup's savings were worked out with.
-  const [billing, setBilling] = useState<Billing>(account?.profile.billing ?? (changing ? 'monthly' : 'yearly'));
-  const [plan, setPlan] = useState<PlanId>(current ?? best);
+  const [billing, setBilling] = useState<Billing>(account?.profile.billing ?? getDraft().billing ?? (changing ? 'monthly' : 'yearly'));
+  const [plan, setPlan] = useState<PlanId>(current ?? getDraft().plan ?? best);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chosen = planFor(plan);
   const monthly = pricePerMonth(chosen.monthly, billing);
 
   async function start() {
+    if (mode === 'setup') {
+      updateDraft({ plan, billing });
+      onDone?.();
+      return;
+    }
     setSaving(true);
     setError(null);
     if (changing) {
@@ -47,17 +54,117 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
       return;
     }
     try {
-      const d = getDraft();
-      const fromSetup: Profile = Object.fromEntries(
-        Object.entries({ who: d.who, goal: d.goal, editorCost: d.editorCost, perWeek: d.perWeek, language: d.language }).filter(([, v]) => v)
-      );
       // Payments are not connected yet: save the choice and open the app.
-      await updateProfile({ ...fromSetup, plan, billing, onboarded: true });
+      await updateProfile({ ...profileFromDraft(), plan, billing, onboarded: true });
       clearDraft();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setSaving(false);
     }
+  }
+
+  const title = (
+    <>
+      <Text style={styles.title}>
+        <Text style={{ color: HIGHLIGHT }}>{chosen.name}</Text> fits how you post.
+      </Text>
+      <Text style={styles.sub}>
+        Everything your editor does, for a fraction of the price: {sentence([chosen.edits, ...chosen.features, 'captions'].map(midSentence))}.
+      </Text>
+    </>
+  );
+  const choices = (
+    <>
+      <View style={{ alignSelf: 'center', width: 250, marginVertical: 16 }}>
+        <Segmented
+          value={billing}
+          onChange={setBilling}
+          options={[
+            { value: 'monthly', label: 'Monthly' },
+            { value: 'yearly', label: 'Yearly', badge: `-${Math.round(YEARLY_DISCOUNT * 100)}%` },
+          ]}
+        />
+      </View>
+      <View style={{ gap: 12 }}>
+        {PLANS.map((p) => {
+          const on = p.id === plan;
+          return (
+            <PressableScale
+              key={p.id}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setPlan(p.id);
+              }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: on }}
+              scaleTo={0.98}
+              style={[styles.plan, on && styles.planOn]}
+            >
+              {p.id === best && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>BEST FOR YOU</Text>
+                </View>
+              )}
+              <View style={styles.row}>
+                <View style={[styles.radio, on && styles.radioOn]}>{on && <SymbolView name="checkmark" tintColor="#fff" size={11} weight="bold" />}</View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.planName}>{p.name}</Text>
+                  <Text style={styles.planEdits}>{p.edits}</Text>
+                </View>
+                <Text style={styles.price}>
+                  {money(pricePerMonth(p.monthly, billing))}
+                  <Text style={styles.per}> a month</Text>
+                </Text>
+              </View>
+              <View style={styles.features}>
+                {FEATURES.map((f) => {
+                  const has = p.features.includes(f);
+                  return (
+                    <View key={f} style={styles.feature}>
+                      <SymbolView name={has ? 'checkmark.circle.fill' : 'xmark.circle'} tintColor={has ? theme.ink : theme.faint} size={14} />
+                      <Text style={[styles.featureText, !has && { color: theme.faint }]}>{f}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            </PressableScale>
+          );
+        })}
+      </View>
+    </>
+  );
+  const footer = (
+    <>
+      <ErrorText>{error}</ErrorText>
+      <Button
+        title={changing ? (plan === current && billing === (account?.profile.billing ?? 'monthly') ? `Keep ${chosen.name}` : `Switch to ${chosen.name}`) : `Continue with ${chosen.name}  →`}
+        onPress={start}
+        loading={saving}
+      />
+      <Text style={styles.terms}>
+        {money(monthly)} a month{billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}. Renews automatically. Cancel anytime.
+        {'\n'}Free during the beta: you won’t be charged.
+      </Text>
+      <View style={styles.links}>
+        <Text style={styles.link} onPress={() => openLegal('terms')}>
+          Terms of Use
+        </Text>
+        <Text style={styles.link} onPress={() => openLegal('privacy')}>
+          Privacy Policy
+        </Text>
+      </View>
+    </>
+  );
+
+  if (mode === 'setup') {
+    return (
+      <OnbScreen header={header} footer={footer}>
+        <View style={{ marginTop: -8 }}>
+          {title}
+          {choices}
+        </View>
+      </OnbScreen>
+    );
   }
 
   return (
@@ -80,89 +187,12 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
       </View>
 
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 22, paddingBottom: 16 }, column(COLUMN + 44)]} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>{chosen.name} fits how you post.</Text>
-        <Text style={styles.sub}>
-          Everything your editor does, for a fraction of the price: {sentence([chosen.edits, ...chosen.features, 'captions'].map(midSentence))}.
-        </Text>
-
-        <View style={{ alignSelf: 'center', width: 250, marginVertical: 16 }}>
-          <Segmented
-            value={billing}
-            onChange={setBilling}
-            options={[
-              { value: 'monthly', label: 'Monthly' },
-              { value: 'yearly', label: 'Yearly', badge: `-${Math.round(YEARLY_DISCOUNT * 100)}%` },
-            ]}
-          />
-        </View>
-
-        <View style={{ gap: 12 }}>
-          {PLANS.map((p) => {
-            const on = p.id === plan;
-            return (
-              <PressableScale
-                key={p.id}
-                onPress={() => {
-                  Haptics.selectionAsync();
-                  setPlan(p.id);
-                }}
-                accessibilityRole="radio"
-                accessibilityState={{ selected: on }}
-                scaleTo={0.98}
-                style={[styles.plan, on && styles.planOn]}
-              >
-                {p.id === best && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>BEST FOR YOU</Text>
-                  </View>
-                )}
-                <View style={styles.row}>
-                  <View style={[styles.radio, on && styles.radioOn]}>{on && <SymbolView name="checkmark" tintColor="#fff" size={11} weight="bold" />}</View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.planName}>{p.name}</Text>
-                    <Text style={styles.planEdits}>{p.edits}</Text>
-                  </View>
-                  <Text style={styles.price}>
-                    {money(pricePerMonth(p.monthly, billing))}
-                    <Text style={styles.per}> a month</Text>
-                  </Text>
-                </View>
-                <View style={styles.features}>
-                  {FEATURES.map((f) => {
-                    const has = p.features.includes(f);
-                    return (
-                      <View key={f} style={styles.feature}>
-                        <SymbolView name={has ? 'checkmark.circle.fill' : 'xmark.circle'} tintColor={has ? theme.ink : theme.faint} size={14} />
-                        <Text style={[styles.featureText, !has && { color: theme.faint }]}>{f}</Text>
-                      </View>
-                    );
-                  })}
-                </View>
-              </PressableScale>
-            );
-          })}
-        </View>
+        {title}
+        {choices}
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
-        <ErrorText>{error}</ErrorText>
-        <Button
-          title={changing ? (plan === current && billing === (account?.profile.billing ?? 'monthly') ? `Keep ${chosen.name}` : `Switch to ${chosen.name}`) : `Continue with ${chosen.name}  →`}
-          onPress={start}
-          loading={saving}
-        />
-        <Text style={styles.terms}>
-          {money(monthly)} a month{billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}. Renews automatically. Cancel anytime.
-          {'\n'}Free during the beta: you won’t be charged.
-        </Text>
-        <View style={styles.links}>
-          <Text style={styles.link} onPress={() => openLegal('terms')}>
-            Terms of Use
-          </Text>
-          <Text style={styles.link} onPress={() => openLegal('privacy')}>
-            Privacy Policy
-          </Text>
-        </View>
+        {footer}
       </View>
     </View>
   );
@@ -174,7 +204,7 @@ const styles = StyleSheet.create({
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brandText: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   switch: { fontSize: 14, fontWeight: '600', color: theme.muted },
-  title: { fontSize: 28, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.5, marginTop: 14 },
+  title: { fontSize: 31, fontWeight: '800', color: theme.ink, textAlign: 'center', letterSpacing: -1, marginTop: 10 },
   sub: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },
   plan: { borderRadius: 18, borderWidth: 1.5, borderColor: '#E3E3E8', padding: 16, gap: 10, backgroundColor: '#fff' },
   planOn: { borderColor: theme.ink, borderWidth: 2 },

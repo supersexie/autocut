@@ -31,11 +31,11 @@ export const planAllows = (id: PlanId | undefined, feature: Feature) => (PLANS.f
  * money screens. The `value`s are what's saved on accounts, so they stay as they were.
  */
 export const EDITOR_COSTS = [
-  { value: 'u10k', label: 'Under $100', monthly: 60, bars: 1 },
-  { value: '10-25k', label: '$100 to $300', monthly: 200, bars: 2 },
-  { value: '25-50k', label: '$300 to $600', monthly: 450, bars: 3 },
-  { value: '50k-1l', label: '$600 to $1,200', monthly: 900, bars: 4 },
-  { value: '1l+', label: 'More than $1,200', monthly: 1500, bars: 5 },
+  { value: 'u500', label: 'Under $500', monthly: 300, bars: 1 },
+  { value: '500-1k', label: '$500 to $1,000', monthly: 750, bars: 2 },
+  { value: '1k-2k', label: '$1,000 to $2,000', monthly: 1500, bars: 3 },
+  { value: '2k-5k', label: '$2,000 to $5,000', monthly: 3500, bars: 4 },
+  { value: '5k+', label: 'More than $5,000', monthly: 6000, bars: 5 },
   { value: 'none', label: 'Nothing, I edit myself', monthly: 0, bars: 0 },
 ] as const;
 
@@ -63,7 +63,7 @@ const ORDER: PlanId[] = ['starter', 'pro', 'ultimate'];
 /** The plan to suggest from what they spend on editing now, and enough edits for how much they post. */
 export function recommendedPlan(editorCost?: string, perWeek?: string): PlanId {
   const spend = editorMonthly(editorCost);
-  const bySpend: PlanId = !spend || spend < 100 ? 'starter' : spend >= 900 ? 'ultimate' : 'pro';
+  const bySpend: PlanId = !spend || spend < 500 ? 'starter' : spend >= 1000 ? 'ultimate' : 'pro';
   const monthly = videosPerWeek(perWeek) * 4.3;
   const byVolume: PlanId = monthly > 250 ? 'ultimate' : monthly > 80 ? 'pro' : 'starter';
   return ORDER[Math.max(ORDER.indexOf(bySpend), ORDER.indexOf(byVolume))];

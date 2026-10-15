@@ -1,137 +1,128 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { AppleLogo, Backdrop, Button, ErrorText, GoogleLogo, Option, StepHeader, Title, type SymbolName } from '../components/ui';
+import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
+import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import { Choice, HIGHLIGHT, OnbHeader, OnbScreen, OnbTitle } from '../components/Onboarding';
+import { PlanPicker } from '../components/PlanPicker';
+import { AppleLogo, Button, ErrorText, GoogleLogo, type SymbolName } from '../components/ui';
 import { openLegal } from '../lib/api';
 import { socialOptions, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
-import {
-  AUTOCUT_MINUTES, BY_HAND_MINUTES, EDITOR_COSTS, editorMonthly, hoursBack, money, PER_WEEK, planFor, pricePerMonth, recommendedPlan, videosPerWeek,
-} from '../lib/plans';
-import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
+import { EDITOR_COSTS, editorMonthly, money, planFor, pricePerMonth, recommendedPlan } from '../lib/plans';
 import { midSentence, theme } from '../lib/theme';
 
-type Choice = { value: string; label: string; icon: SymbolName };
+type Answer = { value: string; label: string; icon: SymbolName };
 
-const MAKING: Choice[] = [
-  { value: 'shop', label: 'Product videos for TikTok Shop', icon: 'bag' },
-  { value: 'ugc', label: 'UGC for brands', icon: 'video' },
-  { value: 'influencer', label: 'My own channel', icon: 'person.wave.2' },
-  { value: 'me', label: 'Just trying it out', icon: 'sparkles' },
+const WHO: Answer[] = [
+  { value: 'shop', label: 'TikTok Shop creator', icon: 'bag' },
+  { value: 'ugc', label: 'UGC creator', icon: 'video' },
+  { value: 'influencer', label: 'Influencer', icon: 'star' },
+  { value: 'me', label: 'Just me', icon: 'person' },
 ];
 
-const HELP: Choice[] = [
-  { value: 'more', label: 'Posting every day', icon: 'chart.line.uptrend.xyaxis' },
-  { value: 'time', label: 'Getting my evenings back', icon: 'moon.stars' },
-  { value: 'freedom', label: 'Editing from my phone', icon: 'iphone' },
-  { value: 'editor', label: 'Not paying for edits', icon: 'dollarsign.circle' },
+const GOAL: Answer[] = [
+  { value: 'more', label: 'Post more videos', icon: 'chart.line.uptrend.xyaxis' },
+  { value: 'time', label: 'Save time', icon: 'clock' },
+  { value: 'freedom', label: 'Have more freedom', icon: 'sun.max' },
+  { value: 'editor', label: 'Fire my editor', icon: 'person.badge.minus' },
 ];
 
-type StepId = 'making' | 'help' | 'volume' | 'cost' | 'time' | 'money' | 'save';
-const STEPS: StepId[] = ['making', 'help', 'volume', 'cost', 'time', 'money', 'save'];
+// What an editor costs a month (the "nothing" answer from before stays valid for saved profiles).
+const COSTS = EDITOR_COSTS.filter((c) => c.bars > 0);
 
-/** "45 minutes", "1 hour", "2.5 hours". */
-const duration = (hours: number) =>
-  hours < 1 ? `${Math.max(5, Math.round((hours * 60) / 5) * 5)} minutes` : `${Math.round(hours * 2) / 2} hour${hours >= 1.25 ? 's' : ''}`;
+type StepId = 'who' | 'goal' | 'cost' | 'adds' | 'months' | 'plan' | 'save';
+const STEPS: StepId[] = ['who', 'goal', 'cost', 'adds', 'months', 'plan', 'save'];
+
+/** What they'd pay for Autocut: the plan that suits them, at its yearly price (the one they start on). */
+function autocutFor(draft: Draft) {
+  const plan = planFor(draft.plan ?? recommendedPlan(draft.editorCost, draft.perWeek));
+  return { plan, monthly: pricePerMonth(plan.monthly, 'yearly'), list: plan.monthly };
+}
 
 export default function Setup() {
   const draft = useDraft();
-  const [step, setStep] = useState<StepId>('making');
-  // Without an editing bill there's nothing to compare, so the money screen is skipped.
-  const steps = draft.editorCost && editorMonthly(draft.editorCost) === 0 ? STEPS.filter((s) => s !== 'money') : STEPS;
-  const index = steps.indexOf(step);
-  const next = () => setStep(steps[Math.min(steps.length - 1, index + 1)]);
-  const back = () => (index === 0 ? router.back() : setStep(steps[index - 1]));
-  const header = (
-    <StepHeader
-      progress={(index + 1) / steps.length}
-      onBack={back}
-      right={
-        <Text style={styles.signIn} onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })}>
-          Sign in
-        </Text>
-      }
-    />
+  const [step, setStep] = useState<StepId>('who');
+  const leaving = useRef(false);
+  const index = STEPS.indexOf(step);
+  const next = () => setStep(STEPS[Math.min(STEPS.length - 1, index + 1)]);
+  const back = () => (index === 0 ? router.back() : setStep(STEPS[index - 1]));
+
+  // Picking an answer moves on by itself after a beat, like CutAI.
+  const pick = (patch: Draft) => {
+    Haptics.selectionAsync();
+    updateDraft(patch);
+    if (leaving.current) return;
+    leaving.current = true;
+    setTimeout(() => {
+      leaving.current = false;
+      setStep((s) => STEPS[Math.min(STEPS.length - 1, STEPS.indexOf(s) + 1)]);
+    }, 380);
+  };
+
+  const signIn = (
+    <Text style={styles.signIn} onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })}>
+      Sign in
+    </Text>
   );
+  const header = <OnbHeader step={index} steps={STEPS.length} onBack={index === 0 ? undefined : back} right={step === 'plan' ? signIn : undefined} />;
+  const nextButton = (ready: boolean) => <Button title="Next  →" onPress={next} disabled={!ready} />;
 
-  if (step === 'making') {
-    return (
-      <Backdrop footer={<Button title="Continue" onPress={next} disabled={!draft.who} />}>
-        {header}
-        <Title sub="We’ll tune your cuts for it.">What are you making?</Title>
-        <View style={{ gap: 10 }}>
-          {MAKING.map((o) => (
-            <Option key={o.value} label={o.label} icon={o.icon} selected={draft.who === o.value} onPress={() => updateDraft({ who: o.value })} />
-          ))}
-        </View>
-      </Backdrop>
-    );
+  let body: React.ReactNode;
+  let footer: React.ReactNode = null;
+  if (step === 'who' || step === 'goal' || step === 'cost') {
+    const key = step === 'who' ? 'who' : step === 'goal' ? 'goal' : 'editorCost';
+    footer = nextButton(!!draft[key]);
+    body =
+      step === 'cost' ? (
+        <>
+          <OnbTitle sub="Per month.">How much are you currently paying for your editor?</OnbTitle>
+          <View style={{ gap: 12 }}>
+            {COSTS.map((c, i) => (
+              <Choice key={c.value} index={i} label={c.label} bars={c.bars} selected={draft.editorCost === c.value} onPress={() => pick({ editorCost: c.value })} />
+            ))}
+          </View>
+        </>
+      ) : (
+        <>
+          <OnbTitle>{step === 'who' ? 'Who are you?' : 'What’s your goal?'}</OnbTitle>
+          <View style={{ gap: 12 }}>
+            {(step === 'who' ? WHO : GOAL).map((o, i) => (
+              <Choice key={o.value} index={i} label={o.label} icon={o.icon} selected={draft[key] === o.value} onPress={() => pick({ [key]: o.value })} />
+            ))}
+          </View>
+        </>
+      );
+  } else if (step === 'adds') {
+    return <AddsUp key="adds" header={header} draft={draft} onNext={next} />;
+  } else if (step === 'months') {
+    return <Months key="months" header={header} draft={draft} onNext={next} />;
+  } else if (step === 'plan') {
+    return <PlanPicker mode="setup" header={header} onDone={next} />;
+  } else {
+    return <Save header={header} draft={draft} />;
   }
 
-  if (step === 'help') {
-    return (
-      <Backdrop footer={<Button title="Next" onPress={next} disabled={!draft.goal} />}>
-        {header}
-        <Title>What would help you most?</Title>
-        <View style={{ gap: 10 }}>
-          {HELP.map((o) => (
-            <Option key={o.value} label={o.label} icon={o.icon} selected={draft.goal === o.value} onPress={() => updateDraft({ goal: o.value })} />
-          ))}
-        </View>
-      </Backdrop>
-    );
-  }
-
-  if (step === 'volume') {
-    return (
-      <Backdrop footer={<Button title="Next" onPress={next} disabled={!draft.perWeek} />}>
-        {header}
-        <Title sub="Roughly is fine.">How many videos do you post a week?</Title>
-        <View style={{ gap: 10 }}>
-          {PER_WEEK.map((p) => (
-            <Option
-              key={p.value}
-              label={p.label}
-              detail={`About ${Math.round(p.count * 4.3)} a month`}
-              selected={draft.perWeek === p.value}
-              onPress={() => updateDraft({ perWeek: p.value })}
-            />
-          ))}
-        </View>
-      </Backdrop>
-    );
-  }
-
-  if (step === 'cost') {
-    return (
-      <Backdrop footer={<Button title="Next" onPress={next} disabled={!draft.editorCost} />}>
-        {header}
-        <Title sub="Per month, for editing.">What do you spend on edits now?</Title>
-        <View style={{ gap: 10 }}>
-          {EDITOR_COSTS.map((c) => (
-            <Option key={c.value} label={c.label} selected={draft.editorCost === c.value} onPress={() => updateDraft({ editorCost: c.value })} />
-          ))}
-        </View>
-      </Backdrop>
-    );
-  }
-
-  if (step === 'time') return <TimeBack header={header} draft={draft} onNext={next} />;
-  if (step === 'money') return <MoneyKept header={header} draft={draft} onNext={next} />;
-  return <Save header={header} draft={draft} />;
+  return (
+    <OnbScreen header={header} footer={footer}>
+      <Animated.View key={step} entering={FadeIn.duration(260)} exiting={FadeOut.duration(140)}>
+        {body}
+      </Animated.View>
+    </OnbScreen>
+  );
 }
 
-/** Eases 0 → 1 over `ms` (after `delay`), for the bars and counters. */
-function useProgress(ms: number, delay = 250) {
+/** Eases 0 → 1 over `ms` (after `delay`), for the chart and counters. */
+function useProgress(ms: number, delay = 300) {
   const [p, setP] = useState(0);
   useEffect(() => {
     const start = Date.now() + delay;
     let frame = 0;
     const tick = () => {
       const t = Math.max(0, Math.min(1, (Date.now() - start) / ms));
-      setP(1 - Math.pow(1 - t, 3));
+      setP(t);
       if (t < 1) frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
@@ -141,193 +132,166 @@ function useProgress(ms: number, delay = 250) {
 }
 
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 
-/**
- * Two columns side by side, like Cal AI's "Without / With": the hours cutting by hand fill a tall
- * grey column, the time with Autocut a short black one. They rise one after the other.
- */
-function Columns({ byHand, withAutocut, p }: { byHand: number; withAutocut: number; p: number }) {
-  const H = 230; // column height
-  const TOP = 64; // room for the label and value
-  const MIN = 58; // a fill never gets too small to hold its icon
-  const fillH = (fraction: number, q: number) => (MIN + (H - TOP - MIN) * fraction) * q;
-  const hand = clamp01(p * 1.6);
-  const auto = clamp01((p - 0.35) * 1.6);
-  const column = (label: string, value: string, fraction: number, q: number, strong: boolean) => (
-    <View style={[styles.column, { height: H }]}>
-      <Text style={styles.columnLabel}>{label}</Text>
-      <Text style={[styles.columnValue, { opacity: q }]}>{value}</Text>
-      <View style={[styles.columnFill, { height: fillH(fraction, q), backgroundColor: strong ? theme.ink : '#E4E4E8' }]}>
-        {q > 0.6 && <SymbolView name={strong ? 'bolt.fill' : 'clock'} tintColor={strong ? '#fff' : theme.ink} size={20} style={{ opacity: (q - 0.6) / 0.4 }} />}
-      </View>
-    </View>
-  );
-  return (
-    <View style={styles.columns}>
-      {column('Cutting by hand', duration(byHand), 1, hand, false)}
-      {column('With Autocut', duration(withAutocut), withAutocut / byHand, auto, true)}
-    </View>
-  );
-}
-
-function TimeBack({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const p = useProgress(1500);
-  const videos = videosPerWeek(draft.perWeek) || 2;
-  const byHand = (videos * BY_HAND_MINUTES) / 60;
-  const withAutocut = (videos * AUTOCUT_MINUTES) / 60;
-  const saved = hoursBack(draft.perWeek) || byHand - withAutocut;
-  return (
-    <Backdrop footer={<Button title="Continue" onPress={onNext} disabled={p < 1} />}>
-      {header}
-      <Text style={styles.kicker}>Every week, you get back</Text>
-      <Text style={styles.huge}>{duration(saved * p)}</Text>
-      <Text style={styles.lede}>That’s the cutting you do now: pauses, ums, retakes. Autocut does it while you film the next one.</Text>
-      <View style={styles.card}>
-        <Columns byHand={byHand} withAutocut={withAutocut} p={p} />
-        <Text style={[styles.note, { textAlign: 'center' }]}>
-          For about {Math.round(videos)} videos a week, at {BY_HAND_MINUTES} minutes each by hand.
-        </Text>
-      </View>
-    </Backdrop>
-  );
+/** A smooth curve through the points (Catmull-Rom), sampled finely so it can be drawn part-way. */
+function spline(pts: [number, number][], samples = 120): [number, number][] {
+  const out: [number, number][] = [];
+  for (let s = 0; s <= samples; s++) {
+    const u = (s / samples) * (pts.length - 1);
+    const i = Math.min(pts.length - 2, Math.floor(u));
+    const t = u - i;
+    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const f = (a: number, b: number, c: number, d: number) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t * t + (-a + 3 * b - 3 * c + d) * t * t * t);
+    out.push([f(p0[0], p1[0], p2[0], p3[0]), Math.min(f(p0[1], p1[1], p2[1], p3[1]), Math.max(p1[1], p2[1]))]);
+  }
+  return out;
 }
 
 /**
- * What a year of editing costs, month by month, like Cal AI's trend chart: the editor's bill
- * climbs, Autocut stays low, and the gap between them (what you keep) fills in as they draw.
+ * "It adds up.": what they keep by switching, a day, a week, a month and a year. The curve draws
+ * itself left to right, each amount counts up as the line reaches it, and the year lands last.
  */
-function SpendChart({ editorYear, autocutYear, kept, p }: { editorYear: number; autocutYear: number; kept: number; p: number }) {
+function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
+  const p = useProgress(1900);
   const [w, setW] = useState(0);
-  const H = 170;
-  const PAD = 10; // room for the end dots
-  const x = (f: number) => PAD + f * (w - PAD * 2);
-  const top = Math.max(1, editorYear, autocutYear);
-  const y = (amount: number) => PAD + (1 - amount / top) * (H - PAD * 2);
-  // Both start at nothing in month 1 and add up over the year; drawn as far as p.
-  // Curved like Cal AI's chart, from nothing in month 1 to the year's total: the editor's bill
-  // sweeps up, Autocut rises a little early and levels off. Fine steps keep the curves smooth.
-  const sweep = (f: number) => Math.pow(f, 1.8);
-  const settle = (f: number) => 1 - Math.pow(1 - f, 2);
-  const steps = 60;
-  const pts = (yearly: number, shape: (f: number) => number) =>
-    Array.from({ length: Math.max(2, Math.ceil(steps * p) + 1) }, (_, i) => Math.min(p, i / steps)).map((f) => [x(f), y(yearly * shape(f))] as const);
-  const path = (points: (readonly [number, number])[]) => points.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
-  const editor = pts(editorYear, sweep);
-  const autocut = pts(autocutYear, settle);
-  // The gap between the two lines: what you keep.
-  const gap = `${path(editor)} ${[...autocut].reverse().map(([a, b]) => `L${a.toFixed(1)} ${b.toFixed(1)}`).join(' ')} Z`;
-  const done = clamp01((p - 0.85) / 0.15);
+  const editor = editorMonthly(draft.editorCost);
+  const { plan, monthly } = autocutFor(draft);
+  const year = Math.max(0, Math.round((editor - monthly) * 12));
+  const values = [year / 365, year / 52, year / 12, year];
+  const labels = ['Day', 'Week', 'Month', 'Year'];
+  const H = 250;
+  const TOP = 40; // room for the year's label
+  const BASE = H - 8;
+  const xs = [0.08, 0.36, 0.64, 0.92].map((f) => f * w);
+  const y = (v: number) => BASE - (v / Math.max(1, year)) * (BASE - TOP);
+  const pts = values.map((v, i) => [xs[i], y(v)] as [number, number]);
+  const drawn = easeOut(p);
+  const curve = w ? spline(pts).filter(([x]) => x <= xs[0] + (xs[3] - xs[0]) * drawn + 0.5) : [];
+  const line = curve.map(([a, b], i) => `${i ? 'L' : 'M'}${a.toFixed(1)} ${b.toFixed(1)}`).join(' ');
+  const end = curve[curve.length - 1];
+  const area = end ? `${line} L${end[0].toFixed(1)} ${BASE} L${xs[0].toFixed(1)} ${BASE} Z` : '';
+  // Each point arrives as the line reaches it (the year just before the end); its amount counts up over a moment.
+  const reached = (i: number) => clamp01((drawn - (i / 3) * 0.9) / 0.1);
+  const landed = values.filter((_, i) => reached(i) >= 1).length;
+  useEffect(() => {
+    if (landed > 1 && landed < 4) Haptics.selectionAsync();
+    if (landed === 4) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [landed]);
+
   return (
-    <View style={{ gap: 10 }}>
-      <Text style={styles.chartTitle}>What a year of edits costs</Text>
-      <View style={{ height: H }} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-        {w > 0 && (
-          <Svg width={w} height={H}>
-            <Defs>
-              <LinearGradient id="kept" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor={theme.cut} stopOpacity="0.22" />
-                <Stop offset="1" stopColor={theme.cut} stopOpacity="0.04" />
-              </LinearGradient>
-            </Defs>
-            {[0.33, 0.66].map((f) => (
-              <Line key={f} x1={PAD} x2={w - PAD} y1={PAD + f * (H - PAD * 2)} y2={PAD + f * (H - PAD * 2)} stroke="#D1D1D6" strokeWidth={1} strokeDasharray="3 4" />
+    <OnbScreen header={header} footer={<Button title="See my editor vs. Autocut  →" onPress={onNext} disabled={p < 1} />}>
+      <Animated.View entering={FadeIn.duration(260)}>
+        <OnbTitle>It adds up.</OnbTitle>
+        <View style={{ height: H, marginTop: 6 }} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+          {w > 0 && (
+            <Svg width={w} height={H}>
+              <Defs>
+                <LinearGradient id="keep" x1="0" y1="0" x2="0" y2="1">
+                  <Stop offset="0" stopColor={theme.ink} stopOpacity="0.16" />
+                  <Stop offset="1" stopColor={theme.ink} stopOpacity="0.02" />
+                </LinearGradient>
+              </Defs>
+              {[0, 1, 2, 3, 4].map((g) => {
+                const gy = TOP + (g / 4) * (BASE - TOP);
+                return <Line key={g} x1={0} x2={w} y1={gy} y2={gy} stroke="rgba(17,17,20,0.12)" strokeWidth={1} strokeDasharray="3 5" />;
+              })}
+              <Line x1={0} x2={w} y1={BASE} y2={BASE} stroke="rgba(17,17,20,0.2)" strokeWidth={1} />
+              {area ? <Path d={area} fill="url(#keep)" /> : null}
+              {line ? <Path d={line} stroke={theme.ink} strokeWidth={3.5} fill="none" strokeLinecap="round" strokeLinejoin="round" /> : null}
+              {pts.map(([px, py], i) =>
+                reached(i) > 0 ? (
+                  i === 3 ? (
+                    <Circle key={i} cx={px} cy={py} r={9 * easeOut(reached(i))} fill={theme.ink} stroke="#fff" strokeWidth={3} />
+                  ) : (
+                    <Circle key={i} cx={px} cy={py} r={6 * easeOut(reached(i))} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
+                  )
+                ) : null
+              )}
+            </Svg>
+          )}
+          {w > 0 &&
+            pts.map(([px, py], i) =>
+              reached(i) > 0 ? (
+                <Text key={i} style={[styles.amount, i === 3 && styles.amountBig, { left: px - 50, top: py - (i === 3 ? 36 : 28), opacity: clamp01(reached(i) * 2) }]}>
+                  {money(Math.round(values[i] * easeOut(reached(i))))}
+                </Text>
+              ) : null
+            )}
+        </View>
+        <View style={{ height: 22 }}>
+          {w > 0 &&
+            labels.map((l, i) => (
+              <Text key={l} style={[styles.axis, { left: xs[i] - 40 }]}>
+                {l}
+              </Text>
             ))}
-            <Line x1={PAD} x2={w - PAD} y1={H - PAD} y2={H - PAD} stroke={theme.ink} strokeWidth={1.5} />
-            <Path d={gap} fill="url(#kept)" />
-            <Path d={path(editor)} stroke={theme.cut} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <Path d={path(autocut)} stroke={theme.ink} strokeWidth={3} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            <Circle cx={x(0)} cy={y(0)} r={6} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
-            {done > 0 && (
-              <>
-                <Circle cx={x(1)} cy={y(editorYear)} r={6 * done} fill="#fff" stroke={theme.cut} strokeWidth={2.5} />
-                <Circle cx={x(1)} cy={y(autocutYear)} r={6 * done} fill="#fff" stroke={theme.ink} strokeWidth={2.5} />
-              </>
-            )}
-          </Svg>
-        )}
-        {w > 0 && done > 0 && (
-          <>
-            {/* The key sits top left, which the curves never reach; the pill sits in the widest part of the gap. */}
-            <View style={[styles.legend, { left: PAD + 2, top: PAD, opacity: done }]}>
-              <Text style={[styles.chartTag, { color: theme.cut }]}>● Editing now · {money(editorYear)}</Text>
-              <Text style={styles.chartTag}>● Autocut · {money(Math.round(autocutYear))}</Text>
-            </View>
-            {kept > 0 && (
-              <View style={[styles.keptPill, { left: x(0.7) - 62, top: (y(editorYear * sweep(0.7)) + y(autocutYear * settle(0.7))) / 2 - 12, opacity: done }]}>
-                <Text style={styles.keptText}>You keep {money(Math.round(kept))}</Text>
-              </View>
-            )}
-          </>
-        )}
-      </View>
-      <View style={styles.between}>
-        <Text style={styles.axis}>Month 1</Text>
-        <Text style={styles.axis}>Month 12</Text>
-      </View>
-    </View>
+        </View>
+        <Text style={styles.caption}>What you keep by switching to Autocut.</Text>
+        <View style={[styles.card, { opacity: clamp01((p - 0.7) / 0.3) }]}>
+          <View style={styles.compare}>
+            <Text style={styles.compareLabel}>Your editor</Text>
+            <Text style={styles.compareValue}>{money(editor)} a month</Text>
+          </View>
+          <View style={styles.rule} />
+          <View style={styles.compare}>
+            <Text style={styles.compareLabel}>Autocut {plan.name}</Text>
+            <Text style={styles.compareValue}>{money(monthly)} a month</Text>
+          </View>
+          <Text style={styles.small}>Autocut billed yearly. Editor from your answer.</Text>
+        </View>
+      </Animated.View>
+    </OnbScreen>
   );
 }
 
-const ODO_H = 76; // one digit's height in the odometer
+const DOT = 30;
+const PER_ROW = 6;
 
 /**
- * The amount spins into place like an odometer: every digit rolls, the right-hand ones fastest,
- * and they land one after another, left to right, with a tick for each.
+ * "One month of your editor pays for N months of Autocut.": a dot for each month of Autocut drops
+ * in, one after another, and the number counts up with them.
  */
-function Odometer({ text, p }: { text: string; p: number }) {
-  const digits = [...text].filter((c) => /\d/.test(c)).length;
-  let seen = 0;
-  return (
-    <View style={styles.odometer} accessibilityLabel={text}>
-      {[...text].map((c, i) => {
-        if (!/\d/.test(c)) return <Text key={i} style={styles.odoChar}>{c}</Text>;
-        const k = seen++;
-        // Each digit finishes a little after the one before it, and spins more turns the further right it is.
-        const q = clamp01((p - (k / Math.max(1, digits)) * 0.25) / 0.75);
-        const turns = 1 + (digits - k);
-        const at = q * (turns * 10 + Number(c));
-        return (
-          <View key={i} style={styles.odoDigit}>
-            <View style={{ transform: [{ translateY: -(at % 10) * ODO_H }] }}>
-              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d, j) => (
-                <Text key={j} style={styles.odoChar}>{d}</Text>
-              ))}
-            </View>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-function MoneyKept({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
-  const p = useProgress(2200);
-  const plan = planFor(recommendedPlan(draft.editorCost, draft.perWeek));
-  const editorYear = editorMonthly(draft.editorCost) * 12;
-  // Autocut at its yearly price: the cheaper way to pay, and one they can pick on the next screen.
-  const autocutYear = pricePerMonth(plan.monthly, 'yearly') * 12;
-  const kept = Math.max(0, Math.round(editorYear - autocutYear));
-  // A tick as each digit lands, and a thud when the whole amount is in.
-  const landed = Math.floor(clamp01(p) * 6);
+function Months({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
+  const editor = editorMonthly(draft.editorCost);
+  const { list } = autocutFor(draft);
+  const n = Math.max(1, Math.floor(editor / list));
+  // A dot a month, or a dot for two or three when there are a lot of them.
+  const unit = Math.ceil(n / 30);
+  const dots = Math.ceil(n / unit);
+  const p = useProgress(Math.min(1800, 300 + dots * 80), 500);
+  const lit = Math.min(dots, Math.floor(p * dots + 0.0001));
+  const shown = lit === dots ? n : Math.min(n, lit * unit);
   useEffect(() => {
-    if (landed > 0 && landed < 6) Haptics.selectionAsync();
-    if (landed === 6) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-  }, [landed]);
-  // A little bump as the last digit lands.
-  const pop = Math.sin(clamp01((p - 0.88) / 0.12) * Math.PI);
+    if (lit > 0 && lit < dots) Haptics.selectionAsync();
+    if (lit === dots) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [lit, dots]);
   return (
-    <Backdrop footer={<Button title="See my plan" onPress={onNext} disabled={p < 1} />}>
-      {header}
-      <Text style={styles.kicker}>Over a year, you keep</Text>
-      <View style={{ transform: [{ scale: 1 + 0.05 * pop }], transformOrigin: 'left' }}>
-        <Odometer text={money(kept)} p={p} />
-      </View>
-      <Text style={[styles.monthly, { opacity: clamp01((p - 0.8) / 0.2) }]}>That’s {money(Math.round(kept / 12))} back in your pocket every month.</Text>
-      <Text style={styles.lede}>From what you spend on edits now, next to Autocut {plan.name} billed yearly.</Text>
-      <View style={styles.card}>
-        <SpendChart editorYear={editorYear} autocutYear={autocutYear} kept={kept} p={p} />
-      </View>
-    </Backdrop>
+    <OnbScreen header={header} footer={<Button title="See my plan  →" onPress={onNext} disabled={lit < dots} />}>
+      <Animated.View entering={FadeIn.duration(260)} style={{ paddingTop: 18 }}>
+        <Text style={styles.monthsTitle}>
+          One month of your editor pays for{'\n'}
+          <Text style={{ color: HIGHLIGHT }}>{shown}</Text> month{n === 1 ? '' : 's'} of Autocut.
+        </Text>
+        <View style={styles.equation}>
+          <View style={styles.editorBubble}>
+            <Text style={styles.bubbleTop}>1 month</Text>
+            <Text style={styles.bubbleSub}>Your editor</Text>
+          </View>
+          <Text style={styles.equals}>=</Text>
+          <View style={[styles.dots, { width: Math.min(dots, PER_ROW) * (DOT + 8) }]}>
+            {Array.from({ length: dots }, (_, i) => {
+              const q = clamp01(p * dots - i);
+              return <View key={i} style={[styles.dot, { opacity: q > 0 ? 1 : 0, transform: [{ scale: q > 0 ? 0.6 + 0.4 * easeOut(Math.min(1, q * 1.6)) : 0.6 }] }]} />;
+            })}
+          </View>
+        </View>
+        <View style={styles.legendRow}>
+          <View style={[styles.dot, { width: 18, height: 18, borderWidth: 2.5 }]} />
+          <Text style={styles.legendText}>{unit === 1 ? '1 month' : `${unit} months`} of Autocut</Text>
+        </View>
+      </Animated.View>
+    </OnbScreen>
   );
 }
 
@@ -337,9 +301,8 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
   const [busy, setBusy] = useState<'apple' | 'google' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [providers, setProviders] = useState({ apple: false, google: false });
-  const plan = planFor(recommendedPlan(draft.editorCost, draft.perWeek));
-  const making = MAKING.find((m) => m.value === draft.who);
-  const saved = hoursBack(draft.perWeek);
+  const { plan } = autocutFor(draft);
+  const who = WHO.find((m) => m.value === draft.who);
 
   useEffect(() => {
     socialOptions().then(setProviders);
@@ -359,23 +322,19 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
   }
 
   const points: { icon: SymbolName; text: string }[] = [
-    { icon: 'scissors', text: making && making.value !== 'me' ? `Cuts tuned for ${midSentence(making.label)}` : 'Dead air, ums and retakes cut for you' },
-    ...(saved ? [{ icon: 'clock' as SymbolName, text: `About ${duration(saved)} back every week` }] : []),
+    { icon: 'scissors', text: who && who.value !== 'me' ? `Cuts tuned for ${/^[aeiou]/i.test(who.label) ? 'an' : 'a'} ${midSentence(who.label)}` : 'Dead air, ums and retakes cut for you' },
     { icon: 'captions.bubble', text: 'Captions on every word' },
     { icon: 'checkmark.seal', text: `${plan.name}: ${midSentence(plan.edits)}` },
   ];
 
   return (
-    <Backdrop
+    <OnbScreen
+      header={header}
       footer={
         <>
           <ErrorText>{error}</ErrorText>
-          {providers.apple && (
-            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} onPress={() => go('apple')} />
-          )}
-          {providers.google && (
-            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} onPress={() => go('google')} />
-          )}
+          {providers.apple && <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} onPress={() => go('apple')} />}
+          {providers.google && <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} onPress={() => go('google')} />}
           <Button
             kind={providers.apple ? 'outline' : 'primary'}
             title="Continue with email"
@@ -396,52 +355,58 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
         </>
       }
     >
-      {header}
-      <Title sub="Create your account to keep it.">Your plan is ready</Title>
-      <View style={styles.card}>
-        {points.map((pt) => (
-          <View key={pt.text} style={styles.point}>
-            <View style={styles.pointIcon}>
-              <SymbolView name={pt.icon} tintColor={theme.ink} size={16} />
+      <Animated.View entering={FadeIn.duration(260)}>
+        <OnbTitle sub="Create your account to keep it.">Your plan is ready</OnbTitle>
+        <View style={styles.card}>
+          {points.map((pt) => (
+            <View key={pt.text} style={styles.point}>
+              <View style={styles.pointIcon}>
+                <SymbolView name={pt.icon} tintColor={theme.ink} size={16} />
+              </View>
+              <Text style={styles.pointText}>{pt.text}</Text>
             </View>
-            <Text style={styles.pointText}>{pt.text}</Text>
-          </View>
-        ))}
-      </View>
-      <Pressable onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })} hitSlop={8} style={{ alignSelf: 'center', marginTop: 18 }}>
-        <Text style={styles.have}>
-          Already have an account? <Text style={{ color: theme.ink, fontWeight: '700' }}>Sign in</Text>
-        </Text>
-      </Pressable>
-    </Backdrop>
+          ))}
+        </View>
+        <Pressable onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })} hitSlop={8} style={{ alignSelf: 'center', marginTop: 18 }}>
+          <Text style={styles.have}>
+            Already have an account? <Text style={{ color: theme.ink, fontWeight: '700' }}>Sign in</Text>
+          </Text>
+        </Pressable>
+      </Animated.View>
+    </OnbScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  signIn: { fontSize: 15, fontWeight: '600', color: theme.ink, paddingLeft: 4 },
-  between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  kicker: { fontSize: 17, color: theme.muted, marginTop: 8 },
-  huge: { fontSize: 52, fontWeight: '800', color: theme.ink, letterSpacing: -1.5, marginTop: 2, fontVariant: ['tabular-nums'] },
-  odometer: { flexDirection: 'row', height: ODO_H, overflow: 'hidden', marginTop: 2 },
-  odoDigit: { height: ODO_H, overflow: 'hidden' },
-  odoChar: { fontSize: 68, lineHeight: ODO_H, height: ODO_H, fontWeight: '800', color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
-  monthly: { fontSize: 17, fontWeight: '700', color: theme.ink, marginTop: 4 },
-  lede: { fontSize: 15, color: theme.muted, lineHeight: 21, marginTop: 8 },
-  card: { backgroundColor: theme.card, borderRadius: 22, padding: 18, gap: 18, marginTop: 26 },
-  columns: { flexDirection: 'row', justifyContent: 'center', gap: 14 },
-  column: { flex: 1, maxWidth: 150, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', paddingTop: 14, overflow: 'hidden' },
-  columnLabel: { fontSize: 14, fontWeight: '700', color: theme.ink, textAlign: 'center' },
-  columnValue: { fontSize: 13, color: theme.muted, marginTop: 3, fontVariant: ['tabular-nums'] },
-  columnFill: { position: 'absolute', left: 0, right: 0, bottom: 0, borderRadius: 22, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 18 },
-  chartTitle: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  legend: { position: 'absolute', gap: 3 },
-  chartTag: { fontSize: 12, fontWeight: '700', color: theme.ink },
-  keptPill: { position: 'absolute', width: 124, alignItems: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
-  keptText: { color: '#fff', fontSize: 12, fontWeight: '700', fontVariant: ['tabular-nums'] },
-  axis: { fontSize: 13, color: theme.muted },
-  note: { fontSize: 12, color: theme.muted, lineHeight: 17 },
+  signIn: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  amount: { position: 'absolute', width: 100, textAlign: 'center', fontSize: 15, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
+  amountBig: { fontSize: 18 },
+  axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 14, color: theme.muted },
+  caption: { fontSize: 15, color: theme.muted, textAlign: 'center', marginTop: 10 },
+  card: {
+    backgroundColor: '#fff', borderRadius: 20, padding: 18, gap: 12, marginTop: 24,
+    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+  },
+  compare: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  compareLabel: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  compareValue: { fontSize: 16, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
+  rule: { height: StyleSheet.hairlineWidth, backgroundColor: theme.line },
+  small: { fontSize: 12, color: theme.faint },
+  monthsTitle: { fontSize: 32, fontWeight: '800', color: theme.ink, letterSpacing: -1, lineHeight: 38, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  equation: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14, marginTop: 30 },
+  editorBubble: {
+    width: 88, height: 88, borderRadius: 44, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
+  },
+  bubbleTop: { fontSize: 15, fontWeight: '800', color: theme.ink },
+  bubbleSub: { fontSize: 11, color: theme.muted, marginTop: 1 },
+  equals: { fontSize: 28, fontWeight: '700', color: theme.muted },
+  dots: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  dot: { width: DOT, height: DOT, borderRadius: DOT / 2, backgroundColor: theme.ink, borderWidth: 4, borderColor: '#C9C9CF' },
+  legendRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 26 },
+  legendText: { fontSize: 15, color: theme.muted, fontWeight: '500' },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  pointIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  pointIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F1F4', alignItems: 'center', justifyContent: 'center' },
   pointText: { flex: 1, fontSize: 15, color: theme.ink, lineHeight: 20 },
   have: { fontSize: 14, color: theme.muted },
   legal: { fontSize: 12, color: theme.muted, textAlign: 'center', lineHeight: 17, marginTop: 2 },
