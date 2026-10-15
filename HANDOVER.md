@@ -212,13 +212,97 @@ your own clips before release.** To swap:
   accurate on fast talkers, where the smaller base model misheard phrases.
 - Needs at least 2 GB RAM (4 GB recommended) and 2 vCPU. Transcription is CPU-bound, so more CPU means
   faster cuts: small takes about 2.5× as long as base did (on a Mac, ~9 s for a 45 s take).
-  With `CONCURRENCY=1`, cuts queue one at a time, so raise it (and the CPU) as users grow.
+  With `CONCURRENCY=1`, cuts queue one at a time, so raise it (and the CPU) as users grow. For more than
+  that, see §10.
 - The API is listed at the top of `src/server.js`. Every route except `/health`, `/privacy` and `/terms`
   needs the user's Supabase token.
 
 ---
 
-## 10. Where things are in the code
+## 10. Scaling (when lots of people use it)
+
+The app itself can't be overloaded: recording, the editor and playback run on each phone. The shared
+piece is the cutting server, and today it's built for launch, not for thousands of people at once.
+
+### How it would fail today
+
+- **One machine, one cut at a time** (`CONCURRENCY=1`). The line of waiting cuts lives in that machine's
+  memory (`enqueue()` in `src/server.js`). A cut takes roughly 30–60 s of work, so if 1,000 people sent a
+  take at once, the last would wait hours. It slows down long before it crashes.
+- **One disk.** Takes and cuts are on the `/data` volume. Uploads can be up to 1 GB, and old cuts are only
+  deleted after 7 days, so heavy use can fill it, and then uploads fail.
+- **A restart fails everything in progress.** Running and waiting cuts are marked failed ("The server
+  restarted. Send the take again.", in `readJob()`). The edit is refunded, but users have to resend.
+- **It can't simply add machines**, because the line and the files belong to one machine.
+
+"Thousands of users" usually means far fewer cuts at the same moment (most of the time people are filming
+or editing on the phone), but 10,000 daily users can still mean 100+ cuts at once at peak.
+
+### Stage 1: before launch (code changes only, no new services)
+
+- When the line is too long, answer "busy" with an estimated wait instead of letting it grow forever.
+  The app already retries uploads (`withRetries()` in `app/src/lib/jobs.ts`); show the wait to the user.
+- One active cut per user, so one account can't fill the line.
+- Refuse uploads before the disk is nearly full, instead of failing halfway.
+- After a restart, put waiting cuts back in the line instead of failing them.
+- A bigger Railway machine with `CONCURRENCY` 3–4, and an alert on `/health` (it reports `queued` and `running`).
+- Load-test a copy of the server with hundreds of simulated users before launch.
+
+### Stage 2: when the line backs up regularly
+
+1. **Hosted transcription.** Transcription is the slowest step, and the server has no GPU (Railway doesn't
+   offer GPU machines). Send the audio to a hosted service instead of running Whisper on the server. This
+   makes it about 10–50× faster, and the service handles thousands of requests at once. Only
+   `src/transcribe.js` changes: it must still return each word with its start and end time. Keep local
+   Whisper as the backup if the service is down.
+2. **Videos in cloud storage** (e.g. Cloudflare R2 or Amazon S3). Phones upload straight to storage with
+   signed links, so the server's disk can't fill up and more than one machine can reach the files.
+3. **A job queue with worker machines.** Move the waiting cuts from memory into a shared queue (Postgres or
+   Supabase, or Redis), and have worker machines pull from it. The front door (sign-in, uploads, status)
+   stays light. Add workers as the queue grows.
+
+Step 1 gives most of the speed. Steps 2 and 3 are what let you run more than one machine.
+
+**Which transcription service** (prices checked October 2026; check them again before you sign up).
+Autocut needs a time for every word, the "um"s and "uh"s kept with their times (the cutter removes them,
+so it has to see them), accuracy on fast talkers, and English and Spanish.
+
+| Service | Price | Word times | Keeps "um/uh" | Verdict |
+|---|---|---|---|---|
+| **Deepgram Nova-3** | ~$0.0043/min (~$0.26/hr), billed per second | Yes, by default | Yes, with `filler_words=true` | **Recommended** |
+| ElevenLabs Scribe v2 | ~$0.22/hr | Yes | Yes (verbatim by default) | Close second, very accurate |
+| AssemblyAI Universal-3.5 Pro | ~$0.21/hr | Yes | Partly (their own test: ~76% of fillers) | Misses fillers; had a word-timing bug in July–August 2026 |
+| Groq (Whisper large-v3) | ~$0.11/hr | Yes | Often skips them | Cheapest and fastest, poor at fillers |
+| OpenAI gpt-4o-transcribe | ~$0.006/min | **No** | | Can't be used: no word times |
+
+Before switching, run Deepgram and ElevenLabs on the same fast-talker takes Whisper small was chosen on
+(fast talkers are where transcription went wrong before). It costs cents.
+
+**Cost:** a Starter user making 100 one-minute edits a month is about $0.43 of Deepgram, against $19.99.
+
+**Privacy:** once audio goes to a transcription service, add it to the privacy policy (`legal/privacy.html`)
+and the App Store privacy answers (§7). Its API key goes in Railway's variables only, never in the app or the repo.
+
+### Stage 3: thousands of cuts at the same moment
+
+Several worker pools (GPU workers for transcription if you run it yourself, CPU workers for exports) that
+Railway or another host adds and removes automatically based on the queue. Videos are served through a CDN,
+the database gets connection pooling and read copies, and servers run in more than one region (US, Europe, Asia).
+
+### At millions of users: do the work on the phone
+
+This is how CapCut and Edits stay affordable. Every recent iPhone has a neural chip that can run Whisper
+itself (WhisperKit is a ready-made library), with the same per-word times, in a few seconds a minute. Exports
+can be rendered on the phone with Apple's own video tools. Then each new user brings their own processing,
+and server cost per cut is close to zero. This needs native code, so it can't run in Expo Go: test it on
+TestFlight builds.
+
+**Order:** Stage 1 for launch (up to ~1,000 users) → Stage 2 (to ~100,000) → on-phone processing and Stage 3
+(millions). Each stage builds on the last; nothing gets thrown away. Don't build for millions on day one.
+
+---
+
+## 11. Where things are in the code
 
 | Thing | File |
 |---|---|
