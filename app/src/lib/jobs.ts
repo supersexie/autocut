@@ -1,6 +1,6 @@
 import { File } from 'expo-file-system';
 import { createCut, download, getJob, getWaveform, ServerUnreachable, stopJob, uploadTake } from './api';
-import { addCut, cutFile, getCut, getCuts, getSettings, updateCut, type CutRecord } from './store';
+import { addCut, cutFile, getCut, getCuts, getSettings, updateCut, type Clip, type CutRecord, type Word } from './store';
 import { sleep } from './theme';
 
 /** `flip`: a front-camera take, which iOS records mirrored; the server flips it back. */
@@ -118,6 +118,7 @@ export async function track(id: string) {
         const source = await sourceFor(id, record, record.serverId);
         const waveform = await getWaveform(record.serverId).catch(() => undefined); // nice to have
         const words = job.words ?? [];
+        const clips: Clip[] = (job.segments ?? []).map((s) => [s.start, s.end]);
         updateCut(id, {
           status: 'ready',
           stage: 'ready',
@@ -125,8 +126,8 @@ export async function track(id: string) {
           duration: job.duration ?? record.duration,
           words,
           cuts: job.cuts ?? [],
-          clips: (job.segments ?? []).map((s) => [s.start, s.end]),
-          title: titleFrom(words),
+          clips,
+          title: titleFrom(words, clips),
           source,
           waveform,
         });
@@ -206,8 +207,10 @@ export function resumeJobs() {
   }
 }
 
-const titleFrom = (words: { text: string }[]) => {
-  const text = words.slice(0, 7).map((w) => w.text).join(' ');
+/** The cut's opening words, from what was kept (not a retake that was cut). */
+const titleFrom = (words: Word[], clips: Clip[]) => {
+  const kept = words.filter((w) => clips.some(([a, b]) => w.start >= a - 0.05 && w.start < b));
+  const text = (kept.length ? kept : words).slice(0, 7).map((w) => w.text).join(' ');
   return text || 'Untitled take';
 };
 
