@@ -31,6 +31,9 @@ function RootNavigator() {
   if (!ready) return null;
 
   const signedIn = !!account;
+  // Each screen opens once: a double tap (or a tap that lands twice) shows the one already open
+  // instead of stacking a second copy on top. The cutting screen and editor are one per cut.
+  const perCut = (_name: string, params: Record<string, unknown>) => String(params.id ?? '');
   const onboarded = !!account?.profile.onboarded;
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#fff' } }}>
@@ -44,17 +47,17 @@ function RootNavigator() {
       </Stack.Protected>
       <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="review" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="arrange" options={{ presentation: 'fullScreenModal' }} />
-        <Stack.Screen name="cut/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+        <Stack.Screen name="review" options={{ presentation: 'fullScreenModal' }} dangerouslySingular />
+        <Stack.Screen name="arrange" options={{ presentation: 'fullScreenModal' }} dangerouslySingular />
+        <Stack.Screen name="cut/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} dangerouslySingular={perCut} />
         {/* A full-screen modal like "Cutting", so going from one to the other never shows the camera
             underneath, and no edge swipe fights the timeline. */}
-        <Stack.Screen name="edit/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
-        <Stack.Screen name="settings" />
-        <Stack.Screen name="plan" />
-        <Stack.Screen name="change-plan" />
-        <Stack.Screen name="cut-options" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.55, 1], sheetGrabberVisible: true }} />
-        <Stack.Screen name="edit-profile" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true }} />
+        <Stack.Screen name="edit/[id]" options={{ presentation: 'fullScreenModal', animation: 'fade' }} dangerouslySingular={perCut} />
+        <Stack.Screen name="settings" dangerouslySingular />
+        <Stack.Screen name="plan" dangerouslySingular />
+        <Stack.Screen name="change-plan" dangerouslySingular />
+        <Stack.Screen name="cut-options" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.55, 1], sheetGrabberVisible: true }} dangerouslySingular />
+        <Stack.Screen name="edit-profile" options={{ presentation: 'formSheet', sheetAllowedDetents: [0.6, 1], sheetGrabberVisible: true }} dangerouslySingular />
       </Stack.Protected>
       <Stack.Screen name="auth-callback" />
     </Stack>
