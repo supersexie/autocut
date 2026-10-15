@@ -7,7 +7,7 @@
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, box?, outline?, x?, y?, scale?, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}], overlapAudio?,
+//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, box?, outline?, color?, x?, y?, scale?, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}], overlapAudio?,
 //                                        overlays: [{upload, kind, start, end, from, x, y, width, rotation, volume}], height, fps, bitrate } -> { renderId }
 //                                        (music.upload is an id from POST /uploads with the song's bytes)
 //   GET  /cuts/:id/video                                                  -> the latest finished render
@@ -308,6 +308,7 @@ async function createRender(req, res, job, userId) {
       style: String(body.captions.style ?? 'classic'),
       box: typeof body.captions.box === 'boolean' ? body.captions.box : undefined,
       outline: typeof body.captions.outline === 'boolean' ? body.captions.outline : undefined,
+      color: /^#[0-9a-f]{6}$/i.test(body.captions.color ?? '') ? body.captions.color : undefined,
       // Where the user moved captions to (x: middle, y: bottom edge, 0–1 of the frame) and their size.
       x: Number.isFinite(Number(body.captions.x)) && body.captions.x !== null ? Math.min(1, Math.max(0, Number(body.captions.x))) : undefined,
       y: Number.isFinite(Number(body.captions.y)) && body.captions.y !== null ? Math.min(1, Math.max(0, Number(body.captions.y))) : undefined,

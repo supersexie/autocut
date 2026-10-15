@@ -423,7 +423,7 @@ function Editor({ cut }: { cut: CutRecord }) {
         line={line}
         activeWord={activeWord}
         captionStyleId={edit.captions.style}
-        captionLook={{ box: edit.captions.box, outline: edit.captions.outline }}
+        captionLook={{ box: edit.captions.box, outline: edit.captions.outline, color: edit.captions.color }}
         captionPlacement={captionPlacement}
         captionSelected={!!selectedCaption}
         onCaptionTouch={() => {
@@ -622,6 +622,8 @@ function Editor({ cut }: { cut: CutRecord }) {
             kind="captions"
             value={edit.captions.style}
             onPick={(style) => commit({ ...edit, captions: { ...edit.captions, style, box: undefined, outline: undefined } }, { keepTime: true })}
+            color={edit.captions.color}
+            onColor={(color) => commit({ ...edit, captions: { ...edit.captions, color } }, { keepTime: true })}
             onClose={() => setPanel(captionLine ? null : 'captions')}
             onDone={() => setPanel(captionLine ? null : 'captions')}
           />

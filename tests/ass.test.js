@@ -79,3 +79,11 @@ test('outline can be removed or added, for captions and texts', () => {
   const outlined = buildAss({ width: 1080, height: 1920, texts: [{ text: 'x', style: 'white-box', box: false, outline: true, start: 0, end: 1 }] });
   assert.match(outlined.split('\n').find((l) => l.startsWith('Style: Text0')), /,1,3,0,5,/);
 });
+
+test('a caption colour the user picked is used in the export', () => {
+  const style = (ass) => ass.split('\n').find((l) => l.startsWith('Style: Caption')).split(',');
+  const plain = style(buildAss({ width: 1080, height: 1920, captions: { style: 'classic', lines: [line] } }));
+  const red = style(buildAss({ width: 1080, height: 1920, captions: { style: 'classic', color: '#F2545B', lines: [line] } }));
+  assert.equal(plain[3], '&H00FFFFFF'); // the style's white
+  assert.equal(red[3], '&H005B54F2'); // ASS colours are &HAABBGGRR
+});

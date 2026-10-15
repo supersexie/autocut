@@ -7,7 +7,7 @@ import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-nativ
 import { askToUpgrade } from '../../lib/usage';
 import type { Caps, CaptionLine, CaptionSettings, Music } from '../../lib/edit';
 import { theme } from '../../lib/theme';
-import { CAPTION_STYLES, captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, type Frame, type StylePreset } from './StyledText';
+import { CAPTION_STYLES, captionStyle, COLORS, frameOf, lookFor, StyledText, TEXT_STYLES, withLook, type Frame, type StylePreset } from './StyledText';
 import type { SymbolName } from '../ui';
 
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
@@ -172,19 +172,55 @@ export function LineEditor({ line, onDone }: { line: CaptionLine; onDone: (text:
   );
 }
 
-export function StylePicker({ kind, value, onPick, onClose, onDone }: { kind: 'captions' | 'texts'; value: string; onPick: (id: string) => void; onClose: () => void; onDone: () => void }) {
+type StylePickerProps = {
+  kind: 'captions' | 'texts';
+  value: string;
+  onPick: (id: string) => void;
+  onClose: () => void;
+  onDone: () => void;
+  /** With these, a row of colours above the styles: the chosen one (undefined = the style's own). */
+  color?: string;
+  onColor?: (color: string | undefined) => void;
+};
+
+export function StylePicker({ kind, value, onPick, onClose, onDone, color, onColor }: StylePickerProps) {
   const styles_ = kind === 'captions' ? CAPTION_STYLES : TEXT_STYLES;
   const groups = kind === 'captions' ? ['Simple', 'Word by word', 'Fun'] : [''];
   const cardWidth = useWindowDimensions().width >= 700 ? '23.5%' : '48%'; // four a row on iPad
   return (
     <Panel title="Style" onClose={onClose} onDone={onDone}>
       <ScrollView contentContainerStyle={{ padding: 14, paddingBottom: 30 }}>
+        {onColor && (
+          <View style={{ marginBottom: 10 }}>
+            <Text style={styles.group}>Colour</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.swatches}>
+              {COLORS.map((c) => {
+                const on = (color ?? captionStyle(value).color).toUpperCase() === c;
+                return (
+                  <Pressable
+                    key={c}
+                    onPress={() => {
+                      Haptics.selectionAsync();
+                      // The style's own colour is the same as no override, so it follows the style.
+                      onColor(c === captionStyle(value).color.toUpperCase() ? undefined : c);
+                    }}
+                    accessibilityLabel={`Colour ${c}`}
+                    accessibilityState={{ selected: on }}
+                    style={[styles.swatch, { backgroundColor: c }, on && styles.swatchOn]}
+                  >
+                    {on && <SymbolView name="checkmark" tintColor={isLight(c) ? theme.ink : '#fff'} size={13} weight="bold" />}
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
         {groups.map((g) => (
           <View key={g} style={{ marginBottom: 6 }}>
             {g ? <Text style={styles.group}>{g}</Text> : null}
             <View style={styles.grid}>
               {styles_.filter((s) => !g || s.group === g).map((s) => (
-                <StyleCard key={s.id} preset={s} on={s.id === value} width={cardWidth} onPress={() => onPick(s.id)} />
+                <StyleCard key={s.id} preset={onColor ? withLook(s, { color }) : s} on={s.id === value} width={cardWidth} onPress={() => onPick(s.id)} />
               ))}
             </View>
           </View>
@@ -193,6 +229,12 @@ export function StylePicker({ kind, value, onPick, onClose, onDone }: { kind: 'c
     </Panel>
   );
 }
+
+/** White, yellow and the like, which need a dark tick. */
+const isLight = (hex: string) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return 0.299 * r + 0.587 * g + 0.114 * b > 160;
+};
 
 function StyleCard({ preset, on, width, onPress }: { preset: StylePreset; on: boolean; width: `${number}%`; onPress: () => void }) {
   return (
@@ -470,6 +512,9 @@ export function Hint({ text }: { text: string }) {
 }
 
 const styles = StyleSheet.create({
+  swatches: { gap: 10, paddingVertical: 4, paddingHorizontal: 2 },
+  swatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(17,17,20,0.15)', alignItems: 'center', justifyContent: 'center' },
+  swatchOn: { borderWidth: 3, borderColor: theme.ink },
   panel: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, backgroundColor: theme.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -4 } },
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 50, borderBottomWidth: 1, borderBottomColor: theme.line },
   headSide: { minWidth: 70 },

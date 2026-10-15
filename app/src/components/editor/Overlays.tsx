@@ -18,7 +18,7 @@ import Slider from '@react-native-community/slider';
 import Svg, { Path } from 'react-native-svg';
 import { OverlayItem, type OverlayGuide } from './OverlayLayer';
 import { Transformable, type Placement } from './Transform';
-import { captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
+import { captionStyle, COLORS, frameOf, lookFor, StyledText, TEXT_STYLES, textStyle, type Frame } from './StyledText';
 
 type PreviewProps = {
   /** Two players over the same video: one plays, the other waits at the next clip (see the editor). */
@@ -269,7 +269,6 @@ export function Preview(p: PreviewProps) {
 export type TextDraft = { text: string; style: string; scale?: number } & TextLook;
 
 type Tray = 'styles' | 'fonts' | 'colors';
-const COLORS = ['#FFFFFF', '#111114', '#F2545B', '#FF9F1C', '#FFE14D', '#2FB463', '#58C4FF', '#7B61FF', '#FF6EF0'];
 
 /**
  * Typing a text overlay, like CutAI: the current frame fills the screen, the text sits in the

@@ -15,6 +15,8 @@ export type CaptionSettings = {
   /** Override the style's background box / black outline (undefined = the style's own). */
   box?: boolean;
   outline?: boolean;
+  /** The words' colour, over the style's own (undefined = the style's). */
+  color?: string;
   /** Where every caption sits: x is its middle, y its bottom edge, as fractions of the frame. */
   x?: number;
   y?: number;
@@ -361,6 +363,7 @@ export function exportBody(
           style: edit.captions.style,
           box: edit.captions.box,
           outline: edit.captions.outline,
+          color: edit.captions.color,
           x: edit.captions.x,
           y: edit.captions.y,
           scale: edit.captions.scale,

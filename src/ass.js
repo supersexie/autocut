@@ -94,7 +94,7 @@ export function buildAss({ width, height, captions, texts = [] }) {
   const events = [];
 
   if (captions?.lines?.length) {
-    const s = withLook(STYLES.captions.find((c) => c.id === captions.style) ?? STYLES.captions[0], { box: captions.box, outline: captions.outline });
+    const s = withLook(STYLES.captions.find((c) => c.id === captions.style) ?? STYLES.captions[0], { box: captions.box, outline: captions.outline, color: captions.color });
     styles.push(styleLine('Caption', { ...s, size: (s.size ?? 1) * (captions.scale ?? 1) }, playResY, 2, Math.round(playResY * 0.24)));
     // Moved by the user: pinned by the middle of its bottom edge. Otherwise the style's own spot.
     const moved = captions.x !== undefined || captions.y !== undefined;

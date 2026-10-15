@@ -46,6 +46,9 @@ export function withLook(p: StylePreset, look?: TextLook): StylePreset {
   return out;
 }
 
+/** The colours offered for captions and text. */
+export const COLORS = ['#FFFFFF', '#111114', '#F2545B', '#FF9F1C', '#FFE14D', '#2FB463', '#58C4FF', '#7B61FF', '#FF6EF0'];
+
 export type Frame = 'outline' | 'box' | 'plain';
 
 /** Which of Outline / Box / Plain a style currently shows, after the user's changes. */
