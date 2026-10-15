@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CuttingSettings } from '../components/CuttingSettings';
-import { PressableScale } from '../components/ui';
+import { PressableScale, Wash } from '../components/ui';
 import { Card, Footnote, listStyles, PageHeader, Row, SectionLabel } from '../components/list';
 import { forgetThumbnails } from '../components/Thumb';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
@@ -79,6 +79,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.screen}>
+      <Wash />
       <PageHeader title="Settings" />
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: insets.bottom + 30 }, column(COLUMN + 36)]}>
         <Card>

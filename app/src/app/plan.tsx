@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Footnote, Meter, PageHeader, Row } from '../components/list';
-import { Button } from '../components/ui';
+import { Button, Wash } from '../components/ui';
 import { FEATURES } from '../lib/plans';
 import { column, COLUMN, theme } from '../lib/theme';
 import { usageLine, useUsage } from '../lib/usage';
@@ -15,6 +15,7 @@ export default function PlanScreen() {
 
   return (
     <View style={styles.screen}>
+      <Wash />
       <PageHeader title="Your plan" />
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: insets.bottom + 30 }, column(COLUMN + 36)]}>
         <Card style={styles.pad}>

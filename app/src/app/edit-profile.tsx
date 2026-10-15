@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Field } from '../components/ui';
+import { Field, Wash } from '../components/ui';
 import { displayName, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
 
@@ -29,6 +29,7 @@ export default function EditProfile() {
 
   return (
     <View style={styles.sheet}>
+      <Wash />
       <View style={styles.head}>
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Text style={styles.cancel}>Cancel</Text>

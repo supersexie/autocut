@@ -4,7 +4,7 @@ import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from '
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, listStyles, Meter, RoundButton } from '../../components/list';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
-import { Button } from '../../components/ui';
+import { Button, Wash } from '../../components/ui';
 import { displayName, initialsOf, useAuth } from '../../lib/auth';
 import { useCuts } from '../../lib/store';
 import { column, COLUMN, theme } from '../../lib/theme';
@@ -26,6 +26,7 @@ export default function YouScreen() {
 
   return (
     <View style={styles.screen}>
+      <Wash />
       <ScrollView contentContainerStyle={[{ paddingTop: insets.top + 6, paddingBottom: TAB_BAR_HEIGHT + 60, paddingHorizontal: 18 }, column(COLUMN + 36)]}>
         <View style={styles.top}>
           <RoundButton icon="gearshape" label="Settings" onPress={() => router.push('/settings')} />

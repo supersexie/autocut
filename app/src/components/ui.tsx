@@ -1,3 +1,4 @@
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
@@ -40,11 +41,27 @@ export function PressableScale({ scaleTo = 0.97, style, onPressIn, onPressOut, .
   );
 }
 
-/** A plain white screen with an optional footer pinned above the home indicator; a centred column on iPad. */
+/** The soft grey wash behind the app's screens (CutAI's blue, in Cal AI greys). */
+export const WASH = ['#FCFCFD', '#E9E9ED', '#D1D1D8'] as const;
+
+/** The wash, filling its parent. Put it first inside a screen's root view. */
+export function Wash() {
+  return (
+    <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      <LinearGradient colors={WASH} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      {/* A soft shade from the right and a light band from the top, like CutAI's sky. */}
+      <LinearGradient colors={['rgba(150,150,162,0)', 'rgba(150,150,162,0.18)']} start={{ x: 0.3, y: 0.4 }} end={{ x: 1, y: 0.55 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.35 }} style={StyleSheet.absoluteFill} />
+    </View>
+  );
+}
+
+/** A screen on the grey wash with an optional footer pinned above the home indicator; a centred column on iPad. */
 export function Backdrop({ children, scroll = true, footer }: { children: ReactNode; scroll?: boolean; footer?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={{ flex: 1, backgroundColor: theme.bg }}>
+    <View style={{ flex: 1, backgroundColor: WASH[1] }}>
+      <Wash />
       <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         {scroll ? (
           <ScrollView
@@ -256,7 +273,7 @@ const styles = StyleSheet.create({
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#D1D1D6', alignItems: 'center', justifyContent: 'center' },
   radioOn: { backgroundColor: '#fff', borderColor: '#fff' },
   label: { fontSize: 13, color: theme.muted, fontWeight: '500' },
-  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 16 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16 },
   prefix: { fontSize: 17, color: theme.faint, marginRight: 4 },
   input: { flex: 1, fontSize: 17, color: theme.ink, paddingVertical: 16 },
   segmented: { flexDirection: 'row', backgroundColor: theme.card, borderRadius: 999, padding: 4 },

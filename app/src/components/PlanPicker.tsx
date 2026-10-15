@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HIGHLIGHT, OnbScreen } from './Onboarding';
-import { Button, ErrorText, Logo, PressableScale, Segmented } from './ui';
+import { Button, ErrorText, Logo, PressableScale, Segmented, Wash } from './ui';
 import { openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
@@ -169,6 +169,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 6 }]}>
+      <Wash />
       <View style={styles.top}>
         {changing ? (
           <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 110 }} accessibilityLabel="Back">

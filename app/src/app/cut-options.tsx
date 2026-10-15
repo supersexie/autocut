@@ -1,12 +1,14 @@
 import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CuttingSettings } from '../components/CuttingSettings';
+import { Wash } from '../components/ui';
 import { theme } from '../lib/theme';
 
 /** "More options" on the review screen: how this and later takes get cut. */
 export default function CutOptions() {
   return (
     <View style={styles.sheet}>
+      <Wash />
       <View style={styles.head}>
         <View style={{ width: 50 }} />
         <Text style={styles.title}>Cutting options</Text>

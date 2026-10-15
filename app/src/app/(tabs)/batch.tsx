@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../../components/list';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Thumb } from '../../components/Thumb';
-import { Button } from '../../components/ui';
+import { Button, Wash } from '../../components/ui';
 import { addVideo, clearBatch, MAX_CLIPS, MAX_VIDEOS, removeVideo, updateVideo, useBatch, type BatchVideo } from '../../lib/batch';
 import { coverSource } from '../../lib/edit';
 import { startCut, type Take } from '../../lib/jobs';
@@ -79,6 +79,7 @@ export default function BatchScreen() {
   const building = !locked && videos.length > 0;
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12, paddingBottom: TAB_BAR_HEIGHT + 44 }]}>
+      <Wash />
       <Text style={[styles.h1, { marginHorizontal: side }]}>Batch</Text>
       {building ? (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: side, paddingTop: 16, paddingBottom: 16, gap: 12 }}>

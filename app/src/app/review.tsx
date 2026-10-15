@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, PanResponder, Pressable, StyleSheet, Switch, Text, useWindowDimensions, View, type LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
-import { Button } from '../components/ui';
+import { Button, Wash } from '../components/ui';
 import { startCut, type Take } from '../lib/jobs';
 import { useUsage } from '../lib/usage';
 import { updateSettings, useSettings } from '../lib/store';
@@ -99,6 +99,7 @@ export default function Review() {
   if (!current) {
     return (
       <View style={[styles.screen, { alignItems: 'center', justifyContent: 'center' }]}>
+        <Wash />
         <Text style={styles.meta}>Nothing was recorded.</Text>
         <Button kind="text" title="Back to camera" onPress={() => router.back()} />
       </View>
@@ -108,6 +109,7 @@ export default function Review() {
   const flip = current.flip ? { transform: [{ scaleX: -1 as const }] } : null;
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 10, paddingHorizontal: Math.max(18, (screenW - COLUMN) / 2) }]}>
+      <Wash />
       <View style={styles.header}>
         <Pressable onPress={retake} hitSlop={12} accessibilityLabel="Back" style={styles.back}>
           <SymbolView name="chevron.left" tintColor={theme.ink} size={17} weight="semibold" />

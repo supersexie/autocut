@@ -1,15 +1,11 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeInDown, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Logo, PressableScale, type SymbolName } from './ui';
+import { Logo, PressableScale, Wash, WASH, type SymbolName } from './ui';
 import { BRAND_FONT } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
-
-/** The soft grey wash behind every setup screen (CutAI's blue, in Cal AI greys). */
-const WASH = ['#FAFAFB', '#ECECEF', '#DCDCE1'] as const;
 
 /** A highlighted word in a title ("Pro fits how you post.", "15 months"). */
 export const HIGHLIGHT = '#8E8E95';
@@ -19,7 +15,7 @@ export function OnbScreen({ header, children, footer, scroll = true }: { header:
   const insets = useSafeAreaInsets();
   return (
     <View style={{ flex: 1, backgroundColor: WASH[1] }}>
-      <LinearGradient colors={WASH} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+      <Wash />
       <View style={{ paddingTop: insets.top + 4, paddingHorizontal: 22 }}>
         <View style={column()}>{header}</View>
       </View>

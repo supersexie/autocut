@@ -7,7 +7,7 @@ import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
-import { Button } from '../components/ui';
+import { Button, Wash } from '../components/ui';
 import { MAX_CLIPS, removeVideo, updateVideo, useBatch } from '../lib/batch';
 import { startCut, type Take } from '../lib/jobs';
 import { useUsage } from '../lib/usage';
@@ -95,6 +95,7 @@ export default function Arrange() {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 12 }]}>
+      <Wash />
       <View style={styles.head}>
         <Pressable onPress={() => router.back()} hitSlop={10} style={styles.back} accessibilityLabel="Back">
           <SymbolView name="chevron.left" tintColor={theme.ink} size={17} weight="semibold" />

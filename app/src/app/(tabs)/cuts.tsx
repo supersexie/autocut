@@ -7,7 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RoundButton } from '../../components/list';
 import { Thumb } from '../../components/Thumb';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
-import { Button, PressableScale } from '../../components/ui';
+import { Button, PressableScale, Wash } from '../../components/ui';
 import * as Sharing from 'expo-sharing';
 import { coverSource } from '../../lib/edit';
 import { canRetry, retryCut } from '../../lib/jobs';
@@ -131,6 +131,7 @@ export default function CutsScreen() {
 
   return (
     <View style={styles.screen}>
+      <Wash />
       <ScrollView contentContainerStyle={[{ paddingTop: insets.top + 6, paddingBottom: TAB_BAR_HEIGHT + 80, paddingHorizontal: 18 }, column(WIDE_COLUMN + 36)]}>
         <View style={styles.top}>
           {selecting ? (
