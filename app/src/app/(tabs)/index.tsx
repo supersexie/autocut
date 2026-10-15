@@ -10,7 +10,7 @@ import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from '
 import Svg, { Circle } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Logo, PressableScale } from '../../components/ui';
+import { Button, Logo, PressableScale, Wash } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
 import type { Take } from '../../lib/jobs';
 import { folderName, useFolders, useSettings } from '../../lib/store';
@@ -65,10 +65,14 @@ export default function CreateScreen() {
 
   // Keep the camera running until the next screen has slid in, so the transition never flashes black.
   const blurTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  // Covers the camera while picking from Photos, so it doesn't flash between the picker sliding away
+  // and the next screen sliding in. Gone again when the camera is back (or the pick was cancelled).
+  const [importing, setImporting] = useState(false);
   useFocusEffect(
     useCallback(() => {
       clearTimeout(blurTimer.current);
       setFocused(true);
+      setImporting(false);
       return () => {
         blurTimer.current = setTimeout(() => setFocused(false), 700);
       };
@@ -76,7 +80,7 @@ export default function CreateScreen() {
   );
 
   // Hide the tab bar while a take is in progress so the controls own the bottom of the screen.
-  const busy = mode !== 'idle' || takes.length > 0;
+  const busy = mode !== 'idle' || takes.length > 0 || importing;
   useEffect(() => {
     navigation.setOptions({ tabBarStyle: busy ? { display: 'none' } : tabBarStyle(screen.width) });
   }, [busy, navigation, screen.width]);
@@ -196,6 +200,7 @@ export default function CreateScreen() {
     // The video as it is: converting it while picking (an export preset) can take minutes with
     // nothing on screen, which looks like the tap did nothing.
     let result: ImagePicker.ImagePickerResult;
+    setImporting(true);
     try {
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['videos'],
@@ -203,10 +208,11 @@ export default function CreateScreen() {
         ...(kind === 'multiple' && { allowsMultipleSelection: true, selectionLimit: 20, orderedSelection: true }),
       });
     } catch (e) {
+      setImporting(false);
       Alert.alert('Couldn’t open that video', e instanceof Error ? e.message : String(e));
       return;
     }
-    if (result.canceled || !result.assets.length) return;
+    if (result.canceled || !result.assets.length) return setImporting(false);
     const picked = result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }));
     // Several clips: put them in order first, then they're combined into one cut.
     if (kind === 'multiple') router.push({ pathname: '/arrange', params: { takes: JSON.stringify(picked) } });
@@ -384,6 +390,11 @@ export default function CreateScreen() {
       </View>
       <FolderSheet visible={sheet === 'folder'} onClose={() => setSheet(null)} />
       <AddVideoSheet visible={sheet === 'add'} onClose={() => setSheet(null)} onPick={importVideo} />
+      {importing && (
+        <View style={StyleSheet.absoluteFill} pointerEvents="none">
+          <Wash />
+        </View>
+      )}
       {tour >= 0 && (
         // Over everything, tab bar included, so the tabs can be pointed at too.
         <Modal transparent visible animationType="none" onRequestClose={endTour}>
