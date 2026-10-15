@@ -8,6 +8,7 @@ import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handl
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
+import { MAX_CLIPS, removeVideo, updateVideo, useBatch } from '../lib/batch';
 import { startCut, type Take } from '../lib/jobs';
 import { useUsage } from '../lib/usage';
 import { formatTime, theme } from '../lib/theme';
@@ -16,23 +17,30 @@ const TILE_W = 104;
 const TILE_H = 170;
 const GAP = 12;
 const STEP = TILE_W + GAP;
-const MAX = 20;
 
 /**
  * "Arrange your clips": several videos picked from Photos, put in order (hold and drag), trimmed
  * of any that don't belong, then combined into one video and cut like a single take.
+ * With `video`, it arranges that video of the batch being put together instead (changes save as you go).
  */
 export default function Arrange() {
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ takes?: string }>();
-  const [takes, setTakes] = useState<Take[]>(() => {
+  const params = useLocalSearchParams<{ takes?: string; video?: string }>();
+  const batch = useBatch();
+  const inBatch = !!params.video;
+  const video = batch.find((v) => v.key === params.video);
+  const [own, setOwn] = useState<Take[]>(() => {
     try {
       return JSON.parse(params.takes ?? '[]') as Take[];
     } catch {
       return [];
     }
   });
-  const [blend, setBlend] = useState(true);
+  const [ownBlend, setOwnBlend] = useState(true);
+  const takes = inBatch ? (video?.takes ?? []) : own;
+  const blend = inBatch ? (video?.blend ?? true) : ownBlend;
+  const setTakes = (change: (list: Take[]) => Take[]) => (video ? updateVideo(video.key, (v) => ({ ...v, takes: change(v.takes) })) : setOwn(change));
+  const setBlend = (on: boolean) => (video ? updateVideo(video.key, (v) => ({ ...v, blend: on })) : setOwnBlend(on));
   const [drag, setDrag] = useState<{ from: number; dx: number } | null>(null);
   const [sending, setSending] = useState(false);
   const usage = useUsage();
@@ -48,16 +56,18 @@ export default function Arrange() {
     });
 
   async function addMore() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], quality: 1, allowsMultipleSelection: true, selectionLimit: MAX - takes.length, orderedSelection: true });
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], quality: 1, allowsMultipleSelection: true, selectionLimit: MAX_CLIPS - takes.length, orderedSelection: true });
     if (result.canceled) return;
-    setTakes((list) => [...list, ...result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }))].slice(0, MAX));
+    setTakes((list) => [...list, ...result.assets.map((a) => ({ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }))].slice(0, MAX_CLIPS));
   }
 
   function remove(i: number) {
     Haptics.selectionAsync();
-    const next = takes.filter((_, k) => k !== i);
-    if (!next.length) return router.back();
-    setTakes(next);
+    if (takes.length === 1) {
+      if (video) removeVideo(video.key);
+      return router.back();
+    }
+    setTakes((list) => list.filter((_, k) => k !== i));
   }
 
   function combine() {
@@ -90,13 +100,17 @@ export default function Arrange() {
           <SymbolView name="chevron.left" tintColor={theme.ink} size={17} weight="semibold" />
           <Text style={styles.backText}>Back</Text>
         </Pressable>
-        <Text style={styles.headTitle}>New cut</Text>
+        <Text style={styles.headTitle}>{inBatch ? `Video ${batch.findIndex((v) => v.key === params.video) + 1}` : 'New cut'}</Text>
         <View style={{ width: 70 }} />
       </View>
 
       <View style={styles.intro}>
         <Text style={styles.title}>Arrange your clips</Text>
-        <Text style={styles.sub}>Hold and drag to set the order. We’ll combine them in order, then cut out retakes and dead air.</Text>
+        <Text style={styles.sub}>
+          {inBatch
+            ? 'Hold and drag to set the order. When you edit the batch, these are combined in order into one video.'
+            : 'Hold and drag to set the order. We’ll combine them in order, then cut out retakes and dead air.'}
+        </Text>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={!drag} contentContainerStyle={styles.row} style={{ flexGrow: 0 }}>
@@ -112,7 +126,7 @@ export default function Arrange() {
             onRemove={() => remove(i)}
           />
         ))}
-        {takes.length < MAX && (
+        {takes.length < MAX_CLIPS && (
           <Pressable onPress={() => addMore().catch((e) => Alert.alert('Couldn’t add videos', String(e)))} style={styles.add} accessibilityLabel="Add more clips">
             <SymbolView name="plus" tintColor={theme.muted} size={26} />
           </Pressable>
@@ -132,7 +146,11 @@ export default function Arrange() {
       <Text style={styles.summary}>
         {takes.length} clip{takes.length === 1 ? '' : 's'} · {formatTime(total)} total
       </Text>
-      <Button title="Combine & edit" onPress={combine} loading={sending} disabled={!takes.length} style={{ marginHorizontal: 20 }} />
+      {inBatch ? (
+        <Button title="Done" onPress={() => router.back()} style={{ marginHorizontal: 20 }} />
+      ) : (
+        <Button title="Combine & edit" onPress={combine} loading={sending} disabled={!takes.length} style={{ marginHorizontal: 20 }} />
+      )}
     </View>
   );
 }

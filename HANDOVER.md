@@ -177,6 +177,7 @@ your own clips before release.** To swap:
 - Camera: the two-step camera tour, record a take (front and back, pinch to zoom), pause and record a
   second take, done → review → send.
 - Import one video from Photos; import several (Arrange your clips).
+- Batch (Pro/Ultimate): add 2–3 videos of a few clips each, reorder one with Arrange, Edit all → all land in Cuts.
 - Wait for the cut, then in the editor:
   - Play through several cuts (**the native player, see §4**). Trim, split, speed, undo.
   - Pinch the video to zoom (keyframes).
