@@ -188,7 +188,8 @@ your own clips before release.** To swap:
 - Wait for the cut, then in the editor:
   - Play through several cuts (**the native player, see §4**). Trim, split, speed, undo.
   - Pinch the video to zoom (keyframes).
-  - Captions: move, resize, edit, split, delete.
+  - Captions: move, resize, edit, split, delete. Tap the pencil on a caption: the card at the top changes
+    every caption's look (Plain / Outline / Background), colour and capitals as you tap.
   - Text, music, and a photo and a video overlay.
 - Export → saved to Photos → Share.
 - Do it once on an iPad.
@@ -203,6 +204,8 @@ your own clips before release.** To swap:
   - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (required)
   - `LEGAL_OPERATOR`, `LEGAL_EMAIL`, `LEGAL_COUNTRY`
   - Optional: `CONCURRENCY` (cuts at once, default 1), `RETENTION_DAYS` (default 7), `MAX_UPLOAD_MB` (default 1024)
+  - Set by Railway or rarely needed: `PORT` (default 8787), `AUTOCUT_DATA` (where takes and cuts are kept,
+    already `/data` in the Dockerfile), `FFMPEG_STALL_MS` (an export with no progress for this long is stopped, default 90000)
 - A volume is mounted at `/data` (takes and cuts). Scheduled edits wait there too (with their clips), so they
   survive a redeploy; the server checks every 15 s for ones that are due.
 - Transcribes with Whisper **small** (`src/transcribe.js`), baked into the image (about 1 GB). It's
