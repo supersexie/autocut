@@ -5,7 +5,7 @@
 //   LEGAL_COUNTRY   e.g. "India" (governing law and contact line)
 import { readFile } from 'node:fs/promises';
 
-const UPDATED = '14 October 2026';
+const UPDATED = '15 October 2026';
 const DIR = new URL('../legal/', import.meta.url);
 
 const escape = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -38,7 +38,7 @@ export async function legalPage(name) {
   main { max-width: 680px; margin: 0 auto; padding: 32px 20px 64px; }
   header { display: flex; align-items: center; gap: 10px; margin-bottom: 28px; }
   .mark { width: 28px; height: 28px; border-radius: 7px; background: #111114; display: grid; place-items: center; }
-  .mark svg { width: 16px; height: 16px; }
+  .mark svg { width: 24px; height: 24px; }
   .brand { font-family: "Bricolage Grotesque", -apple-system, sans-serif; font-weight: 800; letter-spacing: -0.3px; }
   nav { margin-left: auto; display: flex; gap: 14px; font-size: 14px; }
   nav a { color: var(--muted); text-decoration: none; }
@@ -57,7 +57,7 @@ export async function legalPage(name) {
 <body>
 <main>
 <header>
-  <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#fff" d="M7 4.5v8.3l11.5-6.4L8.6 1.9C7.9 1.5 7 2 7 2.8zM7 15.2v6c0 .8.9 1.3 1.6.9L19 16c.6-.4.6-1.3 0-1.7L17.6 13.5z"/></svg></div>
+  <div class="mark" aria-hidden="true"><svg viewBox="0 0 100 100"><g fill="none" stroke="#fff" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"><path d="M43 25 H36 Q23 25 23 38 V62 Q23 75 36 75 H43"/><path d="M57 25 H64 Q77 25 77 38 V62 Q77 75 64 75 H57"/><path d="M56 19 L44 81"/></g></svg></div>
   <span class="brand">Autocut</span>
   <nav><a href="/privacy"${name === 'privacy' ? ' aria-current="page"' : ''}>Privacy</a><a href="/terms"${name === 'terms' ? ' aria-current="page"' : ''}>Terms</a></nav>
 </header>

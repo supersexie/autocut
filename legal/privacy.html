@@ -5,7 +5,7 @@
 
 <h2>The short version</h2>
 <ul>
-  <li>To cut your videos, the takes you send are uploaded to our server, transcribed there, and <strong>deleted automatically after {{RETENTION_DAYS}} days</strong>.</li>
+  <li>To cut your videos, the takes you send (and any music, photos or clips you add to an edit) are uploaded to our server, processed there, and <strong>deleted automatically after {{RETENTION_DAYS}} days</strong>.</li>
   <li>Transcription runs on our own server. We don't send your videos or voice to third-party AI services.</li>
   <li>We don't sell your data and we don't show ads.</li>
   <li>You can delete your account, and everything we hold about you, from <strong>Settings › Delete account</strong> in the app.</li>
@@ -16,20 +16,29 @@
 <p>Your email address and a password (stored only as a secure hash by our sign-in provider). If you sign in with Apple or Google, we receive the email address and, if you allow it, the name they share with us.</p>
 
 <h3>Profile and setup answers</h3>
-<p>Things you choose to tell us: your name, your TikTok handle, the language you record in, your answers during setup (for example what kind of creator you are, your goal, and roughly what you spend on editing), and the plan you pick. We use these to set up your account and suggest a plan.</p>
+<p>Things you choose to tell us: your name, your TikTok handle, the language you record in, your answers during setup (what kind of creator you are, your goal, and roughly what you pay an editor), and the plan you pick (Starter, Pro or Ultimate, monthly or yearly). We use these to set up your account, suggest a plan, and give you what your plan includes.</p>
 
 <h3>Videos, audio and transcripts</h3>
 <p>When you tap Send, Autocut uploads the takes you recorded or picked to our server. The server listens to the audio to produce a transcript with word timings, finds pauses, filler words and repeated takes, and prepares the video for editing and export. Video, audio, transcripts and exported files are stored on our server for up to {{RETENTION_DAYS}} days and then deleted automatically. Copies you save to Photos, and the edits stored in the app, stay on your device until you delete them.</p>
 
+<h3>Music, photos and clips you add</h3>
+<p>If you add music, a photo or a video overlay to an edit, that file is uploaded with your edit so the server can put it into your export. It's kept and deleted on the same {{RETENTION_DAYS}}-day schedule as your takes.</p>
+
+<h3>How many edits you've made</h3>
+<p>Plans include a number of edits a month, so our server counts how many edits your account starts each month (stopped or failed edits aren't counted). This is a number tied to your account; it doesn't contain your videos. It's kept until you delete your account.</p>
+
+<h3>Stored on your device</h3>
+<p>Your edits, batches you're putting together, settings and cached previews are stored in the app on your device. They aren't sent to us except when you send a video to be cut or exported.</p>
+
 <h3>Device permissions</h3>
-<p>Autocut asks for your camera and microphone (to record takes), and for permission to add videos to your photo library (to save exports). Picking a video from your library gives the app only the videos you choose. You can change these permissions in iOS Settings at any time.</p>
+<p>Autocut asks for your camera and microphone (to record takes), and for permission to add videos to your photo library (to save exports). Picking videos or photos from your library (to cut them, or to add them as overlays) gives the app only the items you choose. You can change these permissions in iOS Settings at any time.</p>
 
 <h3>Technical information</h3>
 <p>Our server keeps basic logs (such as request times and errors) to keep the service running and secure. These logs don't include your video content.</p>
 
 <h2>How we use it</h2>
 <ul>
-  <li>To provide the service: sign you in, cut and caption your videos, and let you edit and export them.</li>
+  <li>To provide the service: sign you in, cut and caption your videos, let you edit and export them, and give you the features and number of edits your plan includes.</li>
   <li>To keep the service secure and working, and to fix problems.</li>
   <li>To answer you when you contact us.</li>
 </ul>
@@ -47,12 +56,12 @@
 <h2>How long we keep it</h2>
 <ul>
   <li>Uploaded takes, transcripts and exports on our server: up to {{RETENTION_DAYS}} days.</li>
-  <li>Account and profile information: until you delete your account.</li>
+  <li>Account and profile information, including your plan and this month's edit count: until you delete your account.</li>
   <li>Server logs: up to 30 days.</li>
 </ul>
 
 <h2>Your choices and rights</h2>
-<p>You can update your profile and settings in the app, and delete your account at any time from Settings › Delete account. Deleting your account removes your account, profile, uploads and cuts from our systems; videos you already saved to Photos stay on your device. Depending on where you live (for example under the GDPR in the EU/UK, the CCPA in California, or India's Digital Personal Data Protection Act), you may also have the right to access, correct or receive a copy of your data, or to object to or restrict how we use it. To make a request, email <a href="mailto:{{EMAIL}}">{{EMAIL}}</a>.</p>
+<p>You can update your profile and settings in the app, and delete your account at any time from Settings › Delete account. Deleting your account removes your account, profile, edit count, uploads and cuts from our systems; videos you already saved to Photos stay on your device. Depending on where you live (for example under the GDPR in the EU/UK, the CCPA in California, or India's Digital Personal Data Protection Act), you may also have the right to access, correct or receive a copy of your data, or to object to or restrict how we use it. To make a request, email <a href="mailto:{{EMAIL}}">{{EMAIL}}</a>.</p>
 
 <h2>Security</h2>
 <p>Data travels over encrypted connections, and every request to our server must carry your sign-in token, so each account can only reach its own videos. No system is perfectly secure, but we work to protect your information.</p>
