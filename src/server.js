@@ -264,6 +264,11 @@ async function stopCut(res, job) {
   if (!['ready', 'failed'].includes(job.stage)) {
     await usage.refund(job.userId ?? LOCAL_USER); // a stopped cut doesn't use up an edit
     Object.assign(job, { stage: 'stopped', error: 'You stopped this cut.' });
+    // A scheduled one's clips were kept for later; they aren't needed now.
+    if (job.run) {
+      await Promise.all(job.run.takes.map((t) => rm(t, { force: true })));
+      delete job.run;
+    }
     await saveJob(job);
   }
   send(res, 200, publicJob(job));
