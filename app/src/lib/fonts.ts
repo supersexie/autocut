@@ -1,6 +1,5 @@
 // The caption/text fonts, registered under the same family names the server's ASS styles use.
 export const CAPTION_FONTS = {
-  'TikTok Sans Regular': require('../../assets/fonts/TikTokSans-Regular.ttf'),
   'TikTok Sans Bold': require('../../assets/fonts/TikTokSans-Bold.ttf'),
   Inter: require('../../assets/fonts/Inter-Bold.ttf'),
   'Inter ExtraBold': require('../../assets/fonts/Inter-ExtraBold.ttf'),
@@ -22,4 +21,4 @@ export const BRAND_FONT = 'Bricolage Grotesque ExtraBold';
 export const APP_FONTS = { ...CAPTION_FONTS, [BRAND_FONT]: require('../../assets/fonts/BricolageGrotesque-ExtraBold.ttf') };
 
 /** Fonts offered for text overlays (the A button in the text editor). */
-export const TEXT_FONTS = ['TikTok Sans Regular', 'TikTok Sans Bold', 'Inter ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];
+export const TEXT_FONTS = ['TikTok Sans Bold', 'Inter ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];
