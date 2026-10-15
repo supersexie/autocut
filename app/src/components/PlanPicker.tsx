@@ -16,6 +16,9 @@ import { column, COLUMN, midSentence, theme } from '../lib/theme';
  * The plans. `onboarding`: the last step of setup, where picking one saves the setup answers and
  * opens the app. `change`: from Your plan, with a way back, and picking one just switches plan.
  */
+/** "a, b and c". */
+const sentence = (items: string[]) => (items.length < 2 ? items.join('') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`);
+
 export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
   const insets = useSafeAreaInsets();
   const { account, updateProfile, signOut } = useAuth();
@@ -79,7 +82,7 @@ export function PlanPicker({ mode }: { mode: 'onboarding' | 'change' }) {
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 22, paddingBottom: 16 }, column(COLUMN + 44)]} showsVerticalScrollIndicator={false}>
         <Text style={styles.title}>{chosen.name} fits how you post.</Text>
         <Text style={styles.sub}>
-          Everything your editor does, for a fraction of the price: {midSentence(chosen.edits)}, {midSentence(chosen.features.join(' and '))}.
+          Everything your editor does, for a fraction of the price: {sentence([chosen.edits, ...chosen.features, 'captions'].map(midSentence))}.
         </Text>
 
         <View style={{ alignSelf: 'center', width: 250, marginVertical: 16 }}>

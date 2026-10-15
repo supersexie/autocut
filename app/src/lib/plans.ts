@@ -5,10 +5,15 @@ export type Billing = 'monthly' | 'yearly';
 export const YEARLY_DISCOUNT = 0.33;
 export const CURRENCY = '$';
 
-export const FEATURES = ['Captions', 'Batch cuts'] as const;
+// What the paid plans add (every plan gets cutting, captions and the editor). The server checks
+// these too (src/plans.js), so keep the two in step.
+export const OVERLAP = 'Overlap audio';
+export const BATCH = 'Batch cuts';
+export const FEATURES = [OVERLAP, BATCH] as const;
+export type Feature = (typeof FEATURES)[number];
 
-export const PLANS: { id: PlanId; name: string; monthly: number; edits: string; limit: number; features: readonly string[]; pick?: boolean }[] = [
-  { id: 'starter', name: 'Starter', monthly: 19.99, edits: '100 AI edits a month', limit: 100, features: ['Captions'] },
+export const PLANS: { id: PlanId; name: string; monthly: number; edits: string; limit: number; features: readonly Feature[]; pick?: boolean }[] = [
+  { id: 'starter', name: 'Starter', monthly: 19.99, edits: '100 AI edits a month', limit: 100, features: [] },
   { id: 'pro', name: 'Pro', monthly: 49.99, edits: '300 AI edits a month', limit: 300, features: FEATURES, pick: true },
   { id: 'ultimate', name: 'Ultimate', monthly: 99.99, edits: 'Unlimited AI edits', limit: Infinity, features: FEATURES },
 ];
@@ -17,6 +22,9 @@ export const pricePerMonth = (monthly: number, billing: Billing) =>
   billing === 'yearly' ? Math.round(monthly * (1 - YEARLY_DISCOUNT) * 100) / 100 : monthly;
 
 export const planFor = (id: PlanId) => PLANS.find((p) => p.id === id)!;
+
+/** Whether a plan includes a feature (no plan yet counts as Starter). */
+export const planAllows = (id: PlanId | undefined, feature: Feature) => (PLANS.find((p) => p.id === id) ?? PLANS[0]).features.includes(feature);
 
 /**
  * What a creator pays their editor each month (US dollars), as asked in setup. `none` skips the

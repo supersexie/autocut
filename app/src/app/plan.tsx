@@ -1,8 +1,10 @@
 import { router } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Footnote, Meter, PageHeader, Row } from '../components/list';
 import { Button } from '../components/ui';
+import { FEATURES } from '../lib/plans';
 import { column, COLUMN, theme } from '../lib/theme';
 import { usageLine, useUsage } from '../lib/usage';
 
@@ -30,6 +32,18 @@ export default function PlanScreen() {
           <Text style={[styles.small, { marginTop: 10 }]}>{limit === Infinity ? 'Unlimited edits' : `${left} left this month`} · Resets {resets}</Text>
         </Card>
 
+        {/* What this plan includes, and what the bigger ones add. */}
+        <Card style={[styles.pad, { marginTop: 12, gap: 12 }]}>
+          <Text style={styles.included}>Included</Text>
+          {[{ label: plan.edits, has: true }, { label: 'Captions on every word', has: true }, ...FEATURES.map((f) => ({ label: f, has: plan.features.includes(f) }))].map((f) => (
+            <View key={f.label} style={styles.feature}>
+              <SymbolView name={f.has ? 'checkmark.circle.fill' : 'lock.fill'} tintColor={f.has ? theme.ink : theme.faint} size={f.has ? 18 : 14} style={{ width: 20 }} />
+              <Text style={[styles.featureText, !f.has && { color: theme.faint }]}>{f.label}</Text>
+              {!f.has && <Text style={styles.upgrade}>Pro and Ultimate</Text>}
+            </View>
+          ))}
+        </Card>
+
         <Card style={{ marginTop: 12 }}>
           <Row
             label="Restore purchases"
@@ -51,5 +65,9 @@ const styles = StyleSheet.create({
   tag: { fontSize: 16, fontWeight: '500', color: theme.muted },
   line: { fontSize: 16, color: theme.ink, marginTop: 6 },
   small: { fontSize: 14, color: theme.muted, marginTop: 3 },
+  included: { fontSize: 13, fontWeight: '700', color: theme.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
+  feature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  featureText: { flex: 1, fontSize: 15, color: theme.ink },
+  upgrade: { fontSize: 12, fontWeight: '600', color: theme.muted },
   usage: { fontSize: 17, fontWeight: '600', color: theme.ink, fontVariant: ['tabular-nums'] },
 });

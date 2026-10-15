@@ -31,7 +31,7 @@ export type CutRecord = {
   /** The source's loudness for the timeline's waveform: 0–100, `rate` points a second. */
   waveform?: { rate: number; peaks: number[] };
   /** What was sent, so a failed cut can be tried again. */
-  retry?: { takes: { uri: string; mime: string; duration: number; flip?: boolean }[]; language: string; blend?: boolean };
+  retry?: { takes: { uri: string; mime: string; duration: number; flip?: boolean }[]; language: string; blend?: boolean; batch?: boolean };
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally

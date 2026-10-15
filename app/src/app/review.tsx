@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
 import { startCut, type Take } from '../lib/jobs';
+import { useUsage } from '../lib/usage';
 import { updateSettings, useSettings } from '../lib/store';
 import { COLUMN, formatTime, theme } from '../lib/theme';
 
@@ -20,6 +21,7 @@ const seek = (p: VideoPlayer, t: number) => {
 /** After recording: watch the take back, scrub it, then Retake or Send — laid out like CutAI. */
 export default function Review() {
   const insets = useSafeAreaInsets();
+  const usage = useUsage();
   const { width: screenW } = useWindowDimensions();
   const params = useLocalSearchParams<{ takes: string }>();
   const takes = useMemo<Take[]>(() => {
@@ -87,6 +89,7 @@ export default function Review() {
   }
 
   function send() {
+    if (!usage.room(1)) return; // this month's edits are used up
     setSending(true);
     player.pause();
     const id = startCut(takes, 'en');

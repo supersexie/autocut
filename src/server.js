@@ -22,7 +22,8 @@ import { pipeline as streamTo } from 'node:stream/promises';
 import { createHash, randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { authEnabled, deleteAuthUser, LOCAL_USER, userIdFrom } from './auth.js';
+import { accountFrom, authEnabled, deleteAuthUser, LOCAL_USER } from './auth.js';
+import { rulesFor, usageStore } from './plans.js';
 import { legalPage } from './legal.js';
 import { joinTakes, render } from './media.js';
 import { analyze, renderEdit, WAVEFORM_RATE, waveformOfFile } from './pipeline.js';
@@ -30,6 +31,7 @@ import { analyze, renderEdit, WAVEFORM_RATE, waveformOfFile } from './pipeline.j
 const PORT = Number(process.env.PORT ?? 8787);
 const DATA = path.resolve(process.env.AUTOCUT_DATA ?? new URL('../data', import.meta.url).pathname);
 const UPLOADS = path.join(DATA, 'uploads');
+const usage = usageStore(path.join(DATA, 'usage'));
 const MAX_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024;
 // Whisper and ffmpeg each use every core, so run few jobs at once and queue the rest.
 const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY ?? 1));
@@ -83,7 +85,11 @@ async function readJob(id) {
   try {
     const job = JSON.parse(await readFile(path.join(DATA, id, 'job.json'), 'utf8'));
     // A server restart interrupts anything that was running.
-    if (!['ready', 'failed', 'stopped'].includes(job.stage)) Object.assign(job, { stage: 'failed', error: 'The server restarted. Send the take again.' });
+    if (!['ready', 'failed', 'stopped'].includes(job.stage)) {
+      Object.assign(job, { stage: 'failed', error: 'The server restarted. Send the take again.' });
+      await usage.refund(job.userId ?? LOCAL_USER);
+      await saveJob(job); // so it's refunded once, not on every restart
+    }
     if (job.render && !['ready', 'failed'].includes(job.render.stage)) Object.assign(job.render, { stage: 'failed', error: 'The server restarted. Export again.' });
     jobs.set(id, job);
     return job;
@@ -135,8 +141,15 @@ async function findUpload(id, userId) {
   return null;
 }
 
-async function createCut(req, res, url, userId) {
+async function createCut(req, res, url, userId, rules) {
   const q = url.searchParams;
+  // What the plan includes: batch cutting, and a number of edits a month.
+  if (q.get('batch') === '1' && !rules.batch) {
+    return send(res, 403, { error: `Batch cuts are on Pro and Ultimate. You're on ${rules.name}.`, code: 'plan' });
+  }
+  if ((await usage.used(userId)) >= rules.edits) {
+    return send(res, 402, { error: `You've used all ${rules.edits} edits on ${rules.name} this month. Upgrade for more.`, code: 'limit' });
+  }
   let takes;
   if (q.get('uploads')) {
     takes = await Promise.all(q.get('uploads').split(',').slice(0, 50).map((u) => findUpload(u, userId)));
@@ -165,6 +178,7 @@ async function createCut(req, res, url, userId) {
   const job = { id, dir, userId, takes: takes.length, stage: 'queued', progress: 0, createdAt: new Date().toISOString() };
   jobs.set(id, job);
   await saveJob(job);
+  await usage.add(userId); // counted now, so edits started together can't slip past the limit
   send(res, 201, { id });
 
   enqueue(async () => {
@@ -204,12 +218,14 @@ async function createCut(req, res, url, userId) {
       Object.assign(job, { stage: 'failed', error: 'Something went wrong while cutting this take.' });
     }
     log(job.stage);
+    if (job.stage === 'failed') await usage.refund(userId); // (a stopped one was refunded when stopped)
     await saveJob(job);
   });
 }
 
 async function stopCut(res, job) {
   if (!['ready', 'failed'].includes(job.stage)) {
+    await usage.refund(job.userId ?? LOCAL_USER); // a stopped cut doesn't use up an edit
     Object.assign(job, { stage: 'stopped', error: 'You stopped this cut.' });
     await saveJob(job);
   }
@@ -225,7 +241,7 @@ async function jsonBody(req) {
   return JSON.parse(text || '{}');
 }
 
-async function createRender(req, res, job) {
+async function createRender(req, res, job, rules) {
   if (job.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready to export yet.' });
   if (job.render && ['queued', 'rendering'].includes(job.render.stage)) return send(res, 409, { error: 'Already exporting this cut.' });
   let body;
@@ -287,7 +303,7 @@ async function createRender(req, res, job) {
 
   // A song to lay under the video: uploaded first through /uploads, like a take.
   // Fade each cut's sound across the next one's (on unless the app says otherwise).
-  const overlapAudio = body.overlapAudio !== false;
+  const overlapAudio = body.overlapAudio !== false && rules.overlap; // a Pro and Ultimate feature
   let music;
   if (body.music?.upload) {
     const file = await findUpload(String(body.music.upload), job.userId ?? LOCAL_USER);
@@ -463,6 +479,7 @@ async function deleteAccount(res, userId) {
     }
   }
   await rm(path.join(UPLOADS, userId), { recursive: true, force: true });
+  await usage.forget(userId);
   await deleteAuthUser(userId);
   console.log(`[account] deleted ${userId.slice(0, 8)}`);
   send(res, 200, { ok: true });
@@ -498,18 +515,20 @@ const server = http.createServer(async (req, res) => {
       return res.end(await legalPage(root));
     }
 
-    const userId = await userIdFrom(req);
+    const account = await accountFrom(req);
+    const userId = account?.id;
     if (!userId || !USER.test(userId)) return send(res, 401, { error: 'Your session ended. Sign in again.' });
+    const rules = rulesFor(account.plan);
 
     if (req.method === 'POST' && root === 'uploads' && !id) return await createUpload(req, res, userId);
-    if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url, userId);
+    if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url, userId, rules);
     if (req.method === 'DELETE' && root === 'account' && !id) return await deleteAccount(res, userId);
     if (root === 'cuts' && id) {
       const job = await loadJob(id, userId);
       if (!job) return send(res, 404, { error: 'No cut with that id.' });
       if (req.method === 'GET' && !action) return send(res, 200, publicJob(job));
       if (req.method === 'POST' && action === 'stop') return await stopCut(res, job);
-      if (req.method === 'POST' && action === 'render') return await createRender(req, res, job);
+      if (req.method === 'POST' && action === 'render') return await createRender(req, res, job, rules);
       if (req.method === 'GET' && action === 'source') {
         if (!job.source) return send(res, 409, { error: 'Not ready yet.' });
         return await sendFile(req, res, job.source, job.source.endsWith('.mp4') ? 'video/mp4' : 'video/quicktime');

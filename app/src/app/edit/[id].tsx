@@ -21,6 +21,8 @@ import {
 import { getWaveform } from '../../lib/api';
 import { cutFile, editOf, getSettings, saveEdit, updateCut, updateSettings, useCut, type CutRecord } from '../../lib/store';
 import { BRAND_FONT } from '../../lib/fonts';
+import { OVERLAP } from '../../lib/plans';
+import { useUsage } from '../../lib/usage';
 import { theme } from '../../lib/theme';
 
 export default function EditScreen() {
@@ -45,6 +47,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 
 function Editor({ cut }: { cut: CutRecord }) {
   const insets = useSafeAreaInsets();
+  const usage = useUsage();
   const wide = useWindowDimensions().width >= 700; // iPad
   const sourceUri = cutFile(cut.source!).uri;
   const [history, setHistory] = useState<History>(() => ({ past: [], present: editOf(cut), future: [] }));
@@ -634,6 +637,7 @@ function Editor({ cut }: { cut: CutRecord }) {
             muted={edit.muted}
             onMute={(muted) => commit({ ...edit, muted }, { keepTime: true })}
             overlap={edit.overlapAudio !== false}
+            overlapLocked={!usage.allows(OVERLAP)}
             onOverlap={(overlapAudio) => commit({ ...edit, overlapAudio }, { keepTime: true })}
             onDone={() => setPanel(null)}
           />

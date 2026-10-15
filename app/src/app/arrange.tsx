@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button } from '../components/ui';
 import { startCut, type Take } from '../lib/jobs';
+import { useUsage } from '../lib/usage';
 import { formatTime, theme } from '../lib/theme';
 
 const TILE_W = 104;
@@ -34,6 +35,7 @@ export default function Arrange() {
   const [blend, setBlend] = useState(true);
   const [drag, setDrag] = useState<{ from: number; dx: number } | null>(null);
   const [sending, setSending] = useState(false);
+  const usage = useUsage();
   const total = takes.reduce((t, k) => t + k.duration, 0);
   const target = drag ? Math.max(0, Math.min(takes.length - 1, drag.from + Math.round(drag.dx / STEP))) : -1;
 
@@ -59,7 +61,7 @@ export default function Arrange() {
   }
 
   function combine() {
-    if (!takes.length) return;
+    if (!takes.length || !usage.room(1)) return;
     setSending(true);
     const id = startCut(takes, 'en', { blend });
     router.replace({ pathname: '/cut/[id]', params: { id } });

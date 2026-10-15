@@ -4,6 +4,7 @@ import { SymbolView } from 'expo-symbols';
 import { useRef, useState, type ReactNode } from 'react';
 import { FlatList, KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, { Easing, FadeIn, SlideInDown, SlideOutDown } from 'react-native-reanimated';
+import { askToUpgrade } from '../../lib/usage';
 import type { Caps, CaptionLine, CaptionSettings, Music } from '../../lib/edit';
 import { theme } from '../../lib/theme';
 import { CAPTION_STYLES, captionStyle, frameOf, lookFor, StyledText, TEXT_STYLES, type Frame, type StylePreset } from './StyledText';
@@ -292,9 +293,11 @@ export function SizePanel({ scale, onChange, onDone }: { scale: number; onChange
 }
 
 export function VolumePanel({
-  volume, clipLabel, muted, overlap, onChange, onAll, onMute, onOverlap, onDone,
+  volume, clipLabel, muted, overlap, overlapLocked, onChange, onAll, onMute, onOverlap, onDone,
 }: {
   volume: number; clipLabel: string; muted: boolean; overlap: boolean;
+  /** Not on this plan: the switch shows a lock and offers an upgrade instead. */
+  overlapLocked?: boolean;
   onChange: (v: number) => void; onAll: () => void; onMute: (m: boolean) => void; onOverlap: (on: boolean) => void; onDone: () => void;
 }) {
   const [v, setV] = useState(volume);
@@ -316,13 +319,25 @@ export function VolumePanel({
           <Text style={styles.switchLabel}>Mute the video’s own sound</Text>
           <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.ink }} />
         </View>
-        <View style={[styles.switchRow, { gap: 12 }]}>
+        <Pressable
+          onPress={overlapLocked ? () => askToUpgrade('Overlap audio is on Pro and Ultimate', 'Upgrade to blend the sound across every cut.') : undefined}
+          disabled={!overlapLocked}
+          style={[styles.switchRow, { gap: 12 }]}
+        >
           <View style={{ flex: 1, gap: 2 }}>
-            <Text style={styles.switchLabel}>Overlap audio</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={styles.switchLabel}>Overlap audio</Text>
+              {overlapLocked && (
+                <View style={styles.proPill}>
+                  <SymbolView name="lock.fill" tintColor="#fff" size={9} />
+                  <Text style={styles.proText}>PRO</Text>
+                </View>
+              )}
+            </View>
             <Text style={styles.small}>Blends the sound across each cut so jumps don’t click. Applies to the export.</Text>
           </View>
-          <Switch value={overlap} onValueChange={onOverlap} trackColor={{ true: theme.ink }} />
-        </View>
+          <Switch value={overlap && !overlapLocked} onValueChange={onOverlap} disabled={overlapLocked} trackColor={{ true: theme.ink }} />
+        </Pressable>
       </View>
     </Panel>
   );
@@ -497,6 +512,8 @@ const styles = StyleSheet.create({
   editDone: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   switchLabel: { fontSize: 15, color: theme.ink },
+  proPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },
+  proText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
   song: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: theme.card, borderRadius: 14, padding: 10 },
   songIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   songName: { fontSize: 15, fontWeight: '600', color: theme.ink },

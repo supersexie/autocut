@@ -10,6 +10,8 @@ import { Thumb } from '../../components/Thumb';
 import { Button } from '../../components/ui';
 import { coverSource } from '../../lib/edit';
 import { startCut } from '../../lib/jobs';
+import { BATCH } from '../../lib/plans';
+import { askToUpgrade, useUsage } from '../../lib/usage';
 import { cutFile, cutProgress, cutStatus, useCuts, type CutRecord } from '../../lib/store';
 import { COLUMN, theme } from '../../lib/theme';
 
@@ -19,17 +21,22 @@ export default function BatchScreen() {
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const cuts = useCuts();
+  const usage = useUsage();
+  const locked = !usage.allows(BATCH);
   const [started, setStarted] = useState<string[]>([]);
   const batch = started.map((id) => cuts.find((c) => c.id === id)).filter((c): c is CutRecord => !!c);
   const ready = batch.filter((c) => c.status === 'ready').length;
   const busy = batch.some((c) => c.status === 'uploading' || c.status === 'processing');
 
   async function pick() {
-    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsMultipleSelection: true, selectionLimit: MAX, quality: 1 });
+    if (locked) return askToUpgrade('Batch cuts are on Pro and Ultimate', `You're on ${usage.plan.name}. Upgrade to cut up to ${MAX} videos at once.`);
+    if (!usage.left) return usage.room(1);
+    const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['videos'], allowsMultipleSelection: true, selectionLimit: Math.min(MAX, usage.left), quality: 1 });
     if (result.canceled || !result.assets.length) return;
+    const fits = usage.room(result.assets.length); // says so if only some fit
     const language = 'en';
-    const ids = result.assets.slice(0, MAX).map((a) =>
-      startCut([{ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }], language)
+    const ids = result.assets.slice(0, Math.min(MAX, fits)).map((a) =>
+      startCut([{ uri: a.uri, mime: a.mimeType ?? 'video/quicktime', duration: (a.duration ?? 0) / 1000 }], language, { batch: true })
     );
     setStarted(ids);
   }
@@ -45,6 +52,12 @@ export default function BatchScreen() {
           </View>
           <Text style={styles.title}>Cut up to {MAX} videos at once</Text>
           <Text style={styles.body}>Pick your videos and Autocut cuts them one after another. They land in Cuts when they’re ready.</Text>
+          {locked && (
+            <View style={styles.lockPill}>
+              <SymbolView name="lock.fill" tintColor={theme.ink} size={12} />
+              <Text style={styles.lockText}>Pro and Ultimate</Text>
+            </View>
+          )}
         </View>
       ) : (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: side, paddingTop: 16, paddingBottom: 16 }}>
@@ -59,7 +72,7 @@ export default function BatchScreen() {
         </ScrollView>
       )}
       <View style={{ marginHorizontal: side }}>
-        <Button title={batch.length ? 'Start another batch' : 'Start a batch'} onPress={pick} />
+        <Button title={locked ? 'See plans' : batch.length ? 'Start another batch' : 'Start a batch'} onPress={locked ? () => router.push('/change-plan') : pick} />
       </View>
     </View>
   );
@@ -104,6 +117,8 @@ const styles = StyleSheet.create({
   icon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   title: { fontSize: 22, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.3 },
   body: { fontSize: 15, color: theme.muted, textAlign: 'center', lineHeight: 21 },
+  lockPill: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#fff', borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6, marginTop: 4 },
+  lockText: { fontSize: 13, fontWeight: '700', color: theme.ink },
   summary: { fontSize: 13, color: theme.muted, marginBottom: 10, marginLeft: 4, fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },

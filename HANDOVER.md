@@ -122,7 +122,19 @@ Nothing charges today. The app says "Free during the beta", but the plan screens
 - Screens: `app/src/components/PlanPicker.tsx` (last step of onboarding, and "Change plan"),
   `app/src/app/paywall.tsx`, `app/src/app/plan.tsx` ("Your plan", with a placeholder Restore purchases).
 - The chosen plan is saved on the Supabase user (`profile.plan`, `profile.billing`).
-- Edit limits are **only counted in the app** (`app/src/lib/usage.ts`) and not enforced anywhere.
+- **What each plan gets is enforced**, in the app and on the server:
+  - Starter: 100 edits a month, no Overlap audio, no Batch cuts.
+  - Pro: 300 edits, Overlap audio, Batch cuts.
+  - Ultimate: unlimited edits, Overlap audio, Batch cuts.
+  - App: `app/src/lib/plans.ts` and `usage.ts` (locks, upgrade prompts).
+  - Server: `src/plans.js`. It counts edits per account per month (`/data/usage`), refuses the 101st/301st
+    edit (402) and batch cuts on Starter (403), and ignores Overlap audio on Starter exports. Stopped or
+    failed cuts don't use up an edit. Keep both copies of the rules in step.
+- ⚠️ The server reads the plan from the Supabase account (`user_metadata.plan`), which the **app** sets today.
+  That isn't proof of payment: when subscriptions go in, have the server take the plan from the purchase
+  (e.g. a RevenueCat webhook writing `app_metadata.plan`, which users can't change) and read that in
+  `accountFrom()` in `src/auth.js`.
+- To try the limits locally: `DEV_PLAN=starter npm run server` (or `pro`).
 
 **Apple rejects apps that show paid plans without In-App Purchase (guideline 3.1.1).** Either:
 - connect App Store subscriptions (RevenueCat is the easy route; it needs a development/EAS build, not

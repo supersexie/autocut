@@ -14,15 +14,24 @@ const supabase = url && secret ? createClient(url, secret, { auth: { persistSess
 export const authEnabled = !!supabase;
 export const LOCAL_USER = 'local';
 
-/** The signed-in user's id, or null when the token is missing, expired or forged. */
-export async function userIdFrom(req) {
-  if (!supabase) return LOCAL_USER;
+/**
+ * The signed-in user and their plan, or null when the token is missing, expired or forged. The
+ * plan is read from the account (`user_metadata.plan`). Until App Store subscriptions are connected
+ * the app sets it, so it isn't proof of payment: see HANDOVER.md.
+ */
+export async function accountFrom(req) {
+  // Local development: Ultimate, or the plan in DEV_PLAN (starter, pro) to try the limits.
+  if (!supabase) return { id: LOCAL_USER, plan: process.env.DEV_PLAN || 'ultimate' };
   const token = /^Bearer (.+)$/.exec(req.headers.authorization ?? '')?.[1];
   if (!token) return null;
   const { data, error } = await supabase.auth.getClaims(token);
   const sub = data?.claims?.sub;
-  return error || typeof sub !== 'string' ? null : sub;
+  if (error || typeof sub !== 'string') return null;
+  return { id: sub, plan: data.claims.user_metadata?.plan };
 }
+
+/** The signed-in user's id, or null. */
+export const userIdFrom = async (req) => (await accountFrom(req))?.id ?? null;
 
 export async function deleteAuthUser(id) {
   if (!supabase || id === LOCAL_USER) return;

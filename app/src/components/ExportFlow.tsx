@@ -12,7 +12,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
 import { coverSource, exportBody, totalDuration, type Edit } from '../lib/edit';
 import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type CutRecord } from '../lib/store';
+import { OVERLAP } from '../lib/plans';
 import { formatTime, sleep, theme } from '../lib/theme';
+import { useUsage } from '../lib/usage';
 import { ProgressCard } from './ProgressCard';
 import { Thumb } from './Thumb';
 import { Button, Logo } from './ui';
@@ -61,6 +63,7 @@ async function patiently<T>(request: () => Promise<T>, onRetry: () => void): Pro
 
 export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edit: Edit; aspect: number; onClose: () => void }) {
   const [phase, setPhase] = useState<Phase>({ kind: 'sheet' });
+  const overlapAllowed = useUsage().allows(OVERLAP); // a Pro and Ultimate feature
   // The server's export from an earlier attempt, so Try again picks it up instead of starting over.
   const renderId = useRef<string | null>(null);
   const [height, setHeight] = useState(1080);
@@ -108,7 +111,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
           show(0, overlays.length > 1 ? `Adding your overlays (${i + 1} of ${overlays.length})…` : 'Adding your overlay…');
           overlayUploads[o.id] = await patiently(() => uploadTake(cutFile(o.file).uri, o.mime, () => {}), reconnecting);
         }
-        renderId.current = await patiently(() => startRender(id, exportBody(edit, cut.words, { height, fps, bitrate }, musicUpload, overlayUploads)), reconnecting);
+        renderId.current = await patiently(() => startRender(id, exportBody(overlapAllowed ? edit : { ...edit, overlapAudio: false }, cut.words, { height, fps, bitrate }, musicUpload, overlayUploads)), reconnecting);
       }
       while (true) {
         const r = (await job()).render;
