@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autocut logo options</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#F4F4F6;--ink:#111114;--muted:#6B6B73;--line:#E6E6EA}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2;--line:#2a2a2e}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2;--line:#2a2a2e}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:40px;letter-spacing:-1px;margin:0}
+.sub{color:var(--muted);margin:8px 0 28px;font-size:15px;line-height:1.5}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;align-items:baseline;gap:8px}
+.num{font-weight:700;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.name{font-weight:700;font-size:16px}
+.note{color:var(--muted);font-size:13px;line-height:1.45;min-height:38px}
+.row{display:flex;align-items:center;gap:14px}
+.tile{width:96px;height:96px;border-radius:22px;display:grid;place-items:center;flex:none;overflow:hidden}
+.tile svg,.tile img{width:100%;height:100%;display:block}
+.dark{background:#111114;color:#fff}
+.light{background:#fff;color:#111114;box-shadow:inset 0 0 0 1px #E6E6EA}
+.small{display:flex;flex-direction:column;gap:10px}
+.mini{width:32px;height:32px;border-radius:8px}
+.word{display:flex;align-items:center;gap:8px;background:#fff;color:#111114;border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px #E6E6EA}
+.word .tile{width:26px;height:26px;border-radius:7px}
+.word span{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+.current{outline:2px solid var(--ink)}
+@media (max-width:420px){.tile{width:84px;height:84px}}
+</style></head>
+<body><main>
+<h1>Autocut logo options</h1>
+<p class="sub">Ten takes on “play + cut”, in the app’s black-and-white look. Each one is shown as the app icon, on white, small (the size it shows in Settings), and next to the wordmark. The current logo is first, for comparison.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+const CURRENT = 'data:image/png;base64,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';
+let uid = 0;
+const tri = (pts = '34,24 34,76 79,50') => `<polygon points="${pts}" fill="currentColor" stroke="currentColor" stroke-width="7" stroke-linejoin="round"/>`;
+const masked = (inner, cutouts) => { const id = 'm' + (uid++); return `<mask id="${id}"><rect width="100" height="100" fill="#fff"/>${cutouts}</mask><g mask="url(#${id})">${inner}</g>`; };
+const clip = (inner, rect) => { const id = 'c' + (uid++); return `<clipPath id="${id}">${rect}</clipPath><g clip-path="url(#${id})">${inner}</g>`; };
+
+const LOGOS = [
+  { name: 'Current', note: 'The play button, sliced, with the lower half slid along.', current: true },
+  { name: 'Clean slice', note: 'The same slice, with the halves lined up: calmer, reads as one play button.',
+    svg: () => masked(tri(), '<polygon points="22,64 88,26 88,34 22,72" fill="#000"/>') },
+  { name: 'Dead air', note: 'A straight gap through the middle: the pause that got cut out.',
+    svg: () => masked(tri('32,22 32,78 81,50'), '<rect x="0" y="46" width="100" height="8" fill="#000"/>') },
+  { name: 'Jump cut', note: 'Cut down the middle and the back half jumps up, like a jump cut.',
+    svg: () => clip(tri(), '<rect x="0" y="0" width="53" height="100"/>') + `<g transform="translate(0,-7)">${clip(tri(), '<rect x="59" y="0" width="41" height="100"/>')}</g>` },
+  { name: 'Waveform play', note: 'Sound bars in the shape of a play button, one bar missing where it was cut.',
+    svg: () => [26, 36, 46, 56, 66, 76].map((x, i) => { if (i === 2) return ''; const h = Math.max(5, 31 * (84 - x) / 58); return `<rect x="${x - 4}" y="${50 - h}" width="8" height="${h * 2}" rx="4" fill="currentColor"/>`; }).join('') },
+  { name: 'Timeline', note: 'Play over a timeline with a gap in it: what the editor does.',
+    svg: () => tri('37,20 37,60 71,40') + '<rect x="20" y="72" width="28" height="7" rx="3.5" fill="currentColor"/><rect x="55" y="72" width="25" height="7" rx="3.5" fill="currentColor"/>' },
+  { name: 'Trim handles', note: 'A play button between the trim handles from the timeline.',
+    svg: () => tri('44,36 44,64 64,50') + '<path d="M32 25 H25 V75 H32" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/><path d="M68 25 H75 V75 H68" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>' },
+  { name: 'Playhead', note: 'The playhead cutting straight through a play button.',
+    svg: () => masked(tri(), '<rect x="51" y="0" width="7" height="100" fill="#000"/>') + '<circle cx="54.5" cy="13" r="4.5" fill="currentColor"/>' },
+  { name: 'Button', note: 'A solid round button with a sliced play cut out of it. Bold at small sizes.',
+    svg: () => masked('<circle cx="50" cy="50" r="36" fill="currentColor"/>', tri('42,33 42,67 69,50').replaceAll('currentColor', '#000') + '<polygon points="30,62 80,34 80,40 30,68" fill="#fff"/>') },
+  { name: 'A for Autocut', note: 'A rounded “A” that is also a play button turned on its side.',
+    svg: () => masked('<polygon points="50,20 81,77 19,77" fill="currentColor" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/>', '<polygon points="50,49 60,66 40,66" fill="#000" stroke="#000" stroke-width="3" stroke-linejoin="round"/><rect x="0" y="69" width="100" height="5" fill="#000"/>') },
+  { name: 'Caption', note: 'A speech bubble with a sliced play inside: cuts and captions in one.',
+    svg: () => masked('<rect x="17" y="20" width="66" height="50" rx="15" fill="currentColor"/><polygon points="29,66 29,83 46,66" fill="currentColor" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>',
+      tri('42,33 42,57 62,45').replaceAll('currentColor', '#000').replace('stroke-width="7"', 'stroke-width="5"') + '<polygon points="34,54 70,34 70,39 34,59" fill="#fff"/>') },
+];
+
+const svgTag = (inner) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const draw = (l) => l.current ? `<img src="${CURRENT}" alt="">` : svgTag(l.svg());
+const lightOf = (l) => l.current ? `<img src="${CURRENT}" alt="" style="filter:invert(1)">` : svgTag(l.svg());
+
+document.getElementById('grid').innerHTML = LOGOS.map((l, i) => `
+  <section class="card ${l.current ? 'current' : ''}">
+    <div class="head"><span class="num">${l.current ? 'NOW' : String(i).padStart(2, '0')}</span><span class="name">${l.name}</span></div>
+    <div class="note">${l.note}</div>
+    <div class="row">
+      <div class="tile dark">${draw(l)}</div>
+      <div class="tile light">${lightOf(l)}</div>
+      <div class="small">
+        <div class="tile dark mini">${draw(l)}</div>
+        <div class="tile light mini">${lightOf(l)}</div>
+      </div>
+    </div>
+    <div class="word"><div class="tile dark">${draw(l)}</div><span>Autocut</span></div>
+  </section>`).join('');
+</script>
+</body></html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autocut monoline logos</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#F4F4F6;--ink:#111114;--muted:#6B6B73}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:40px;letter-spacing:-1px;margin:0}
+.sub{color:var(--muted);margin:8px 0 28px;font-size:15px;line-height:1.5;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;align-items:baseline;gap:8px}
+.num{font-weight:700;font-size:13px;color:var(--muted)}
+.name{font-weight:700;font-size:16px}
+.note{color:var(--muted);font-size:13px;line-height:1.45}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tile{width:92px;height:92px;border-radius:21px;display:grid;place-items:center;flex:none;overflow:hidden}
+.tile svg{width:100%;height:100%;display:block}
+.dark{background:#000;color:#fff}
+.light{background:#fff;color:#111114;box-shadow:inset 0 0 0 1px #E6E6EA}
+.mini{width:30px;height:30px;border-radius:7px}
+.minis{display:flex;flex-direction:column;gap:8px}
+.word{display:flex;align-items:center;gap:8px;background:#fff;color:#111114;border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px #E6E6EA}
+.word .tile{width:26px;height:26px;border-radius:7px}
+.word span{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+</style></head>
+<body><main>
+<h1>Autocut, monoline</h1>
+<p class="sub">In the spirit of Instagram Edits and CapCut: one bold rounded stroke, readable at any size. Each is shown white on black, black on white, with an Edits-style gradient, small, and with the wordmark.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+let uid = 0;
+const W = 8.5; // stroke width (of 100)
+const line = (d, paint, extra = '') => `<path d="${d}" fill="none" stroke="${paint}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+const masked = (inner, cut) => { const id = 'm' + uid++; return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>${cut}</mask><g mask="url(#${id})">${inner}</g>`; };
+
+const LOGOS = [
+  { name: 'Cut handles', note: 'The trim handles from the timeline, with a diagonal cut between them instead of a playhead.',
+    draw: (p) => line('M43 25 H36 Q23 25 23 38 V62 Q23 75 36 75 H43', p) + line('M57 25 H64 Q77 25 77 38 V62 Q77 75 64 75 H57', p) + line('M56 19 L44 81', p) },
+  { name: 'Snip play', note: 'A play button whose two sides cross and carry on, like scissor blades: play and cut in one stroke.',
+    draw: (p) => line('M80 64 L26 27 V73 L80 36', p) },
+  { name: 'Jump cut', note: 'A clip split down the middle, the second half jumping up: what a jump cut looks like.',
+    draw: (p) => line('M44 27 H37 Q24 27 24 40 V62 Q24 75 37 75 H44', p) + line('M56 21 H63 Q76 21 76 34 V56 Q76 69 63 69 H56', p) },
+  { name: 'Scissors', note: 'Two rounded loops and crossing blades: unmistakably “cut”, in the CapCut spirit but our own shape.',
+    draw: (p) => line('M22 36 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0', p) + line('M22 64 a9 9 0 1 0 18 0 a9 9 0 1 0 -18 0', p) + line('M38 41 L80 66', p) + line('M38 59 L80 34', p) },
+  { name: 'Cut play', note: 'An outlined play button sliced clean through, the cut line running past both sides.',
+    draw: (p) => masked(line('M30 26 V74 L74 50 Z', p), '<polygon points="10,70 92,26 92,40 10,84" fill="#000"/>') + line('M18 76 L86 38', p, 'stroke-width="5"') },
+  { name: 'Frame cut', note: 'A rounded video frame with its corner cut off and the cut line slicing past it.',
+    draw: (p) => masked(line('M36 22 H64 Q78 22 78 36 V64 Q78 78 64 78 H36 Q22 78 22 64 V36 Q22 22 36 22 Z', p), '<polygon points="52,100 100,52 100,70 70,100" fill="#000"/>') + line('M58 92 L92 58', p) + line('M40 38 V62 L60 50 Z', p, 'stroke-width="6"') },
+];
+
+const grad = () => { const id = 'g' + uid++; return { id, def: `<defs><linearGradient id="${id}" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7B3FF2"/><stop offset=".45" stop-color="#FF0A78"/><stop offset=".8" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC21A"/></linearGradient></defs>` }; };
+const svg = (inner) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const mono = (l) => svg(l.draw('currentColor'));
+const colour = (l) => { const g = grad(); return svg(g.def + l.draw(`url(#${g.id})`)); };
+
+document.getElementById('grid').innerHTML = LOGOS.map((l, i) => `
+  <section class="card">
+    <div class="head"><span class="num">${String(i + 1).padStart(2, '0')}</span><span class="name">${l.name}</span></div>
+    <div class="note">${l.note}</div>
+    <div class="row">
+      <div class="tile dark">${mono(l)}</div>
+      <div class="tile light">${mono(l)}</div>
+      <div class="tile dark">${colour(l)}</div>
+      <div class="minis"><div class="tile dark mini">${mono(l)}</div><div class="tile dark mini">${colour(l)}</div></div>
+    </div>
+    <div class="word"><div class="tile dark">${mono(l)}</div><span>Autocut</span></div>
+  </section>`).join('');
+</script>
+</body></html>
