@@ -71,7 +71,7 @@ export function Backdrop({ children, scroll = true, footer }: { children: ReactN
 
 const MARK = require('../../assets/logo-mark.png');
 
-/** The Autocut mark (a play symbol cut clean through) on its dark tile. */
+/** The Autocut mark (two trim handles with a cut between them) on its dark tile. */
 export function Logo({ size = 56 }: { size?: number }) {
   return (
     <View style={[styles.logo, { width: size, height: size, borderRadius: size * 0.225 }]}>
