@@ -205,7 +205,10 @@ your own clips before release.** To swap:
   - Optional: `CONCURRENCY` (cuts at once, default 1), `RETENTION_DAYS` (default 7), `MAX_UPLOAD_MB` (default 1024)
 - A volume is mounted at `/data` (takes and cuts). Scheduled edits wait there too (with their clips), so they
   survive a redeploy; the server checks every 15 s for ones that are due.
-- Needs at least 2 GB RAM and 2 vCPU. Transcription is CPU-bound, so more CPU means faster cuts.
+- Transcribes with Whisper **small** (`src/transcribe.js`), baked into the image (about 1 GB). It's
+  accurate on fast talkers, where the smaller base model misheard phrases.
+- Needs at least 2 GB RAM (4 GB recommended) and 2 vCPU. Transcription is CPU-bound, so more CPU means
+  faster cuts: small takes about 2.5× as long as base did (on a Mac, ~9 s for a 45 s take).
   With `CONCURRENCY=1`, cuts queue one at a time, so raise it (and the CPU) as users grow.
 - The API is listed at the top of `src/server.js`. Every route except `/health`, `/privacy` and `/terms`
   needs the user's Supabase token.
