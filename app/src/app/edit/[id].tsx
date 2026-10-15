@@ -46,7 +46,8 @@ const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${St
 const BOTTOM_H = 330;
 const newId = () => Math.random().toString(36).slice(2, 10);
 
-function Editor({ cut }: { cut: CutRecord }) {
+/** The editor for a ready cut. Also shown by the cutting screen in place, once the cut is done. */
+export function Editor({ cut }: { cut: CutRecord }) {
   const insets = useSafeAreaInsets();
   const usage = useUsage();
   const wide = useWindowDimensions().width >= 700; // iPad

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProgressCard } from '../../components/ProgressCard';
+import { Editor } from '../edit/[id]';
 import { Backdrop, Button } from '../../components/ui';
 import { canRetry, retryCut, stopCut } from '../../lib/jobs';
 import { cutFile, deleteCut, useCut, whenText } from '../../lib/store';
@@ -20,15 +21,25 @@ const TIPS = [
 /** "Cutting… 52%": shown while a take uploads and the server finds the cuts. */
 export default function Cutting() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  return <CuttingView id={id} />;
+}
+
+/**
+ * The cutting screen, then the editor once the cut is ready. Review and Arrange show it in place
+ * after Send, so no screen closes on the way (which would flash the camera underneath).
+ */
+export function CuttingView({ id }: { id: string }) {
   const cut = useCut(id);
   const [tip, setTip] = useState(0);
 
-  // A short "Your cut is ready" moment, then into the editor.
+  // A short "Your cut is ready" moment, then the editor takes over this screen. Opening it as a
+  // screen of its own would close this one first and flash the camera underneath.
+  const [editing, setEditing] = useState(false);
   useEffect(() => {
     if (cut?.status !== 'ready') return;
-    const t = setTimeout(() => router.replace({ pathname: '/edit/[id]', params: { id } }), 1100);
+    const t = setTimeout(() => setEditing(true), 1100);
     return () => clearTimeout(t);
-  }, [cut?.status, id]);
+  }, [cut?.status]);
 
   // Notice when an upload stops moving, to say the connection is slow.
   const lastMove = useRef({ progress: -1, at: 0 });
@@ -92,6 +103,14 @@ export default function Cutting() {
   const preview = cut.previewUri ?? (cut.source ? cutFile(cut.source).uri : undefined);
   const flip = !!cut.previewUri && !!cut.previewFlip;
 
+  if (cut.status === 'ready' && editing && cut.source) {
+    return (
+      <View style={{ flex: 1 }}>
+        <Editor cut={cut} />
+      </View>
+    );
+  }
+
   if (cut.status === 'ready') {
     return (
       <Backdrop>
@@ -99,9 +118,10 @@ export default function Cutting() {
         <Animated.Text entering={FadeIn.duration(200)} style={styles.title}>
           Your cut is ready
         </Animated.Text>
-        <Animated.View entering={FadeIn.duration(260)} style={{ marginTop: 24 }}>
+        {/* No fade: the card stays put from the cutting screen, its border already full. */}
+        <View style={{ marginTop: 24 }}>
           <ProgressCard uri={preview} progress={1} flip={flip} />
-        </Animated.View>
+        </View>
       </Backdrop>
     );
   }

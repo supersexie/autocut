@@ -13,6 +13,7 @@ import { startCut, type Take } from '../lib/jobs';
 import { useUsage } from '../lib/usage';
 import { updateSettings, useSettings } from '../lib/store';
 import { COLUMN, formatTime, theme } from '../lib/theme';
+import { CuttingView } from './cut/[id]';
 
 const seek = (p: VideoPlayer, t: number) => {
   p.currentTime = t;
@@ -37,6 +38,7 @@ export default function Review() {
   const [loaded, setLoaded] = useState(false);
   const [time, setTime] = useState(0);
   const [sending, setSending] = useState(false);
+  const [cutId, setCutId] = useState<string | null>(null);
   const current = takes[index];
 
   const player = useVideoPlayer(takes[0]?.uri ?? null, (p) => {
@@ -92,8 +94,12 @@ export default function Review() {
     if (!usage.room(1)) return; // this month's edits are used up
     setSending(true);
     player.pause();
-    const id = startCut(takes, 'en');
-    router.replace({ pathname: '/cut/[id]', params: { id } });
+    setCutId(startCut(takes, 'en'));
+  }
+
+  // Sent: this screen becomes the cutting screen, then the editor (see CuttingView).
+  if (cutId) {
+    return <CuttingView id={cutId} />; // straight swap: a fade would blink white
   }
 
   if (!current) {

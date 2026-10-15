@@ -53,12 +53,13 @@ export function ProgressCard({ uri, seconds = 0.5, progress, label, flip }: { ur
 }
 
 /**
- * Glides to `target` over `ms` whenever it changes. Driven from JS rather than Reanimated, which
- * doesn't update animated SVG props inside a Modal (the export screen is one).
+ * Glides to `target` over `ms` whenever it changes, starting from where it is when it first shows
+ * (a card that appears already finished doesn't draw its border again). Driven from JS rather than
+ * Reanimated, which doesn't update animated SVG props inside a Modal (the export screen is one).
  */
 function useEased(target: number, ms = 600) {
-  const [value, setValue] = useState(0);
-  const current = useRef(0);
+  const [value, setValue] = useState(target);
+  const current = useRef(target);
   useEffect(() => {
     const from = current.current;
     const start = Date.now();

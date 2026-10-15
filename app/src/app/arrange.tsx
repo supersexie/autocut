@@ -12,6 +12,7 @@ import { MAX_CLIPS, removeVideo, updateVideo, useBatch } from '../lib/batch';
 import { startCut, type Take } from '../lib/jobs';
 import { useUsage } from '../lib/usage';
 import { formatTime, theme } from '../lib/theme';
+import { CuttingView } from './cut/[id]';
 
 const TILE_W = 104;
 const TILE_H = 170;
@@ -41,6 +42,7 @@ export default function Arrange() {
   const setTakes = (change: (list: Take[]) => Take[]) => (video ? updateVideo(video.key, (v) => ({ ...v, takes: change(v.takes) })) : setOwn(change));
   const setBlend = (on: boolean) => (video ? updateVideo(video.key, (v) => ({ ...v, blend: on })) : setOwnBlend(on));
   const [sending, setSending] = useState(false);
+  const [cutId, setCutId] = useState<string | null>(null);
   const usage = useUsage();
   const total = takes.reduce((t, k) => t + k.duration, 0);
 
@@ -70,8 +72,12 @@ export default function Arrange() {
   function combine() {
     if (!takes.length || !usage.room(1)) return;
     setSending(true);
-    const id = startCut(takes, 'en', { blend });
-    router.replace({ pathname: '/cut/[id]', params: { id } });
+    setCutId(startCut(takes, 'en', { blend }));
+  }
+
+  // Sent: this screen becomes the cutting screen, then the editor (see CuttingView).
+  if (cutId) {
+    return <CuttingView id={cutId} />; // straight swap: a fade would blink white
   }
 
   return (
