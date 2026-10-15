@@ -303,18 +303,19 @@ const styles = StyleSheet.create({
   chipText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.6 },
   // The same height in every step, so the card never jumps as the words change.
   bottom: { height: 262, justifyContent: 'flex-end', paddingHorizontal: 22 },
-  headline: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -1, lineHeight: 38 },
-  sub: { fontSize: 15, color: theme.muted, lineHeight: 21 },
+  headline: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -1, lineHeight: 38, textAlign: 'center' },
+  sub: { fontSize: 15, color: theme.muted, lineHeight: 21, textAlign: 'center' },
   signIn: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 4 },
   signInLink: { color: theme.ink, fontWeight: '700' },
   transcriptCard: {
     backgroundColor: '#fff', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 12,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
-  transcript: { fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, lineHeight: 26, minHeight: 52 },
+  transcript: { fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3, lineHeight: 26, minHeight: 52, textAlign: 'center' },
   unsaid: { color: 'transparent' },
   saying: { fontWeight: '900' },
-  steps: { gap: 8 },
+  // Centred as a group; the ticks still line up down the left of it.
+  steps: { gap: 8, alignSelf: 'center' },
   step: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   stepIcon: { width: 22, height: 22, borderRadius: 11, backgroundColor: 'rgba(17,17,20,0.07)', alignItems: 'center', justifyContent: 'center' },
   stepIconDone: { backgroundColor: theme.ink },
