@@ -13,8 +13,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Logo, PressableScale } from '../../components/ui';
 import { TAB_BAR_HEIGHT, tabBarStyle } from '../../components/tabBar';
 import type { Take } from '../../lib/jobs';
-import { folderName, updateSettings, useFolders, useSettings } from '../../lib/store';
+import { folderName, useFolders, useSettings } from '../../lib/store';
 import { Tour } from '../../components/editor/Overlays';
+import { useTours } from '../../lib/tours';
 import { AddVideoSheet, FolderSheet } from '../../components/CameraSheets';
 import { BRAND_FONT } from '../../lib/fonts';
 import { formatTime, theme } from '../../lib/theme';
@@ -37,7 +38,9 @@ export default function CreateScreen() {
   const insets = useSafeAreaInsets();
   const screen = useWindowDimensions();
   const navigation = useNavigation();
-  const { mirrorSelfie, saveFolder, cameraTourDone } = useSettings();
+  const { mirrorSelfie, saveFolder } = useSettings();
+  const tours = useTours();
+  const cameraTourDone = tours.seen('app');
   const [camPermission, requestCam] = useCameraPermissions();
   const [micPermission, requestMic] = useMicrophonePermissions();
   const camera = useRef<CameraView>(null);
@@ -226,7 +229,7 @@ export default function CreateScreen() {
   }, [cameraTourDone, ready, focused, sheet, mode, tour]);
   function endTour() {
     setTour(-1);
-    updateSettings({ cameraTourDone: true });
+    tours.done('app');
   }
 
   // Where each tab sits in the floating tab bar (see PillTabBar), for the tour to point at.

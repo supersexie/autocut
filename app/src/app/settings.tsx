@@ -12,6 +12,7 @@ import { forgetThumbnails } from '../components/Thumb';
 import { autoServerUrl, checkServer, openLegal } from '../lib/api';
 import { displayName, initialsOf, useAuth } from '../lib/auth';
 import { cacheBytes, clearCache, updateSettings, useSettings } from '../lib/store';
+import { useTours } from '../lib/tours';
 import { column, COLUMN, theme } from '../lib/theme';
 import { useUsage } from '../lib/usage';
 
@@ -21,6 +22,7 @@ const VERSION = `v${Constants.expoConfig?.version ?? '1.0.0'}${Constants.expoCon
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { account, signOut, deleteAccount } = useAuth();
+  const tours = useTours();
   const { plan } = useUsage();
   const settings = useSettings();
   const [cache, setCache] = useState(cacheBytes);
@@ -49,7 +51,8 @@ export default function SettingsScreen() {
   }
 
   function replayTutorial() {
-    updateSettings({ tourDone: false, cameraTourDone: false });
+    tours.again('app');
+    tours.again('editor');
     Alert.alert('Tutorial is on', 'The tour of the app shows again on the camera, and the editor’s the next time you open a cut.');
   }
 

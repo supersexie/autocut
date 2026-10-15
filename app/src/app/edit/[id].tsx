@@ -19,7 +19,8 @@ import {
   restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
 } from '../../lib/edit';
 import { getWaveform } from '../../lib/api';
-import { cutFile, editOf, getSettings, saveEdit, updateCut, updateSettings, useCut, type CutRecord } from '../../lib/store';
+import { cutFile, editOf, saveEdit, updateCut, useCut, type CutRecord } from '../../lib/store';
+import { useTours } from '../../lib/tours';
 import { BRAND_FONT } from '../../lib/fonts';
 import { OVERLAP } from '../../lib/plans';
 import { useUsage } from '../../lib/usage';
@@ -251,8 +252,10 @@ function Editor({ cut }: { cut: CutRecord }) {
   const toolbarRef = useRef<View>(null);
   const exportRef = useRef<View>(null);
   const [tour, setTour] = useState(-1);
+  const tours = useTours();
+  const editorTourSeen = tours.seen('editor');
   useEffect(() => {
-    if (getSettings().tourDone) return;
+    if (editorTourSeen) return;
     const t = setTimeout(() => {
       const measure = (ref: React.RefObject<View | null>) =>
         new Promise<LayoutRectangle | undefined>((resolve) => ref.current?.measureInWindow((x, y, w, h) => resolve({ x, y, width: w, height: h })) ?? resolve(undefined));
@@ -262,6 +265,8 @@ function Editor({ cut }: { cut: CutRecord }) {
       });
     }, 700);
     return () => clearTimeout(t);
+    // Decided when the cut opens; seeing the tour mid-way doesn't restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const tourSteps: TourStep[] = [
     { title: 'Your cut, clip by clip', body: 'Drag to scrub, pinch to zoom. Tap a clip, then pull its edges to trim. Hold a clip to reorder.', target: targets.timeline, cta: 'Next' },
@@ -270,7 +275,7 @@ function Editor({ cut }: { cut: CutRecord }) {
   ];
   const endTour = () => {
     setTour(-1);
-    updateSettings({ tourDone: true });
+    tours.done('editor');
   };
 
   // ---- Toolbar: plain data, with one handler that does the work.

@@ -38,8 +38,8 @@ export default function Paywall() {
   async function finish(showAround: boolean) {
     setSaving(true);
     setError(null);
-    // The camera's tour of the main sections, and the editor's, unless they'd rather explore.
-    updateSettings({ cameraTourDone: !showAround, tourDone: !showAround });
+    // The tour of the main sections, and the editor's, unless they'd rather explore; either way,
+    // once seen (or turned down) they don't come back on this account.
     try {
       const d = getDraft();
       await updateProfile({
@@ -50,8 +50,11 @@ export default function Paywall() {
         language,
         plan: d.plan,
         billing: d.billing ?? 'yearly',
+        tour: !showAround,
+        editorTour: !showAround,
         onboarded: true,
       });
+      updateSettings({ cameraTourDone: !showAround, tourDone: !showAround });
       clearDraft(); // the app opens from here
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));

@@ -11,7 +11,7 @@ import { AppleLogo, Button, ErrorText, GoogleLogo, type SymbolName } from '../co
 import { openLegal } from '../lib/api';
 import { socialOptions, useAuth } from '../lib/auth';
 import { updateDraft, useDraft, type Draft } from '../lib/draft';
-import { EDITOR_COSTS, editorMonthly, money, planFor, pricePerMonth, recommendedPlan } from '../lib/plans';
+import { AUTOCUT_MINUTES, BY_HAND_MINUTES, EDITOR_COSTS, editorMonthly, money, PER_WEEK, planFor, pricePerMonth, recommendedPlan, videosPerWeek } from '../lib/plans';
 import { midSentence, theme } from '../lib/theme';
 
 type Answer = { value: string; label: string; icon: SymbolName };
@@ -33,8 +33,11 @@ const GOAL: Answer[] = [
 // What an editor costs a month (the "nothing" answer from before stays valid for saved profiles).
 const COSTS = EDITOR_COSTS.filter((c) => c.bars > 0);
 
-type StepId = 'who' | 'goal' | 'cost' | 'adds' | 'months' | 'plan' | 'save';
-const STEPS: StepId[] = ['who', 'goal', 'cost', 'adds', 'months', 'plan', 'save'];
+type StepId = 'who' | 'goal' | 'volume' | 'time' | 'cost' | 'adds' | 'months' | 'plan' | 'save';
+const STEPS: StepId[] = ['who', 'goal', 'volume', 'time', 'cost', 'adds', 'months', 'plan', 'save'];
+
+// How many videos a week, with an icon that grows with the number.
+const VOLUME_ICONS: SymbolName[] = ['video', 'film', 'film.stack', 'flame'];
 
 /** What they'd pay for Autocut: the plan that suits them, at its yearly price (the one they start on). */
 function autocutFor(draft: Draft) {
@@ -72,7 +75,21 @@ export default function Setup() {
 
   let body: React.ReactNode;
   let footer: React.ReactNode = null;
-  if (step === 'who' || step === 'goal' || step === 'cost') {
+  if (step === 'volume') {
+    footer = nextButton(!!draft.perWeek);
+    body = (
+      <>
+        <OnbTitle sub="Roughly is fine.">How many videos do you post a week?</OnbTitle>
+        <View style={{ gap: 12 }}>
+          {PER_WEEK.map((p, i) => (
+            <Choice key={p.value} index={i} label={p.label} icon={VOLUME_ICONS[i]} selected={draft.perWeek === p.value} onPress={() => pick({ perWeek: p.value })} />
+          ))}
+        </View>
+      </>
+    );
+  } else if (step === 'time') {
+    return <TimeSaved key="time" header={header} draft={draft} onNext={next} />;
+  } else if (step === 'who' || step === 'goal' || step === 'cost') {
     const key = step === 'who' ? 'who' : step === 'goal' ? 'goal' : 'editorCost';
     footer = nextButton(!!draft[key]);
     body =
@@ -169,6 +186,84 @@ function spline(pts: [number, number][], samples = 240): [number, number][] {
     out.push([x, y]);
   }
   return out;
+}
+
+/** "45 min", "1 hr", "13.5 hrs". */
+const hrs = (h: number) => (h < 1 ? `${Math.max(5, Math.round((h * 60) / 5) * 5)} min` : `${Math.round(h * 2) / 2} hr${h >= 1.25 ? 's' : ''}`);
+
+const RING = 210;
+const RING_STROKE = 16;
+
+/**
+ * "Autocut gives you back 13.5 hrs a week": a ring fills to the share of editing time they get
+ * back while the hours count up inside it, then the two ways of cutting race as bars (by hand
+ * fills the track, Autocut barely starts), and what that comes to over a year lands last.
+ */
+function TimeSaved({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
+  const p = useProgress(2600, 350);
+  const videos = videosPerWeek(draft.perWeek) || 2;
+  const byHand = (videos * BY_HAND_MINUTES) / 60;
+  const withAutocut = (videos * AUTOCUT_MINUTES) / 60;
+  const saved = byHand - withAutocut;
+  const share = saved / byHand;
+  const days = Math.round((saved * 52) / 24);
+  const ring = easeOut(clamp01(p / 0.55));
+  const bars = clamp01((p - 0.4) / 0.4);
+  const year = clamp01((p - 0.82) / 0.18);
+  useEffect(() => {
+    if (year >= 1) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [year]);
+  const r = (RING - RING_STROKE) / 2;
+  const c = 2 * Math.PI * r;
+  const bar = (label: string, hours: number, fill: number, strong: boolean) => (
+    <View style={{ gap: 6 }}>
+      <View style={styles.compare}>
+        <Text style={styles.barLabel}>{label}</Text>
+        <Text style={[styles.barValue, { opacity: clamp01(bars * 2) }]}>{hrs(hours * easeOut(bars))} a week</Text>
+      </View>
+      <View style={styles.track}>
+        <View style={[styles.trackFill, { width: `${Math.max(2, 100 * fill * easeOut(bars))}%`, backgroundColor: strong ? theme.ink : '#C9C9CF' }]} />
+      </View>
+    </View>
+  );
+  return (
+    <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} disabled={p < 1} />}>
+      <Animated.View entering={FadeIn.duration(260)}>
+        <OnbTitle center>Autocut gives you back</OnbTitle>
+        <View style={styles.ringWrap}>
+          <Svg width={RING} height={RING} style={{ transform: [{ rotate: '-90deg' }] }}>
+            <Circle cx={RING / 2} cy={RING / 2} r={r} stroke="rgba(17,17,20,0.08)" strokeWidth={RING_STROKE} fill="none" />
+            <Circle
+              cx={RING / 2}
+              cy={RING / 2}
+              r={r}
+              stroke={theme.ink}
+              strokeWidth={RING_STROKE}
+              fill="none"
+              strokeLinecap="round"
+              strokeDasharray={`${c} ${c}`}
+              strokeDashoffset={c * (1 - share * ring)}
+            />
+          </Svg>
+          <View style={styles.ringCenter}>
+            <Text style={styles.ringValue}>{hrs(saved * ring)}</Text>
+            <Text style={styles.ringSub}>every week</Text>
+          </View>
+        </View>
+        <View style={[styles.card, { marginTop: 22, gap: 16 }]}>
+          {bar('Cutting by hand', byHand, 1, false)}
+          {bar('With Autocut', withAutocut, withAutocut / byHand, true)}
+        </View>
+        <View style={[styles.yearPill, { opacity: year, transform: [{ translateY: 10 * (1 - year) }, { scale: 0.96 + 0.04 * year }] }]}>
+          <SymbolView name="calendar" tintColor="#fff" size={15} />
+          <Text style={styles.yearText}>That’s {days} full day{days === 1 ? '' : 's'} back a year</Text>
+        </View>
+        <Text style={styles.caption}>
+          For about {Math.round(videos)} videos a week, at {BY_HAND_MINUTES} minutes each by hand.
+        </Text>
+      </Animated.View>
+    </OnbScreen>
+  );
 }
 
 /**
@@ -402,6 +497,16 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
 
 const styles = StyleSheet.create({
   signIn: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  ringWrap: { alignSelf: 'center', width: RING, height: RING, marginTop: 4 },
+  ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  ringValue: { fontSize: 40, fontWeight: '800', color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
+  ringSub: { fontSize: 15, color: theme.muted, marginTop: 2 },
+  barLabel: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  barValue: { fontSize: 15, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
+  track: { height: 12, borderRadius: 6, backgroundColor: 'rgba(17,17,20,0.06)', overflow: 'hidden' },
+  trackFill: { height: 12, borderRadius: 6 },
+  yearPill: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 16, paddingVertical: 10, marginTop: 20 },
+  yearText: { color: '#fff', fontSize: 15, fontWeight: '700' },
   amount: { position: 'absolute', width: 100, textAlign: 'center', fontSize: 15, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
   amountBig: { fontSize: 18, color: theme.cut }, // the year, in red
   axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 14, color: theme.muted },
