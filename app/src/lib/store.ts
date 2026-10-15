@@ -17,6 +17,8 @@ export type CutRecord = {
   title: string;
   status: CutStatus;
   stage?: string;
+  /** When the server is due to cut it (ms since 1970), for an edit scheduled in a batch. */
+  scheduledFor?: number;
   progress: number; // 0–1 for the current status
   error?: string;
   takes: number;
@@ -31,7 +33,7 @@ export type CutRecord = {
   /** The source's loudness for the timeline's waveform: 0–100, `rate` points a second. */
   waveform?: { rate: number; peaks: number[] };
   /** What was sent, so a failed cut can be tried again. */
-  retry?: { takes: { uri: string; mime: string; duration: number; flip?: boolean }[]; language: string; blend?: boolean; batch?: boolean };
+  retry?: { takes: { uri: string; mime: string; duration: number; flip?: boolean }[]; language: string; blend?: boolean; batch?: boolean; at?: number };
   duration: number;
   words: Word[];
   cuts: Cut[]; // what Autocut removed originally
@@ -257,11 +259,22 @@ export const editOf = (c: CutRecord): Edit =>
   };
 
 /** One line on where a cut is: "Uploading 40%", "Cutting 70%", "Ready to edit", "Exported"… */
+/** "Today, 9:00 PM", "Tomorrow, 8:30 AM", "Sat 18 Oct, 9:00 PM". */
+export function whenText(at: number) {
+  const d = new Date(at);
+  const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const days = Math.round((new Date(d).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 864e5);
+  if (days === 0) return `Today, ${time}`;
+  if (days === 1) return `Tomorrow, ${time}`;
+  return `${d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}, ${time}`;
+}
+
 export function cutStatus(cut: CutRecord) {
   if (cut.status === 'ready') return cut.exports > 0 ? 'Exported' : 'Ready to edit';
   if (cut.status === 'failed') return cut.error ?? "The edit didn't finish.";
   if (cut.stage === 'reconnecting') return 'Connection lost, retrying…';
   if (cut.status === 'uploading') return cut.stage === 'waiting' ? 'Waiting to upload' : `Uploading ${Math.round(cut.progress * 100)}%`;
+  if (cut.stage === 'scheduled' && cut.scheduledFor) return `Scheduled for ${whenText(cut.scheduledFor)}`;
   if (cut.stage === 'queued') return 'Waiting in line';
   return `Cutting ${Math.round(25 + 75 * cut.progress)}%`;
 }

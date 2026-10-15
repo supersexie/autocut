@@ -6,8 +6,8 @@ import path from 'node:path';
 import { rulesFor, usageStore } from '../src/plans.js';
 
 test('each plan gets its own edits and features; unknown plans get Starter', () => {
-  assert.deepEqual([rulesFor('starter').edits, rulesFor('starter').overlap, rulesFor('starter').batch], [100, false, false]);
-  assert.deepEqual([rulesFor('pro').edits, rulesFor('pro').overlap, rulesFor('pro').batch], [300, true, true]);
+  assert.deepEqual([rulesFor('starter').edits, rulesFor('starter').overlap, rulesFor('starter').schedule], [100, false, false]);
+  assert.deepEqual([rulesFor('pro').edits, rulesFor('pro').overlap, rulesFor('pro').schedule], [300, true, true]);
   assert.equal(rulesFor('ultimate').edits, Infinity);
   assert.equal(rulesFor(undefined).name, 'Starter');
   assert.equal(rulesFor('hacker').name, 'Starter');

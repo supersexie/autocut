@@ -2,10 +2,10 @@ import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Alert, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
-import { Gesture, GestureDetector, ScrollView } from 'react-native-gesture-handler';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ReorderRow } from '../components/ReorderRow';
 import { Thumb } from '../components/Thumb';
 import { Button, Wash } from '../components/ui';
 import { MAX_CLIPS, removeVideo, updateVideo, useBatch } from '../lib/batch';
@@ -16,7 +16,6 @@ import { formatTime, theme } from '../lib/theme';
 const TILE_W = 104;
 const TILE_H = 170;
 const GAP = 12;
-const STEP = TILE_W + GAP;
 
 /**
  * "Arrange your clips": several videos picked from Photos, put in order (hold and drag), trimmed
@@ -41,11 +40,9 @@ export default function Arrange() {
   const blend = inBatch ? (video?.blend ?? true) : ownBlend;
   const setTakes = (change: (list: Take[]) => Take[]) => (video ? updateVideo(video.key, (v) => ({ ...v, takes: change(v.takes) })) : setOwn(change));
   const setBlend = (on: boolean) => (video ? updateVideo(video.key, (v) => ({ ...v, blend: on })) : setOwnBlend(on));
-  const [drag, setDrag] = useState<{ from: number; dx: number } | null>(null);
   const [sending, setSending] = useState(false);
   const usage = useUsage();
   const total = takes.reduce((t, k) => t + k.duration, 0);
-  const target = drag ? Math.max(0, Math.min(takes.length - 1, drag.from + Math.round(drag.dx / STEP))) : -1;
 
   const move = (from: number, to: number) =>
     setTakes((list) => {
@@ -77,22 +74,6 @@ export default function Arrange() {
     router.replace({ pathname: '/cut/[id]', params: { id } });
   }
 
-  const drop = (from: number, dx: number) => {
-    const to = Math.max(0, Math.min(takes.length - 1, from + Math.round(dx / STEP)));
-    if (to !== from) {
-      Haptics.selectionAsync();
-      move(from, to);
-    }
-    setDrag(null);
-  };
-
-  const shift = (k: number) => {
-    if (!drag || k === drag.from) return 0;
-    if (drag.from < k && k <= target) return -STEP;
-    if (target <= k && k < drag.from) return STEP;
-    return 0;
-  };
-
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 12 }]}>
       <Wash />
@@ -114,25 +95,37 @@ export default function Arrange() {
         </Text>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} scrollEnabled={!drag} contentContainerStyle={styles.row} style={{ flexGrow: 0 }}>
-        {takes.map((t, i) => (
-          <ClipTile
-            key={`${t.uri}-${i}`}
-            take={t}
-            index={i}
-            dx={drag?.from === i ? drag.dx : null}
-            shift={shift(i)}
-            onDrag={(dx) => setDrag({ from: i, dx })}
-            onDrop={(dx) => drop(i, dx)}
-            onRemove={() => remove(i)}
-          />
-        ))}
-        {takes.length < MAX_CLIPS && (
-          <Pressable onPress={() => addMore().catch((e) => Alert.alert('Couldn’t add videos', String(e)))} style={styles.add} accessibilityLabel="Add more clips">
-            <SymbolView name="plus" tintColor={theme.muted} size={26} />
-          </Pressable>
+      <ReorderRow
+        items={takes}
+        keyOf={(t, i) => `${t.uri}-${i}`}
+        width={TILE_W}
+        height={TILE_H}
+        gap={GAP}
+        onMove={move}
+        tileStyle={styles.tile}
+        contentStyle={styles.row}
+        render={(t, i) => (
+          <>
+            <Thumb uri={t.uri} seconds={0.5} style={StyleSheet.absoluteFill} flip={t.flip} />
+            <View style={styles.number}>
+              <Text style={styles.numberText}>{i + 1}</Text>
+            </View>
+            <Pressable onPress={() => remove(i)} hitSlop={8} style={styles.remove} accessibilityLabel={`Remove clip ${i + 1}`}>
+              <SymbolView name="xmark" tintColor="#fff" size={11} weight="bold" />
+            </Pressable>
+            <View style={styles.length}>
+              <Text style={styles.lengthText}>{formatTime(t.duration)}</Text>
+            </View>
+          </>
         )}
-      </ScrollView>
+        trailing={
+          takes.length < MAX_CLIPS && (
+            <Pressable onPress={() => addMore().catch((e) => Alert.alert('Couldn’t add videos', String(e)))} style={styles.add} accessibilityLabel="Add more clips">
+              <SymbolView name="plus" tintColor={theme.muted} size={26} />
+            </Pressable>
+          )
+        }
+      />
 
       <View style={{ flex: 1 }} />
 
@@ -156,72 +149,6 @@ export default function Arrange() {
   );
 }
 
-type TileProps = {
-  take: Take;
-  index: number;
-  /** How far it's being dragged, or null when it isn't. */
-  dx: number | null;
-  /** How far it slides aside for the one being dragged. */
-  shift: number;
-  onDrag: (dx: number) => void;
-  onDrop: (dx: number) => void;
-  onRemove: () => void;
-};
-
-/** One clip in the row. Hold it, then drag it along the row to move it. */
-function ClipTile({ take, index, dx, shift, onDrag, onDrop, onRemove }: TileProps) {
-  const latest = useRef({ onDrag, onDrop });
-  const active = useRef(false);
-  useEffect(() => {
-    latest.current = { onDrag, onDrop };
-  });
-  // Made once: a gesture rebuilt on every render (and this re-renders as the finger moves) would
-  // be re-attached, and the drag cancelled, mid-way. The handlers read the latest callbacks from a ref.
-  // eslint-disable-next-line react-hooks/refs
-  const [pan] = useState(() =>
-    Gesture.Pan()
-      .activateAfterLongPress(220)
-      .runOnJS(true)
-      .onStart(() => {
-        active.current = true;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        latest.current.onDrag(0);
-      })
-      .onUpdate((e) => latest.current.onDrag(e.translationX))
-      .onEnd((e) => {
-        active.current = false;
-        latest.current.onDrop(e.translationX);
-      })
-      // Cancelled part-way (a call, the screen closing): put it back where it was.
-      .onFinalize(() => {
-        if (!active.current) return;
-        active.current = false;
-        latest.current.onDrop(0);
-      })
-  );
-  return (
-    <GestureDetector gesture={pan}>
-      <View
-        style={[
-          styles.tile,
-          dx !== null ? { transform: [{ translateX: dx }, { scale: 1.06 }], zIndex: 2, shadowOpacity: 0.25 } : { transform: [{ translateX: shift }] },
-        ]}
-      >
-        <Thumb uri={take.uri} seconds={0.5} style={StyleSheet.absoluteFill} flip={take.flip} />
-        <View style={styles.number}>
-          <Text style={styles.numberText}>{index + 1}</Text>
-        </View>
-        <Pressable onPress={onRemove} hitSlop={8} style={styles.remove} accessibilityLabel={`Remove clip ${index + 1}`}>
-          <SymbolView name="xmark" tintColor="#fff" size={11} weight="bold" />
-        </Pressable>
-        <View style={styles.length}>
-          <Text style={styles.lengthText}>{formatTime(take.duration)}</Text>
-        </View>
-      </View>
-    </GestureDetector>
-  );
-}
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 44 },
@@ -232,10 +159,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '800', color: theme.ink, letterSpacing: -0.5 },
   sub: { fontSize: 15, color: theme.muted, lineHeight: 21 },
   row: { gap: GAP, paddingHorizontal: 20, paddingVertical: 22 },
-  tile: {
-    width: TILE_W, height: TILE_H, borderRadius: 16, overflow: 'hidden', backgroundColor: theme.card,
-    shadowColor: '#000', shadowOpacity: 0, shadowRadius: 12, shadowOffset: { width: 0, height: 6 },
-  },
+  tile: { borderRadius: 16, overflow: 'hidden', backgroundColor: theme.card },
   number: { position: 'absolute', top: 7, left: 7, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   numberText: { color: '#fff', fontSize: 13, fontWeight: '700' },
   remove: { position: 'absolute', top: 7, right: 7, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },

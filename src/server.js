@@ -3,6 +3,7 @@
 //   POST /uploads                      body: raw video bytes              -> { id }
 //   POST /cuts?uploads=a,b&flips=1,0&blend=1&maxGap=0.3&fillers=1&retakes=1&lang=en -> { id }   (joins takes, un-mirrors selfies, finds cuts)
 //   POST /cuts?...                     body: raw video bytes (one take)    -> { id }
+//        &at=<ms since 1970>          scheduled: kept as stage "scheduled" and cut at that time (up to 30 days ahead)
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
@@ -67,7 +68,7 @@ const send = (res, status, body) => {
 
 function publicJob(job) {
   // The waveform is fetched once, from its own route, not with every progress check.
-  const { dir, source, userId, waveform, ...rest } = job;
+  const { dir, source, userId, waveform, run, ...rest } = job;
   return { ...rest, render: job.render && { ...job.render, output: undefined } };
 }
 
@@ -84,8 +85,10 @@ async function readJob(id) {
   if (!ID.test(id)) return null;
   try {
     const job = JSON.parse(await readFile(path.join(DATA, id, 'job.json'), 'utf8'));
+    // A scheduled edit that came due but hadn't started yet when the server restarted: run it now.
+    if (job.stage === 'queued' && job.run) job.stage = 'scheduled';
     // A server restart interrupts anything that was running.
-    if (!['ready', 'failed', 'stopped'].includes(job.stage)) {
+    if (!['ready', 'failed', 'stopped', 'scheduled'].includes(job.stage)) {
       Object.assign(job, { stage: 'failed', error: 'The server restarted. Send the take again.' });
       await usage.refund(job.userId ?? LOCAL_USER);
       await saveJob(job); // so it's refunded once, not on every restart
@@ -144,9 +147,9 @@ async function findUpload(id, userId) {
 async function createCut(req, res, url, userId) {
   const rules = rulesFor(await planOf(userId));
   const q = url.searchParams;
-  // What the plan includes: batch cutting, and a number of edits a month.
-  if (q.get('batch') === '1' && !rules.batch) {
-    return send(res, 403, { error: `Batch cuts are on Pro and Ultimate. You're on ${rules.name}.`, code: 'plan' });
+  // What the plan includes: scheduling edits for later, and a number of edits a month.
+  if (Number(q.get('at')) > Date.now() + 30e3 && !rules.schedule) {
+    return send(res, 403, { error: `Scheduled batch edits are on Pro and Ultimate. You're on ${rules.name}.`, code: 'plan' });
   }
   if ((await usage.used(userId)) >= rules.edits) {
     return send(res, 402, { error: `You've used all ${rules.edits} edits on ${rules.name} this month. Upgrade for more.`, code: 'limit' });
@@ -176,52 +179,85 @@ async function createCut(req, res, url, userId) {
       removeRetakes: q.get('retakes') !== '0',
     },
   };
-  const job = { id, dir, userId, takes: takes.length, stage: 'queued', progress: 0, createdAt: new Date().toISOString() };
+  const run = { flips: (q.get('flips') ?? '').split(',').map((f) => f === '1'), blend: q.get('blend') === '1', options };
+  const at = Number(q.get('at'));
+  const scheduled = Number.isFinite(at) && at > Date.now() + 30e3;
+  if (scheduled && at > Date.now() + MAX_AHEAD) return send(res, 400, { error: 'You can schedule an edit up to 30 days ahead.' });
+  const job = { id, dir, userId, takes: takes.length, stage: scheduled ? 'scheduled' : 'queued', progress: 0, createdAt: new Date().toISOString() };
+  if (scheduled) {
+    // Kept with the job (uploads are cleared after a day) along with how to cut them, so it can
+    // run days later and survive a server restart.
+    job.at = at;
+    job.run = { ...run, takes: [] };
+    for (const [i, t] of takes.entries()) {
+      const kept = path.join(dir, `take-${i}${path.extname(t)}`);
+      await rename(t, kept).catch(() => copyFile(t, kept));
+      job.run.takes.push(kept);
+    }
+  }
   jobs.set(id, job);
   await saveJob(job);
   await usage.add(userId); // counted now, so edits started together can't slip past the limit
   send(res, 201, { id });
+  if (!scheduled) enqueue(() => runCut(job, takes, run));
+}
 
-  enqueue(async () => {
-    if (job.stage === 'stopped') return;
-    const log = (stage) => job.stage !== stage && console.log(`[${id.slice(0, 8)}] ${stage}`);
-    try {
-      const flips = (q.get('flips') ?? '').split(',').map((f) => f === '1');
-      const joined = takes.length > 1 || flips[0];
-      if (joined) {
-        log('joining');
-        job.stage = 'joining';
-        job.source = path.join(dir, 'source.mp4');
-        await joinTakes(takes, job.source, { flips, blend: q.get('blend') === '1', onProgress: (f) => (job.progress = 0.15 * f) });
-        await Promise.all(takes.map((t) => rm(t, { force: true }))); // joined: the separate takes aren't needed
-      } else {
-        // Move rather than copy: a long take is hundreds of MB, and the upload isn't used again.
-        job.source = path.join(dir, `source${path.extname(takes[0])}`);
-        await rename(takes[0], job.source).catch(() => copyFile(takes[0], job.source));
-      }
-      const base = joined ? 0.15 : 0;
-      const result = await analyze(job.source, {
-        ...options,
-        onProgress: (stage, f) => {
-          if (job.stage === 'stopped') return;
-          log(stage);
-          job.stage = stage;
-          job.progress = base + (1 - base) * f;
-        },
-      });
-      if (job.stage === 'stopped') return;
-      Object.assign(job, result, { progress: 1, stage: result.segments.length ? 'ready' : 'failed' });
-      if (!result.segments.length) job.error = "We couldn't hear any speech in this video.";
-      // Have the editor's first preview waiting by the time the app opens it.
-      else queuePreview(job, parseClips(result.segments, job));
-    } catch (err) {
-      console.error(err);
-      Object.assign(job, { stage: 'failed', error: 'Something went wrong while cutting this take.' });
-    }
-    log(job.stage);
-    if (job.stage === 'failed') await usage.refund(userId); // (a stopped one was refunded when stopped)
+// How far ahead an edit can be scheduled, and how often the server looks for ones that are due.
+const MAX_AHEAD = 30 * 864e5;
+const SCHEDULE_CHECK = 15e3;
+
+/** Starts scheduled edits whose time has come. */
+async function startDue() {
+  for (const job of jobs.values()) {
+    if (job.stage !== 'scheduled' || job.at > Date.now()) continue;
+    job.stage = 'queued';
     await saveJob(job);
-  });
+    console.log(`[${job.id.slice(0, 8)}] scheduled time reached`);
+    enqueue(() => runCut(job, job.run.takes, job.run));
+  }
+}
+
+/** Cuts a job's takes: joins them if needed, transcribes, finds the cuts. */
+async function runCut(job, takes, { flips, blend, options }) {
+  const { id, dir, userId } = job;
+  if (job.stage === 'stopped') return;
+  const log = (stage) => job.stage !== stage && console.log(`[${id.slice(0, 8)}] ${stage}`);
+  try {
+    const joined = takes.length > 1 || flips[0];
+    if (joined) {
+      log('joining');
+      job.stage = 'joining';
+      job.source = path.join(dir, 'source.mp4');
+      await joinTakes(takes, job.source, { flips, blend, onProgress: (f) => (job.progress = 0.15 * f) });
+      await Promise.all(takes.map((t) => rm(t, { force: true }))); // joined: the separate takes aren't needed
+    } else {
+      // Move rather than copy: a long take is hundreds of MB, and the upload isn't used again.
+      job.source = path.join(dir, `source${path.extname(takes[0])}`);
+      await rename(takes[0], job.source).catch(() => copyFile(takes[0], job.source));
+    }
+    const base = joined ? 0.15 : 0;
+    const result = await analyze(job.source, {
+      ...options,
+      onProgress: (stage, f) => {
+        if (job.stage === 'stopped') return;
+        log(stage);
+        job.stage = stage;
+        job.progress = base + (1 - base) * f;
+      },
+    });
+    if (job.stage === 'stopped') return;
+    Object.assign(job, result, { progress: 1, stage: result.segments.length ? 'ready' : 'failed' });
+    if (!result.segments.length) job.error = "We couldn't hear any speech in this video.";
+    // Have the editor's first preview waiting by the time the app opens it.
+    else queuePreview(job, parseClips(result.segments, job));
+  } catch (err) {
+    console.error(err);
+    Object.assign(job, { stage: 'failed', error: 'Something went wrong while cutting this take.' });
+  }
+  log(job.stage);
+  if (job.stage === 'failed') await usage.refund(userId); // (a stopped one was refunded when stopped)
+  delete job.run;
+  await saveJob(job);
 }
 
 async function stopCut(res, job) {
@@ -493,8 +529,8 @@ async function cleanUp() {
   for (const id of await readdir(DATA).catch(() => [])) {
     if (!ID.test(id)) continue;
     const job = await readJob(id);
-    if (!job || now - Date.parse(job.createdAt) < RETENTION_DAYS * 864e5) continue;
-    if (['queued', 'joining', 'reading', 'listening', 'cutting'].includes(job.stage) || job.render?.stage === 'rendering') continue;
+    if (!job || now - (job.at ?? Date.parse(job.createdAt)) < RETENTION_DAYS * 864e5) continue;
+    if (['scheduled', 'queued', 'joining', 'reading', 'listening', 'cutting'].includes(job.stage) || job.render?.stage === 'rendering') continue;
     jobs.delete(id);
     await rm(path.join(DATA, id), { recursive: true, force: true });
   }
@@ -565,6 +601,10 @@ const server = http.createServer(async (req, res) => {
 await mkdir(UPLOADS, { recursive: true });
 setInterval(() => cleanUp().catch((err) => console.error(err)), 3600e3).unref();
 cleanUp().catch((err) => console.error(err));
+// Scheduled edits waiting from before a restart, then a check for due ones every few seconds.
+for (const id of await readdir(DATA).catch(() => [])) if (ID.test(id)) await readJob(id);
+setInterval(() => startDue().catch((err) => console.error(err)), SCHEDULE_CHECK).unref();
+startDue().catch((err) => console.error(err));
 if (!authEnabled) console.warn('Auth is off (no SUPABASE_URL): every request runs as one local user. Fine for development only.');
 server.listen(PORT, '0.0.0.0', () => {
   const lan = Object.values(os.networkInterfaces()).flat().find((i) => i?.family === 'IPv4' && !i.internal)?.address;

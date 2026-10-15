@@ -5,7 +5,7 @@ import { cutsDir, deletePreviews, getSettings, previewsDir, type Cut, type Word 
 import { sleep } from './theme';
 import { supabase } from './supabase';
 
-export type Stage = 'queued' | 'joining' | 'reading' | 'listening' | 'cutting' | 'ready' | 'failed' | 'stopped';
+export type Stage = 'scheduled' | 'queued' | 'joining' | 'reading' | 'listening' | 'cutting' | 'ready' | 'failed' | 'stopped';
 
 export type Job = {
   id: string;
@@ -91,7 +91,8 @@ export async function uploadTake(uri: string, mime: string, onProgress: (fractio
   return body.id;
 }
 
-export async function createCut(uploadIds: string[], flips: boolean[], language: string, blend = false, batch = false): Promise<string> {
+/** Starts cutting the uploads, or with `at` (ms since 1970) has the server cut them at that time. */
+export async function createCut(uploadIds: string[], flips: boolean[], language: string, blend = false, batch = false, at?: number): Promise<string> {
   const s = getSettings();
   const query = [
     `uploads=${uploadIds.join(',')}`,
@@ -102,6 +103,7 @@ export async function createCut(uploadIds: string[], flips: boolean[], language:
     `fillers=${s.removeFillers ? 1 : 0}`,
     `retakes=${s.removeRetakes ? 1 : 0}`,
     `lang=${language}`,
+    ...(at ? [`at=${Math.round(at)}`] : []),
   ].join('&');
   return (await call(`/cuts?${query}`, { method: 'POST' })).id;
 }

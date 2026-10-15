@@ -3,9 +3,10 @@ import path from 'node:path';
 
 // What each plan includes (mirrors app/src/lib/plans.ts). Edits are cuts a month.
 export const PLAN_RULES = {
-  starter: { name: 'Starter', edits: 100, overlap: false, batch: false },
-  pro: { name: 'Pro', edits: 300, overlap: true, batch: true },
-  ultimate: { name: 'Ultimate', edits: Infinity, overlap: true, batch: true },
+// Batch edits are on every plan; `schedule` is whether batch edits can be given a time.
+  starter: { name: 'Starter', edits: 100, overlap: false, schedule: false },
+  pro: { name: 'Pro', edits: 300, overlap: true, schedule: true },
+  ultimate: { name: 'Ultimate', edits: Infinity, overlap: true, schedule: true },
 };
 
 /** A plan's rules; an unknown or missing plan gets Starter's. */

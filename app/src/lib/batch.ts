@@ -2,8 +2,11 @@ import { File, Paths } from 'expo-file-system';
 import { useSyncExternalStore } from 'react';
 import type { Take } from './jobs';
 
-/** One video in a batch being put together: its clips in order, combined when the batch is edited. */
-export type BatchVideo = { key: string; takes: Take[]; blend: boolean };
+/**
+ * One video in a batch being put together: its clips in order, combined when the batch is edited.
+ * `at`: when the server should cut it (ms since 1970); without it, right away.
+ */
+export type BatchVideo = { key: string; takes: Take[]; blend: boolean; at?: number };
 
 export const MAX_VIDEOS = 10;
 export const MAX_CLIPS = 20;

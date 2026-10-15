@@ -13,7 +13,7 @@ const newId = () => `${Date.now().toString(36)}${Math.random().toString(36).slic
  * Sends takes off to be cut. Runs in the background: the record in the store carries the status,
  * so screens just render it, and the cut keeps going if the user leaves the screen.
  */
-export function startCut(takes: Take[], language: string, { blend = false, batch = false }: { blend?: boolean; batch?: boolean } = {}): string {
+export function startCut(takes: Take[], language: string, { blend = false, batch = false, at }: { blend?: boolean; batch?: boolean; at?: number } = {}): string {
   const id = newId();
   const record: CutRecord = {
     id,
@@ -30,7 +30,8 @@ export function startCut(takes: Take[], language: string, { blend = false, batch
     localSource: takes.length === 1 && !takes[0].flip ? takes[0].uri : undefined,
     // Filed where the camera's folder button says (if that folder still exists).
     folderId: getSettings().saveFolder || undefined,
-    retry: { takes, language, blend, batch },
+    retry: { takes, language, blend, batch, at },
+    scheduledFor: at,
     duration: takes.reduce((t, k) => t + k.duration, 0),
     words: [],
     cuts: [],
@@ -38,7 +39,7 @@ export function startCut(takes: Take[], language: string, { blend = false, batch
     exports: 0,
   };
   addCut(record);
-  run(id, takes, language, blend, batch);
+  run(id, takes, language, blend, batch, at);
   return id;
 }
 
@@ -75,11 +76,13 @@ function uploadAll(id: string, takes: Take[]) {
   return mine;
 }
 
-async function run(id: string, takes: Take[], language: string, blend = false, batch = false) {
+async function run(id: string, takes: Take[], language: string, blend = false, batch = false, at?: number) {
   try {
     const ids = await uploadAll(id, takes);
-    const serverId = await createCut(ids, takes.map((t) => !!t.flip), language, blend, batch);
-    updateCut(id, { serverId, status: 'processing', stage: 'queued', progress: 0 });
+    // A time already passed (e.g. trying again later) just cuts it now.
+    const when = at && at > Date.now() + 60e3 ? at : undefined;
+    const serverId = await createCut(ids, takes.map((t) => !!t.flip), language, blend, batch, when);
+    updateCut(id, { serverId, status: 'processing', stage: when ? 'scheduled' : 'queued', progress: 0, scheduledFor: when });
     await track(id);
   } catch (e) {
     updateCut(id, { status: 'failed', error: message(e) });
@@ -132,6 +135,12 @@ export async function track(id: string) {
           waveform,
         });
         return;
+      }
+      // Scheduled for later: look in now and then rather than every moment.
+      if (job.stage === 'scheduled') {
+        updateCut(id, { stage: 'scheduled', progress: 0 });
+        await sleep(15000);
+        continue;
       }
       updateCut(id, { stage: job.stage, progress: job.progress ?? 0 });
       await sleep(700);
@@ -190,7 +199,7 @@ export async function retryCut(id: string) {
     return;
   }
   updateCut(id, { status: 'uploading', stage: 'waiting', progress: 0, error: undefined, serverId: undefined });
-  run(id, takes, record.retry?.language ?? 'en', record.retry?.blend, record.retry?.batch);
+  run(id, takes, record.retry?.language ?? 'en', record.retry?.blend, record.retry?.batch, record.retry?.at);
 }
 
 export async function stopCut(id: string) {

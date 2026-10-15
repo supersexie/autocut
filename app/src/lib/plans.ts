@@ -8,8 +8,9 @@ export const CURRENCY = '$';
 // What the paid plans add (every plan gets cutting, captions and the editor). The server checks
 // these too (src/plans.js), so keep the two in step.
 export const OVERLAP = 'Overlap audio';
-export const BATCH = 'Batch cuts';
-export const FEATURES = [OVERLAP, BATCH] as const;
+// Batch edits are on every plan; picking a time for them is the paid part.
+export const SCHEDULED = 'Scheduled batch edits';
+export const FEATURES = [OVERLAP, SCHEDULED] as const;
 export type Feature = (typeof FEATURES)[number];
 
 export const PLANS: { id: PlanId; name: string; monthly: number; edits: string; limit: number; features: readonly Feature[]; pick?: boolean }[] = [

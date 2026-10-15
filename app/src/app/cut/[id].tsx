@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ProgressCard } from '../../components/ProgressCard';
 import { Backdrop, Button } from '../../components/ui';
 import { canRetry, retryCut, stopCut } from '../../lib/jobs';
-import { cutFile, deleteCut, useCut } from '../../lib/store';
+import { cutFile, deleteCut, useCut, whenText } from '../../lib/store';
 import { theme } from '../../lib/theme';
 
 const TIPS = [
@@ -102,6 +102,32 @@ export default function Cutting() {
         <Animated.View entering={FadeIn.duration(260)} style={{ marginTop: 24 }}>
           <ProgressCard uri={preview} progress={1} flip={flip} />
         </Animated.View>
+      </Backdrop>
+    );
+  }
+
+  if (cut.stage === 'scheduled' && cut.scheduledFor) {
+    return (
+      <Backdrop
+        footer={
+          <Pressable
+            onPress={() => {
+              stopCut(id);
+              leave();
+            }}
+            style={({ pressed }) => [styles.stop, pressed && { opacity: 0.7 }]}
+          >
+            <Text style={styles.stopText}>Cancel</Text>
+          </Pressable>
+        }
+      >
+        <Header onBack={leave} />
+        <Text style={styles.title}>Scheduled</Text>
+        <Text style={[styles.subtitle, { color: theme.ink }]}>Autocut will cut this {whenText(cut.scheduledFor).replace(/^(Today|Tomorrow)/, (w) => w.toLowerCase())}.</Text>
+        <Text style={styles.subtitle}>It’s uploaded, so your phone doesn’t need to be on. It’ll be waiting in Cuts.</Text>
+        <View style={{ marginTop: 22 }}>
+          <ProgressCard uri={preview} progress={0} label={new Date(cut.scheduledFor).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })} flip={flip} />
+        </View>
       </Backdrop>
     );
   }

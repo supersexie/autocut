@@ -124,12 +124,12 @@ Nothing charges today. The app says "Free during the beta", but the plan screens
   `app/src/app/paywall.tsx`, `app/src/app/plan.tsx` ("Your plan", with a placeholder Restore purchases).
 - The chosen plan is saved on the Supabase user (`profile.plan`, `profile.billing`).
 - **What each plan gets is enforced**, in the app and on the server:
-  - Starter: 100 edits a month, no Overlap audio, no Batch cuts.
-  - Pro: 300 edits, Overlap audio, Batch cuts.
-  - Ultimate: unlimited edits, Overlap audio, Batch cuts.
+  - Starter: 100 edits a month, batch edits (right away only), no Overlap audio.
+  - Pro: 300 edits, Overlap audio, Scheduled batch edits.
+  - Ultimate: unlimited edits, Overlap audio, Scheduled batch edits.
   - App: `app/src/lib/plans.ts` and `usage.ts` (locks, upgrade prompts).
   - Server: `src/plans.js`. It counts edits per account per month (`/data/usage`), refuses the 101st/301st
-    edit (402) and batch cuts on Starter (403), and ignores Overlap audio on Starter exports. Stopped or
+    edit (402) and scheduled edits on Starter (403), and ignores Overlap audio on Starter exports. Stopped or
     failed cuts don't use up an edit. Keep both copies of the rules in step.
 - ⚠️ The server reads the plan from the Supabase account (`user_metadata.plan`), which the **app** sets today.
   That isn't proof of payment: when subscriptions go in, have the server take the plan from the purchase
@@ -181,7 +181,9 @@ your own clips before release.** To swap:
 - Camera: the two-step camera tour, record a take (front and back, pinch to zoom), pause and record a
   second take, done → review → send.
 - Import one video from Photos; import several (Arrange your clips).
-- Batch (Pro/Ultimate): add 2–3 videos of a few clips each, reorder one with Arrange, Edit all → all land in Cuts.
+- Batch (every plan): add 2–3 videos of a few clips each, reorder one with Arrange, Edit all → all land in Cuts.
+- Scheduled batch edit (Pro/Ultimate; Starter sees a PRO lock): on a video in Batch tap Schedule, pick a time a few minutes ahead, Schedule → it shows
+  "Scheduled for …" in Cuts and is cut by the server at that time (the phone can be off). Cancel refunds the edit.
 - Wait for the cut, then in the editor:
   - Play through several cuts (**the native player, see §4**). Trim, split, speed, undo.
   - Pinch the video to zoom (keyframes).
@@ -200,7 +202,8 @@ your own clips before release.** To swap:
   - `SUPABASE_URL`, `SUPABASE_SECRET_KEY` (required)
   - `LEGAL_OPERATOR`, `LEGAL_EMAIL`, `LEGAL_COUNTRY`
   - Optional: `CONCURRENCY` (cuts at once, default 1), `RETENTION_DAYS` (default 7), `MAX_UPLOAD_MB` (default 1024)
-- A volume is mounted at `/data` (takes and cuts).
+- A volume is mounted at `/data` (takes and cuts). Scheduled edits wait there too (with their clips), so they
+  survive a redeploy; the server checks every 15 s for ones that are due.
 - Needs at least 2 GB RAM and 2 vCPU. Transcription is CPU-bound, so more CPU means faster cuts.
   With `CONCURRENCY=1`, cuts queue one at a time, so raise it (and the CPU) as users grow.
 - The API is listed at the top of `src/server.js`. Every route except `/health`, `/privacy` and `/terms`
