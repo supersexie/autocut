@@ -13,7 +13,7 @@ import { pickSong, useMusic } from '../../components/editor/music';
 import { CoverPicker, Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
-import { Button, PressableScale, type SymbolName } from '../../components/ui';
+import { Button, Logo, PressableScale, type SymbolName } from '../../components/ui';
 import {
   CAPTION_X, CAPTION_Y, captionLines, fitToLength, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
   restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
@@ -402,7 +402,10 @@ function Editor({ cut }: { cut: CutRecord }) {
         <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back" style={{ width: 82 }}>
           <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
         </Pressable>
-        <Text style={styles.brand}>Autocut</Text>
+        <View style={styles.brandRow}>
+          <Logo size={24} />
+          <Text style={styles.brand}>Autocut</Text>
+        </View>
         <Pressable
           ref={exportRef}
           onPress={() => {
@@ -765,6 +768,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   meta: { fontSize: 13, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
+  brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
   exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, width: 82, height: 30, borderRadius: 9, backgroundColor: theme.ink },
