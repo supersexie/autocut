@@ -292,8 +292,11 @@ export function SizePanel({ scale, onChange, onDone }: { scale: number; onChange
 }
 
 export function VolumePanel({
-  volume, clipLabel, muted, onChange, onAll, onMute, onDone,
-}: { volume: number; clipLabel: string; muted: boolean; onChange: (v: number) => void; onAll: () => void; onMute: (m: boolean) => void; onDone: () => void }) {
+  volume, clipLabel, muted, overlap, onChange, onAll, onMute, onOverlap, onDone,
+}: {
+  volume: number; clipLabel: string; muted: boolean; overlap: boolean;
+  onChange: (v: number) => void; onAll: () => void; onMute: (m: boolean) => void; onOverlap: (on: boolean) => void; onDone: () => void;
+}) {
   const [v, setV] = useState(volume);
   return (
     <Panel title="Volume" value={<Text style={styles.valueStrong}>{Math.round(v * 100)}%</Text>} onDone={onDone}>
@@ -312,6 +315,13 @@ export function VolumePanel({
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Mute the video’s own sound</Text>
           <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.ink }} />
+        </View>
+        <View style={[styles.switchRow, { gap: 12 }]}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Text style={styles.switchLabel}>Overlap audio</Text>
+            <Text style={styles.small}>Blends the sound across each cut so jumps don’t click. Applies to the export.</Text>
+          </View>
+          <Switch value={overlap} onValueChange={onOverlap} trackColor={{ true: theme.ink }} />
         </View>
       </View>
     </Panel>

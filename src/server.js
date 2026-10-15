@@ -6,7 +6,7 @@
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
 //   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, box?, outline?, x?, y?, scale?, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}],
+//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, box?, outline?, x?, y?, scale?, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}], overlapAudio?,
 //                                        overlays: [{upload, kind, start, end, from, x, y, width, rotation, volume}], height, fps, bitrate } -> { renderId }
 //                                        (music.upload is an id from POST /uploads with the song's bytes)
 //   GET  /cuts/:id/video                                                  -> the latest finished render
@@ -286,6 +286,8 @@ async function createRender(req, res, job) {
     .sort((a, b) => a.t - b.t);
 
   // A song to lay under the video: uploaded first through /uploads, like a take.
+  // Fade each cut's sound across the next one's (on unless the app says otherwise).
+  const overlapAudio = body.overlapAudio !== false;
   let music;
   if (body.music?.upload) {
     const file = await findUpload(String(body.music.upload), job.userId ?? LOCAL_USER);
@@ -324,7 +326,7 @@ async function createRender(req, res, job) {
     r.stage = 'rendering';
     console.log(`[${job.id.slice(0, 8)}] exporting`);
     try {
-      await renderEdit(job.source, r.output, { clips, captions, texts, music, keyframes, overlays, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
+      await renderEdit(job.source, r.output, { clips, captions, texts, music, keyframes, overlays, overlapAudio, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
       Object.assign(r, { stage: 'ready', progress: 1, size: (await stat(r.output)).size });
     } catch (err) {
       console.error(err);

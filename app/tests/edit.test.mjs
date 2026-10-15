@@ -201,3 +201,9 @@ test('texts and overlays past a shortened end slide back inside it', () => {
   // Nothing past the end: the same edit back.
   assert.equal(fitToLength(edit, 30), edit);
 });
+
+test('overlap audio is on unless switched off, and goes to the export', () => {
+  const base = { clips, muted: false, captions: { ...DEFAULT_CAPTIONS, enabled: false }, texts: [] };
+  assert.equal(exportBody(base, words, {}).overlapAudio, true);
+  assert.equal(exportBody({ ...base, overlapAudio: false }, words, {}).overlapAudio, false);
+});

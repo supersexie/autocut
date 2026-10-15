@@ -70,6 +70,8 @@ export type Overlay = {
 export type Edit = {
   clips: ClipEdit[];
   muted: boolean;
+  /** Fade each cut's sound across the next one's so jump cuts don't click. Undefined = on. */
+  overlapAudio?: boolean;
   captions: CaptionSettings;
   texts: TextOverlay[];
   /** Output time of the frame used as the cover (the first frame of the export). */
@@ -353,6 +355,7 @@ export function exportBody(
   const later = <T extends { start: number; end: number }>(x: T) => ({ ...x, start: x.start + shift, end: x.end + shift });
   return {
     clips: [...cover, ...edit.clips.map((c) => ({ ...c, volume: edit.muted ? 0 : c.volume }))],
+    overlapAudio: edit.overlapAudio !== false,
     captions: edit.captions.enabled
       ? {
           style: edit.captions.style,

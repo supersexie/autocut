@@ -633,6 +633,8 @@ function Editor({ cut }: { cut: CutRecord }) {
             onAll={() => setClips(clips.map((c) => ({ ...c, volume: clip.volume })))}
             muted={edit.muted}
             onMute={(muted) => commit({ ...edit, muted }, { keepTime: true })}
+            overlap={edit.overlapAudio !== false}
+            onOverlap={(overlapAudio) => commit({ ...edit, overlapAudio }, { keepTime: true })}
             onDone={() => setPanel(null)}
           />
         )}

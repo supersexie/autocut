@@ -150,16 +150,44 @@ function atempo(speed) {
  * lays photos and videos over the picture for their stretch of the output (centre x, y and width as
  * fractions of the frame, rotation in degrees clockwise), under the captions; a video's sound is mixed in.
  */
-export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, motion, layers, onProgress } = {}) {
+/** Overlap audio: how far (seconds) each cut's sound reaches into its neighbour, fading across it. */
+export const OVERLAP = 0.08;
+
+export async function render(input, output, clips, { subtitles, ass, fontsDir, height, fps, bitrate, fast, music, motion, layers, overlap, onProgress } = {}) {
   const fade = 0.012;
   const parts = [];
   const labels = [];
   const list = clips.map((c) => (Array.isArray(c) ? { start: c[0], end: c[1] } : c));
   let total = 0;
+  // Overlap audio: each piece's sound runs OVERLAP seconds past its cut (and the next starts that
+  // early), fading across each other, while the picture still cuts exactly on time.
+  const lap = overlap && list.length > 1 ? OVERLAP : 0;
+  const voices = [];
   list.forEach(({ start: s, end: e, speed = 1, volume = 1 }, i) => {
     const out = (e - s) / speed;
+    const at = total; // where this piece starts in the output
     total += out;
     parts.push(`[0:v]trim=start=${s.toFixed(3)}:end=${e.toFixed(3)},setpts=(PTS-STARTPTS)/${speed}[v${i}]`);
+    if (lap) {
+      // Reach into the source on either side (not before the start or past the end of the edit).
+      const before = i > 0 ? Math.min(lap, at) : 0;
+      const after = i < list.length - 1 ? lap : 0;
+      const from = Math.max(0, s - before * speed);
+      const lead = (s - from) / speed; // how early this piece's sound actually starts
+      const len = out + lead + after;
+      const fadeIn = i > 0 ? lead * 2 || fade : fade;
+      const fadeOut = after ? after * 2 : fade;
+      parts.push(
+        `[0:a]atrim=start=${from.toFixed(3)}:end=${(e + after * speed).toFixed(3)},asetpts=PTS-STARTPTS` +
+          (speed !== 1 ? `,${atempo(speed)}` : '') +
+          (volume !== 1 ? `,volume=${volume.toFixed(3)}` : '') +
+          `,aresample=48000,afade=t=in:d=${Math.min(fadeIn, len / 2).toFixed(3)},afade=t=out:st=${Math.max(0, len - fadeOut).toFixed(3)}:d=${Math.min(fadeOut, len / 2).toFixed(3)}` +
+          `,adelay=delays=${Math.round((at - lead) * 1000)}:all=1[a${i}]`
+      );
+      voices.push(`[a${i}]`);
+      labels.push(`[v${i}]`);
+      return;
+    }
     parts.push(
       `[0:a]atrim=start=${s.toFixed(3)}:end=${e.toFixed(3)},asetpts=PTS-STARTPTS` +
         (speed !== 1 ? `,${atempo(speed)}` : '') +
@@ -174,7 +202,11 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   const scale = height && `scale=w='if(gt(iw,ih),-2,min(${height},iw))':h='if(gt(iw,ih),min(${height},ih),-2)'`;
   const post = [scale, fps && `fps=${fps}`].filter(Boolean).join(',');
   const moving = motion?.keyframes?.length > 0;
-  parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[vcat][acat]`);
+  if (lap) {
+    parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=0[vcat]`);
+    // Overlapping pieces add up where they fade across each other; the result is cut to the edit's length.
+    parts.push(`${voices.join('')}amix=inputs=${voices.length}:duration=longest:dropout_transition=0:normalize=0,apad,atrim=0:${total.toFixed(3)}[acat]`);
+  } else parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[vcat][acat]`);
   let v = '[vcat]';
   const extra = []; // inputs after the source
   const sounds = []; // audio to mix under the edit's own

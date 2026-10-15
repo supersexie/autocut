@@ -110,6 +110,7 @@ export async function renderEdit(input, output, edit, { onProgress } = {}) {
     fps: edit.fps,
     bitrate: edit.bitrate,
     music: edit.music,
+    overlap: edit.overlapAudio,
     motion: edit.keyframes?.length ? { keyframes: edit.keyframes, width, height } : undefined,
     layers: edit.overlays?.length
       ? {
