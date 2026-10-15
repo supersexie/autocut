@@ -3,6 +3,9 @@ import ffmpegPath from 'ffmpeg-static';
 
 export const SAMPLE_RATE = 16000;
 
+// If a tracked run's output doesn't move for this long, ffmpeg is stuck: it's killed and the run fails.
+const STALL_MS = Number(process.env.FFMPEG_STALL_MS ?? 90_000);
+
 // `total` (seconds of output) + `onProgress` turn ffmpeg's -progress lines into a 0–1 fraction.
 function run(args, { collect = false, total, onProgress } = {}) {
   return new Promise((resolve, reject) => {
@@ -10,17 +13,32 @@ function run(args, { collect = false, total, onProgress } = {}) {
     const proc = spawn(ffmpegPath, ['-hide_banner', '-loglevel', 'error', ...progress, ...args]);
     const chunks = [];
     let stderr = '';
+    let stuck = false;
+    let lastOut = -1;
+    let moved = Date.now();
+    const watch = progress.length
+      ? setInterval(() => {
+          if (Date.now() - moved < STALL_MS) return;
+          stuck = true;
+          proc.kill('SIGKILL'); // a deadlocked ffmpeg ignores a polite stop
+        }, 5000)
+      : null;
     if (collect) proc.stdout.on('data', (c) => chunks.push(c));
     proc.stderr.on('data', (c) => {
       const text = c.toString();
       if (progress.length) {
         const m = /out_time_us=(\d+)/.exec(text);
-        if (m) onProgress(Math.min(1, Number(m[1]) / 1e6 / total));
+        if (m) {
+          if (Number(m[1]) !== lastOut) [lastOut, moved] = [Number(m[1]), Date.now()];
+          onProgress(Math.min(1, Number(m[1]) / 1e6 / total));
+        }
         if (!/^(\w+=.*\n?)+$/.test(text)) stderr += text;
       } else stderr += text;
     });
     proc.on('error', reject);
     proc.on('close', (code) => {
+      if (watch) clearInterval(watch);
+      if (stuck) return reject(new Error(`ffmpeg made no progress for ${Math.round(STALL_MS / 1000)}s and was stopped`));
       if (code !== 0) return reject(new Error(`ffmpeg exited ${code}: ${stderr.trim()}`));
       resolve(collect ? Buffer.concat(chunks) : undefined);
     });
@@ -162,6 +180,10 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   // Overlap audio: each piece's sound runs OVERLAP seconds past its cut (and the next starts that
   // early), fading across each other, while the picture still cuts exactly on time.
   const lap = overlap && list.length > 1 ? OVERLAP : 0;
+  // Overlapping, the sound is read from its own copy of the source (input 1). Trimmed from the same
+  // input as the picture, ffmpeg can stall waiting for audio far ahead of the frame it's on, and the
+  // export never finishes (seen with four pieces, two of them very short).
+  const sound = lap ? 1 : 0;
   const voices = [];
   list.forEach(({ start: s, end: e, speed = 1, volume = 1 }, i) => {
     const out = (e - s) / speed;
@@ -178,7 +200,7 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
       const fadeIn = i > 0 ? lead * 2 || fade : fade;
       const fadeOut = after ? after * 2 : fade;
       parts.push(
-        `[0:a]atrim=start=${from.toFixed(3)}:end=${(e + after * speed).toFixed(3)},asetpts=PTS-STARTPTS` +
+        `[${sound}:a]atrim=start=${from.toFixed(3)}:end=${(e + after * speed).toFixed(3)},asetpts=PTS-STARTPTS` +
           (speed !== 1 ? `,${atempo(speed)}` : '') +
           (volume !== 1 ? `,volume=${volume.toFixed(3)}` : '') +
           `,aresample=48000,afade=t=in:d=${Math.min(fadeIn, len / 2).toFixed(3)},afade=t=out:st=${Math.max(0, len - fadeOut).toFixed(3)}:d=${Math.min(fadeOut, len / 2).toFixed(3)}` +
@@ -208,9 +230,9 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     parts.push(`${voices.join('')}amix=inputs=${voices.length}:duration=longest:dropout_transition=0:normalize=0,apad,atrim=0:${total.toFixed(3)}[acat]`);
   } else parts.push(`${labels.join('')}concat=n=${list.length}:v=1:a=1[vcat][acat]`);
   let v = '[vcat]';
-  const extra = []; // inputs after the source
+  const extra = lap ? ['-i', input] : []; // inputs after the source
   const sounds = []; // audio to mix under the edit's own
-  let next = 1;
+  let next = 1 + extra.length / 2;
 
   if (moving) {
     // zoompan turns each input frame into one output frame (d=1) at a fixed rate, so the rate is
