@@ -36,7 +36,8 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
   const monthly = pricePerMonth(chosen.monthly, billing);
 
   async function start() {
-    if (mode === 'setup') {
+    // Kept with the setup answers; they're saved with the rest when setup finishes.
+    if (mode === 'setup' || (mode === 'onboarding' && onDone)) {
       updateDraft({ plan, billing });
       onDone?.();
       return;

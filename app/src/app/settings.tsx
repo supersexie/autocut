@@ -49,8 +49,8 @@ export default function SettingsScreen() {
   }
 
   function replayTutorial() {
-    updateSettings({ tourDone: false });
-    Alert.alert('Tutorial is on', 'The editor tour shows again the next time you open a cut.');
+    updateSettings({ tourDone: false, cameraTourDone: false });
+    Alert.alert('Tutorial is on', 'The tour of the app shows again on the camera, and the editor’s the next time you open a cut.');
   }
 
   function confirmDelete() {

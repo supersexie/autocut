@@ -52,7 +52,7 @@ export type Settings = {
   /** Keep selfie (front camera) videos mirrored, like the camera preview. Off = as others see you. */
   mirrorSelfie: boolean;
   tourDone: boolean;
-  /** The camera's two-step tour (record, import) has been seen. */
+  /** The tour of the main sections (record, import, Cuts, Batch, You) has been seen. */
   cameraTourDone: boolean;
   ratingAsked: boolean;
   serverUrl: string; // empty = use the Mac running the dev server

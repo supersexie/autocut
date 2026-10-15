@@ -5,7 +5,7 @@ import * as Linking from 'expo-linking';
 import { router, useFocusEffect, useNavigation } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
+import { Alert, Modal, Pressable, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -229,6 +229,21 @@ export default function CreateScreen() {
     updateSettings({ cameraTourDone: true });
   }
 
+  // Where each tab sits in the floating tab bar (see PillTabBar), for the tour to point at.
+  const bar = tabBarStyle(screen.width);
+  const tabAt = (i: number): LayoutRectangle => {
+    const slot = (screen.width - bar.marginHorizontal * 2 - 12) / 4;
+    return { x: bar.marginHorizontal + 6 + i * slot, y: screen.height - bar.bottom - TAB_BAR_HEIGHT + 6, width: slot, height: TAB_BAR_HEIGHT - 12 };
+  };
+  // The tour of the main sections (shown once, or when they asked to be shown around).
+  const TOUR = [
+    { title: 'Record your take', body: 'Tap to record. Flub a line? Just say it again. Autocut keeps your best take and cuts the rest.', target: tourTargets[0], round: true, cta: 'Next' },
+    { title: 'Already filmed it?', body: 'Pick one video, or several clips to combine into one. It gets the same cut.', target: tourTargets[1], cta: 'Next' },
+    { title: 'Your cuts', body: 'Every video lands here, cut and captioned. Tap one to fine-tune it in the editor, then export.', target: tabAt(1), cta: 'Next' },
+    { title: 'A week of videos at once', body: 'Add several videos, each from its own clips, and edit them all in one go. Pro and Ultimate can schedule them.', target: tabAt(2), cta: 'Next' },
+    { title: 'Your plan and settings', body: 'See how many edits you have left, change your plan, and tune how Autocut cuts.', target: tabAt(3), cta: 'Let’s go' },
+  ];
+
   if (!camPermission) return <View style={styles.black} />;
   if (!camPermission.granted) {
     return (
@@ -367,26 +382,10 @@ export default function CreateScreen() {
       <FolderSheet visible={sheet === 'folder'} onClose={() => setSheet(null)} />
       <AddVideoSheet visible={sheet === 'add'} onClose={() => setSheet(null)} onPick={importVideo} />
       {tour >= 0 && (
-        <Tour
-          steps={[
-            {
-              title: 'Flub it, keep going',
-              body: 'Tap to record. Stumble on a line? Just say it again. Autocut keeps your best take and cuts the rest.',
-              target: tourTargets[0],
-              round: true,
-              cta: 'Next',
-            },
-            {
-              title: 'Already filmed it?',
-              body: 'Pick a video from your camera roll and it gets the same cut.',
-              target: tourTargets[1],
-              cta: 'Got it',
-            },
-          ]}
-          index={tour}
-          onNext={() => (tour < 1 ? setTour(1) : endTour())}
-          onSkip={endTour}
-        />
+        // Over everything, tab bar included, so the tabs can be pointed at too.
+        <Modal transparent visible animationType="none" onRequestClose={endTour}>
+          <Tour steps={TOUR} index={tour} onNext={() => (tour < TOUR.length - 1 ? setTour(tour + 1) : endTour())} onSkip={endTour} />
+        </Modal>
       )}
     </View>
   );

@@ -177,7 +177,8 @@ your own clips before release.** To swap:
 ## 8. Test before you submit (on TestFlight)
 
 - Create an account, sign out, sign in, reset password, delete the account.
-- New-user intro → onboarding → plan screen.
+- New-user intro → onboarding → plan screen → account → Who runs this studio? → @handle → studio ready →
+  Show me around (5-step tour: record, import, Cuts, Batch, You). Settings › Replay tutorial shows it again.
 - Camera: the two-step camera tour, record a take (front and back, pinch to zoom), pause and record a
   second take, done → review → send.
 - Import one video from Photos; import several (Arrange your clips).
