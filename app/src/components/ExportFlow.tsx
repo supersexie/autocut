@@ -6,14 +6,16 @@ import * as StoreReview from 'expo-store-review';
 import { SymbolView } from 'expo-symbols';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect, useRef, useState } from 'react';
-import { ActionSheetIOS, Alert, Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActionSheetIOS, Alert, AppState, Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Asset } from 'expo-asset';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { cancelPhoneExport, exportOnPhone, hasPhoneExport } from '../../modules/autocut-export';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
 import { CAPTION_FONTS } from '../lib/fonts';
 import { exportSpec } from '../lib/localExport';
+import { reportError } from '../lib/crashes';
 import { CAPTION_STYLES, TEXT_STYLES } from './editor/StyledText';
 import { nextChange } from '../lib/live';
 import { coverSource, exportBody, totalDuration, type Edit } from '../lib/edit';
@@ -175,14 +177,42 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
       );
     }
 
+    // The screen stays on while exporting (a phone that locks itself would stop the export).
+    await activateKeepAwakeAsync('export').catch(() => {});
+    // iOS stops a phone export when the app goes to the background; noted here so it can start
+    // again when the user comes back, rather than going to the server.
+    let leftApp = false;
+    const watch = AppState.addEventListener('change', (state) => {
+      if (state !== 'active') leftApp = true;
+    });
+    const backInApp = () =>
+      AppState.currentState === 'active'
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => {
+            const sub = AppState.addEventListener('change', (state) => {
+              if (state === 'active') {
+                sub.remove();
+                resolve();
+              }
+            });
+          });
     try {
       let file: string | undefined;
       if (hasPhoneExport && cut.source && cutFile(cut.source).exists) {
-        try {
-          file = await onPhone();
-        } catch (e) {
-          console.warn('Phone export failed, using the server:', e);
-          show(0, 'Finishing on our servers…');
+        for (let attempt = 0; attempt < 3 && !file; attempt++) {
+          leftApp = false;
+          try {
+            file = await onPhone();
+          } catch (e) {
+            if (!leftApp && AppState.currentState === 'active') {
+              console.warn('Phone export failed, using the server:', e);
+              reportError(e, 'phone export');
+              show(0, 'Finishing on our servers…');
+              break;
+            }
+            show(0, 'Paused while Autocut was in the background. Picking up again…');
+            await backInApp();
+          }
         }
       }
       file ??= await onServer();
@@ -198,6 +228,9 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
       setPhase({ kind: 'done', file, saved, assetId });
     } catch (e) {
       setPhase({ kind: 'failed', error: e instanceof Error ? e.message : String(e) });
+    } finally {
+      watch.remove();
+      deactivateKeepAwake('export');
     }
   }
 

@@ -10,7 +10,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://kkfrujfiqjenehmdepoo.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QYNJ3AsCC7SVth5RAQLKtw_cUQ0RPAA",
-        "EXPO_PUBLIC_API_URL": "https://autocut-production-88f1.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://autocut-production-88f1.up.railway.app",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "development"
     },
@@ -19,7 +20,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://kkfrujfiqjenehmdepoo.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QYNJ3AsCC7SVth5RAQLKtw_cUQ0RPAA",
-        "EXPO_PUBLIC_API_URL": "https://autocut-production-88f1.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://autocut-production-88f1.up.railway.app",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "preview"
     },
@@ -28,7 +30,8 @@
       "env": {
         "EXPO_PUBLIC_SUPABASE_URL": "https://kkfrujfiqjenehmdepoo.supabase.co",
         "EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY": "sb_publishable_QYNJ3AsCC7SVth5RAQLKtw_cUQ0RPAA",
-        "EXPO_PUBLIC_API_URL": "https://autocut-production-88f1.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://autocut-production-88f1.up.railway.app",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "production"
     }

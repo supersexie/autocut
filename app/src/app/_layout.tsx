@@ -8,10 +8,13 @@ import { useBackgroundUpdates } from '../lib/updates';
 import { ConsentGate } from '../components/ConsentGate';
 import { PlanSync } from '../components/PlanSync';
 import { AuthProvider, useAuth } from '../lib/auth';
+import { reportAs, withCrashReports } from '../lib/crashes';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+export default withCrashReports(RootLayout);
+
+function RootLayout() {
   useBackgroundUpdates();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -28,6 +31,9 @@ export default function RootLayout() {
 /** Signed out → welcome and setup questions. Signed in but no plan yet → paywall. Otherwise the app. */
 function RootNavigator() {
   const { loading, account } = useAuth();
+  useEffect(() => {
+    reportAs(account?.id ?? null);
+  }, [account?.id]);
   // Caption and text styles preview in the same fonts the export uses.
   const [fontsLoaded, fontError] = useFonts(APP_FONTS);
   const ready = !loading && (fontsLoaded || !!fontError);
