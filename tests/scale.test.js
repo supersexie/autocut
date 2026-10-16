@@ -221,6 +221,39 @@ test('each worker sends Deepgram only so many requests at once, and retries when
   assert.equal(calls, 1); // a bad request isn't retried
 });
 
+test('our own speech-to-text goes first, then Deepgram, then nothing else when Whisper is off', async () => {
+  const { transcribe } = await import('../src/transcribe.js');
+  const realFetch = globalThis.fetch;
+  const asked = [];
+  let asrDown = false;
+  globalThis.fetch = async (url, init) => {
+    asked.push(String(url).startsWith('http://asr.test') ? 'asr' : 'deepgram');
+    if (String(url).startsWith('http://asr.test')) {
+      assert.match(String(url), /\/transcribe\?language=en$/);
+      assert.equal(init.headers.Authorization, 'Bearer t0k');
+      if (asrDown) return new Response('bad', { status: 400 });
+      return Response.json({ words: [{ text: ' Um,', start: 0.1, end: 0.12 }, { text: 'hi.', start: 0.3, end: 9 }, { text: ' ', start: 0, end: 1 }] });
+    }
+    return Response.json({ results: { channels: [{ alternatives: [{ words: [{ word: 'hi', punctuated_word: 'Hi.', start: 0.1, end: 0.5 }] }] }] } });
+  };
+  Object.assign(process.env, { ASR_URL: 'http://asr.test/', ASR_TOKEN: 't0k', DEEPGRAM_API_KEY: 'k', WHISPER_FALLBACK: '0' });
+  const samples = new Float32Array(16000); // one second
+  try {
+    // Fillers kept, short words lengthened, words clamped to the audio, blanks dropped.
+    assert.deepEqual(await transcribe(samples), [{ text: 'Um,', start: 0.1, end: 0.18 }, { text: 'hi.', start: 0.3, end: 1 }]);
+    assert.deepEqual(asked, ['asr']);
+    asrDown = true;
+    asked.length = 0;
+    assert.equal((await transcribe(samples))[0].text, 'Hi.');
+    assert.deepEqual(asked, ['asr', 'deepgram']); // a bad answer isn't retried; Deepgram takes over
+    delete process.env.DEEPGRAM_API_KEY;
+    await assert.rejects(transcribe(samples), /HTTP 400/);
+  } finally {
+    globalThis.fetch = realFetch;
+    for (const k of ['ASR_URL', 'ASR_TOKEN', 'DEEPGRAM_API_KEY', 'WHISPER_FALLBACK']) delete process.env[k];
+  }
+});
+
 test('the autoscaler sizes each pool by its jobs, adds copies at once and removes them slowly', async () => {
   const { parsePools, desiredCopies, nextCopies, startScaler } = await import('../src/scaler.js');
   const [cut, render] = parsePools('cut=svc_c:16:1:10,render=svc_r:6:2:40,bogus=x:1:1:1');

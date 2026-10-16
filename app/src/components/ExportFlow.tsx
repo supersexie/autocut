@@ -10,6 +10,7 @@ import { ActionSheetIOS, Alert, Image, Linking, Modal, Pressable, StyleSheet, Te
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
+import { nextChange } from '../lib/live';
 import { coverSource, exportBody, totalDuration, type Edit } from '../lib/edit';
 import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type CutRecord } from '../lib/store';
 import { OVERLAP } from '../lib/plans';
@@ -122,7 +123,8 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
         }
         if (r.stage === 'ready') break;
         show(0.88 * (r.progress ?? 0));
-        await sleep(500);
+        // Pushed export progress moves the bar without asking the server; done or failed is fetched.
+        for (let e; (e = await nextChange(id, 800)) && e.render?.id === renderId.current && e.render.stage === 'rendering'; ) show(0.88 * (e.render.progress ?? 0));
       }
       const file = await patiently(
         () => download(`/cuts/${id}/video`, `${cut.id}-export.mp4`, (f) => show(0.88 + 0.12 * f)),

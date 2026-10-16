@@ -1,7 +1,10 @@
 import { SAMPLE_RATE } from './media.js';
 
-// Turns speech into words with timings. Deepgram (hosted, fast, handles thousands at once) when
-// DEEPGRAM_API_KEY is set; otherwise, or if Deepgram is down, Whisper on this machine.
+// Turns speech into words with timings, trying in order:
+//   1. our own speech-to-text on GPUs (asr/, ASR_URL), for very large numbers of cuts at once;
+//   2. Deepgram (hosted, fast) when DEEPGRAM_API_KEY is set;
+//   3. Whisper on this machine (slow; the backup).
+// Each one that fails hands over to the next.
 
 // Whisper gives some quick words no length at all; they get this much rather than being lost.
 const MIN_WORD = 0.08;
@@ -10,7 +13,16 @@ const DEEPGRAM_URL = 'https://api.deepgram.com/v1/listen';
 // Returns [{ text, start, end }] for every spoken word, ums and repeats included (the cutter
 // removes them, so it has to see them).
 export async function transcribe(samples, { language = 'english', model } = {}) {
+  const asrUrl = process.env.ASR_URL;
   const key = process.env.DEEPGRAM_API_KEY;
+  if (asrUrl && !model) {
+    try {
+      return await withSlot(() => withRetries(() => ownAsr(samples, language, asrUrl), { budgetMs: key ? 60_000 : 180_000 }), ASR_AT_ONCE, asrSlots);
+    } catch (err) {
+      if (!key && process.env.WHISPER_FALLBACK === '0') throw err;
+      console.error(`Our speech-to-text failed, trying ${key ? 'Deepgram' : 'Whisper'}: ${err.message}`);
+    }
+  }
   if (key && !model) {
     try {
       return await withSlot(() => withRetries(() => deepgram(samples, language, key)));
@@ -27,17 +39,38 @@ export async function transcribe(samples, { language = 'english', model } = {}) 
 // Deepgram allows a limited number of requests at once per account (about 50–100). Each worker
 // sends at most DEEPGRAM_MAX at a time; the rest wait their turn here.
 const MAX_AT_ONCE = Math.max(1, Number(process.env.DEEPGRAM_MAX ?? 8));
-let inFlight = 0;
-const waiting = [];
-export async function withSlot(fn, max = MAX_AT_ONCE) {
-  if (inFlight >= max) await new Promise((r) => waiting.push(r));
-  inFlight++;
+// Our own speech-to-text has no account limit; ASR_MAX just stops one worker flooding it.
+const ASR_AT_ONCE = Math.max(1, Number(process.env.ASR_MAX ?? 16));
+const deepgramSlots = { inFlight: 0, waiting: [] };
+const asrSlots = { inFlight: 0, waiting: [] };
+export async function withSlot(fn, max = MAX_AT_ONCE, slots = deepgramSlots) {
+  if (slots.inFlight >= max) await new Promise((r) => slots.waiting.push(r));
+  slots.inFlight++;
   try {
     return await fn();
   } finally {
-    inFlight--;
-    waiting.shift()?.();
+    slots.inFlight--;
+    slots.waiting.shift()?.();
   }
+}
+
+/** Our own speech-to-text service (asr/server.py): same audio as Deepgram, words back. */
+export async function ownAsr(samples, language, url, fetchImpl = fetch) {
+  const lang = language === 'spanish' ? 'es' : 'en';
+  const res = await fetchImpl(`${url.replace(/\/$/, '')}/transcribe?language=${lang}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream', ...(process.env.ASR_TOKEN && { Authorization: `Bearer ${process.env.ASR_TOKEN}` }) },
+    body: toPcm16(samples),
+    signal: AbortSignal.timeout(Math.max(60_000, (samples.length / SAMPLE_RATE) * 2000)),
+  });
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`), { status: res.status });
+  const duration = samples.length / SAMPLE_RATE;
+  return ((await res.json()).words ?? [])
+    .map((w) => {
+      const start = Math.max(0, Number(w.start) || 0);
+      return { text: String(w.text ?? '').trim(), start, end: Math.min(duration, Math.max(Number(w.end) || 0, start + MIN_WORD)) };
+    })
+    .filter((w) => w.text && w.end > w.start);
 }
 
 /**

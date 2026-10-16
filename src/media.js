@@ -1,5 +1,30 @@
 import { spawn } from 'node:child_process';
-import ffmpegPath from 'ffmpeg-static';
+import ffmpegStatic from 'ffmpeg-static';
+
+// FFMPEG_PATH: an ffmpeg built with GPU encoding (the GPU worker image); otherwise the bundled one.
+const ffmpegPath = process.env.FFMPEG_PATH || ffmpegStatic;
+
+// Which H.264 encoder to use: libx264 (CPU, default), h264_nvenc (NVIDIA GPUs: dozens of exports per
+// GPU) or h264_videotoolbox (Macs). Same quality targets, encoder-specific flags.
+const ENCODER = process.env.VIDEO_ENCODER || 'libx264';
+
+/**
+ * Encoder flags for a quality: `crf` (constant quality, lower is better), or a `bitrate` in Mbps.
+ * `fast` trades quality for speed (the editor's previews). `gop` sets a keyframe interval.
+ */
+export function videoArgs({ crf = 18, bitrate, fast = false, gop, encoder = ENCODER } = {}) {
+  const keys = gop ? ['-g', String(gop), '-keyint_min', String(gop)] : [];
+  if (encoder === 'h264_nvenc') {
+    const rate = bitrate ? ['-rc', 'vbr', '-b:v', `${bitrate}M`, '-maxrate', `${bitrate}M`, '-bufsize', `${bitrate * 2}M`] : ['-rc', 'vbr', '-cq', String(crf + 2), '-b:v', '0'];
+    return ['-c:v', 'h264_nvenc', '-preset', fast ? 'p1' : 'p5', '-tune', fast ? 'll' : 'hq', ...rate, ...keys];
+  }
+  if (encoder === 'h264_videotoolbox') {
+    const rate = bitrate ? ['-b:v', `${bitrate}M`] : ['-q:v', String(Math.max(1, Math.min(100, 100 - crf * 2)))];
+    return ['-c:v', 'h264_videotoolbox', ...rate, ...keys];
+  }
+  const rate = bitrate ? ['-b:v', `${bitrate}M`, '-maxrate', `${bitrate}M`, '-bufsize', `${bitrate * 2}M`] : ['-crf', String(crf)];
+  return ['-c:v', 'libx264', '-preset', fast ? 'ultrafast' : 'veryfast', ...rate, ...keys, ...(fast ? ['-threads', '2'] : [])];
+}
 
 export const SAMPLE_RATE = 16000;
 
@@ -119,7 +144,7 @@ export async function joinTakes(inputs, output, { flips = [], blend = false, onP
       '-filter_complex', parts.join(';'),
       '-map', '[v]', '-map', '[a]',
       // A keyframe every 15 frames keeps seeking in the editor instant (the default is ~250).
-      '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '18', '-g', '15', '-keyint_min', '15',
+      ...videoArgs({ crf: 18, gop: 15 }),
       '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart',
       output,
     ],
@@ -297,10 +322,7 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     parts.push(`[vc]subtitles='${esc(subtitles)}':force_style='${style}'[vs]`);
     vOut = '[vs]';
   }
-  const quality = bitrate ? ['-b:v', `${bitrate}M`, '-maxrate', `${bitrate}M`, '-bufsize', `${bitrate * 2}M`] : ['-crf', '18'];
-  const video = fast
-    ? ['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-g', '15', '-threads', '2']
-    : ['-c:v', 'libx264', '-preset', 'veryfast', ...quality];
+  const video = fast ? videoArgs({ crf: 28, gop: 15, fast: true }) : videoArgs({ crf: 18, bitrate });
   await run([
     '-y', '-i', input,
     ...extra,

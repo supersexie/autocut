@@ -31,6 +31,8 @@ import path from 'node:path';
 import { accountFrom, authEnabled, deleteAuthUser, LOCAL_USER, planOf, plansOf, setPlanFrom } from './auth.js';
 import { effectivePlan, revenueCatChange, verifyWhop, whopChange, whopCheckout } from './billing.js';
 import { openDb } from './db.js';
+import { attachLive } from './live.js';
+import { openQueue } from './queue.js';
 import { parseClips, parseRender, PREVIEW_KEY, previewKey } from './edits.js';
 import { legalPage, TERMS_VERSION } from './legal.js';
 import { rulesFor } from './plans.js';
@@ -52,6 +54,10 @@ const UPLOAD = /^[0-9a-f-]{36}\.(mov|mp4|jpg|png|mp3|m4a|wav|aac)$/;
 
 if (!process.env.DATABASE_URL) console.warn('No DATABASE_URL: using a local database in', path.join(DATA, 'db'), '(one server only).');
 const db = await openDb({ dir: path.join(DATA, 'db') });
+// The job list and live progress: Redis when REDIS_URL is set (AWS ElastiCache, for very large
+// scale), else Postgres (the tasks table).
+const queue = await openQueue({ db });
+console.log(`Job list: ${queue.kind}`);
 const storage = await openStorage({ dir: path.join(DATA, 'blobs') });
 if (storage.kind === 'local') console.warn('No R2_* settings: videos are kept on this machine in', storage.root);
 // Checked once at start, and shown on /health, so a wrong key shows up right away (not on the first upload).
@@ -71,6 +77,15 @@ if (process.env.DEEPGRAM_API_KEY) {
     })
     .catch((e) => console.log(`Deepgram check FAILED: ${e.message}`));
 }
+checks.encoder = process.env.VIDEO_ENCODER || 'libx264';
+if (process.env.ASR_URL) {
+  fetch(`${process.env.ASR_URL.replace(/\/$/, '')}/health`, { signal: AbortSignal.timeout(10_000) })
+    .then(async (r) => {
+      checks.asrOk = r.ok;
+      console.log(r.ok ? `Speech-to-text check: ${JSON.stringify(await r.json())}` : `Speech-to-text check FAILED: HTTP ${r.status}`);
+    })
+    .catch((e) => ((checks.asrOk = false), console.log(`Speech-to-text check FAILED: ${e.message}`)));
+}
 
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
@@ -80,8 +95,16 @@ const send = (res, status, body) => {
 // The address the phone used to reach us, for signed links when videos are kept on this machine.
 const baseOf = (req) => `${req.headers['x-forwarded-proto'] ?? 'http'}://${req.headers['x-forwarded-host'] ?? req.headers.host}`;
 
-/** A cut as the app sees it (the waveform has its own route; storage keys stay private). */
-function publicCut(c) {
+/**
+ * A cut as the app sees it (the waveform has its own route; storage keys stay private). `live` is
+ * the job list's in-flight view (Redis), which is newer than the row while a job runs.
+ */
+function publicCut(c, live = null) {
+  const done = ['ready', 'failed', 'stopped'].includes(c.stage);
+  if (live && !done) {
+    c = { ...c, stage: live.stage ?? c.stage, progress: live.progress ?? c.progress };
+  }
+  if (live?.render && c.render?.id === live.render.id && !['ready', 'failed'].includes(c.render.stage)) c = { ...c, render: { ...c.render, ...live.render } };
   const result = c.result ?? {};
   const { waveform, ...found } = result;
   // A scheduled cut whose time has come is waiting for a free worker.
@@ -201,14 +224,16 @@ async function createCut(req, res, url, userId) {
   };
   await db.createCut({ id, userId, stage: scheduled ? 'scheduled' : 'queued', takes: keys.length, at: scheduled ? at : null, run });
   await db.addUse(userId, 1); // counted now, so edits started together can't slip past the limit
-  await db.addTask({ cutId: id, kind: 'cut', runAt: scheduled ? at : undefined });
+  await queue.addTask({ cutId: id, kind: 'cut', runAt: scheduled ? at : undefined });
   send(res, 201, { id });
 }
 
 async function stopCut(res, cut) {
   if (!['ready', 'failed', 'stopped'].includes(cut.stage)) {
     await db.updateCut(cut.id, { stage: 'stopped', error: 'You stopped this cut.', run: null });
-    await db.stopTasks(cut.id, 'cut');
+    await queue.stopTasks(cut.id, 'cut');
+    await queue.markStopped(cut.id);
+    queue.publish(cut.id, { stage: 'stopped' });
     await db.addUse(cut.user_id, -1); // a stopped cut doesn't use up an edit
     cut = await db.getCut(cut.id);
   }
@@ -243,7 +268,8 @@ async function createRender(req, res, cut, userId) {
   }
   const renderId = randomUUID();
   await db.updateCut(cut.id, { render: { id: renderId, stage: 'queued', progress: 0 } });
-  await db.addTask({ cutId: cut.id, kind: 'render', payload: { renderId, edit: parsed.edit, music, overlays }, priority: 2 });
+  await queue.addTask({ cutId: cut.id, kind: 'render', payload: { renderId, edit: parsed.edit, music, overlays }, priority: 2 });
+  queue.publish(cut.id, { render: { id: renderId, stage: 'queued', progress: 0 } });
   send(res, 201, { renderId });
 }
 
@@ -252,7 +278,7 @@ async function createRender(req, res, cut, userId) {
 // its previews still waiting.
 async function previewStage(cut, key) {
   if ((await storage.size(cutKey(cut.user_id, cut.id, previewName(key)))) !== null) return 'ready';
-  const task = await db.taskFor(cut.id, 'preview', key);
+  const task = await queue.taskFor(cut.id, 'preview', key);
   return task && ['queued', 'running'].includes(task.status) ? 'rendering' : 'failed';
 }
 
@@ -270,8 +296,8 @@ async function createPreview(req, res, cut) {
   const stage = await previewStage(cut, key);
   if (stage === 'ready') return send(res, 200, { key, stage });
   if (stage === 'failed') {
-    await db.dropWaitingPreviews(cut.id);
-    await db.addTask({ cutId: cut.id, kind: 'preview', payload: { key, clips }, priority: 10 });
+    await queue.dropWaitingPreviews(cut.id);
+    await queue.addTask({ cutId: cut.id, kind: 'preview', payload: { key, clips }, priority: 10 });
   }
   send(res, 202, { key, stage: 'rendering' });
 }
@@ -402,7 +428,13 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://local');
     const [root, id, action] = url.pathname.split('/').filter(Boolean);
-    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, role: ROLE, ...checks, ...(await db.queueStats()) });
+    // Jobs waiting and running for a pool (KEDA sizes the worker pools from this on AWS). Counts only.
+    if (req.method === 'GET' && root === 'queue' && !id) {
+      const kinds = (url.searchParams.get('kinds') ?? 'cut,render,preview').split(',').filter((k) => ['cut', 'render', 'preview'].includes(k));
+      const load = await queue.load(kinds.length ? kinds : ['cut', 'render', 'preview']);
+      return send(res, 200, { ...load, load: load.queued + load.running });
+    }
+    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, role: ROLE, ...checks, ...(await queue.stats()) });
     if (ROLE === 'worker') return send(res, 404, { error: 'Not found' });
     if (req.method === 'GET' && (root === 'privacy' || root === 'terms') && !id) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' });
@@ -432,7 +464,7 @@ const server = http.createServer(async (req, res) => {
     if (root === 'cuts' && id) {
       const cut = await loadCut(id, userId);
       if (!cut) return send(res, 404, { error: 'No cut with that id.' });
-      if (req.method === 'GET' && !action) return send(res, 200, publicCut(cut));
+      if (req.method === 'GET' && !action) return send(res, 200, publicCut(cut, await queue.live(cut.id)));
       if (req.method === 'POST' && action === 'stop') return await stopCut(res, cut);
       if (req.method === 'POST' && action === 'render') return await createRender(req, res, cut, userId);
       if (req.method === 'POST' && action === 'preview') return await createPreview(req, res, cut);
@@ -468,11 +500,11 @@ if (ROLE === 'worker' || ROLE === 'all') {
   // WORKER_KINDS splits workers into pools: "cut" (mostly waiting on Deepgram, so many at once) and
   // "render,preview" (ffmpeg, about one per two CPU cores). Unset: every kind.
   const kinds = (process.env.WORKER_KINDS ?? '').split(',').map((k) => k.trim()).filter((k) => ALL_KINDS.includes(k));
-  worker = startWorker({ db, storage, concurrency: CONCURRENCY, kinds: kinds.length ? kinds : ALL_KINDS, workDir: path.join(DATA, 'work') });
+  worker = startWorker({ db, queue, storage, concurrency: CONCURRENCY, kinds: kinds.length ? kinds : ALL_KINDS, workDir: path.join(DATA, 'work') });
   console.log(`Worker ${worker.name} taking ${kinds.length ? kinds.join(' and ') : 'all'} jobs (${CONCURRENCY} at a time)`);
 }
 if (ROLE === 'api' || ROLE === 'all') {
-  const scaler = startScaler({ db });
+  const scaler = startScaler({ db: queue });
   if (scaler) checks.scaler = scaler.status;
   else if (process.env.RAILWAY_API_TOKEN || process.env.SCALE_POOLS) {
     // Half set up: say what's missing (names only, never values).
@@ -480,19 +512,27 @@ if (ROLE === 'api' || ROLE === 'all') {
     checks.scaler = { off: missing.length ? `missing ${missing.join(', ')}` : 'SCALE_POOLS has no valid pools (format: cut=<serviceId>:16:1:3,render=<serviceId>:4:1:3)' };
   }
 }
-// Which commit is running (Railway sets this), so a deploy can be confirmed from /health.
-if (process.env.RAILWAY_GIT_COMMIT_SHA) checks.version = process.env.RAILWAY_GIT_COMMIT_SHA.slice(0, 7);
-// Railway stops a copy with SIGTERM (a deploy, or the scaler removing it): finish or hand back its jobs.
+// Which commit is running (Railway sets RAILWAY_GIT_COMMIT_SHA; on AWS the deploy script sets GIT_SHA),
+// so a deploy can be confirmed from /health.
+const sha = process.env.RAILWAY_GIT_COMMIT_SHA || process.env.GIT_SHA;
+if (sha) checks.version = sha.slice(0, 7);
+// Railway or Kubernetes stops a copy with SIGTERM (a deploy, or scaling down): running jobs get
+// DRAIN_SECONDS to finish (default 20), then the rest are handed back to the list.
 process.once('SIGTERM', async () => {
   console.log('Shutting down');
   server.close();
-  await worker?.drain().catch((err) => console.error('drain', err.message));
+  await worker?.drain(Math.max(0, Number(process.env.DRAIN_SECONDS ?? 20)) * 1000).catch((err) => console.error('drain', err.message));
+  await queue.close().catch(() => {});
   await db.close().catch(() => {});
   process.exit(0);
 });
 // Every server keeps an eye out for jobs whose worker died, and puts them back on the list.
-setInterval(() => sweep(db).catch((err) => console.error('sweep', err.message)), 30_000).unref();
+setInterval(() => sweep(db, queue).catch((err) => console.error('sweep', err.message)), 30_000).unref();
 if (!authEnabled) console.warn('Auth is off (no SUPABASE_URL): every request runs as one local user. Fine for development only.');
+if (ROLE !== 'worker') {
+  const live = attachLive(server, { queue, db, accountFrom });
+  Object.defineProperty(checks, 'liveConnections', { enumerable: true, get: live.connections });
+}
 server.listen(PORT, '0.0.0.0', () => {
   const lan = Object.values(os.networkInterfaces()).flat().find((i) => i?.family === 'IPv4' && !i.internal)?.address;
   console.log(`Autocut ${ROLE} on http://localhost:${PORT}${lan ? `  (phone: http://${lan}:${PORT})` : ''}`);

@@ -1,0 +1,68 @@
+# The machines Karpenter may start. It picks the cheapest that fit the waiting pods, uses spot
+# (spare capacity) where it can and on-demand when spot runs out, and removes machines once empty.
+apiVersion: karpenter.k8s.aws/v1
+kind: EC2NodeClass
+metadata:
+  name: default
+spec:
+  amiSelectorTerms:
+    - alias: al2023@latest # the GPU (NVIDIA) version is used on GPU machines automatically
+  role: autocut-karpenter-node # var.name + "-karpenter-node" in Terraform
+  subnetSelectorTerms:
+    - tags: { karpenter.sh/discovery: autocut }
+  securityGroupSelectorTerms:
+    - tags: { karpenter.sh/discovery: autocut }
+  blockDeviceMappings:
+    - deviceName: /dev/xvda
+      ebs: { volumeSize: 200Gi, volumeType: gp3, iops: 6000, throughput: 500, encrypted: true }
+---
+# API servers and cut workers.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: cpu
+spec:
+  template:
+    metadata:
+      labels: { autocut/pool: cpu }
+    spec:
+      nodeClassRef: { group: karpenter.k8s.aws, kind: EC2NodeClass, name: default }
+      requirements:
+        - { key: kubernetes.io/arch, operator: In, values: [amd64] }
+        - { key: karpenter.sh/capacity-type, operator: In, values: [spot, on-demand] }
+        - { key: karpenter.k8s.aws/instance-category, operator: In, values: [c, m] }
+        - { key: karpenter.k8s.aws/instance-generation, operator: Gt, values: ["5"] }
+        - { key: karpenter.k8s.aws/instance-cpu, operator: In, values: ["8", "16", "32", "48", "64"] }
+      expireAfter: 720h
+  limits:
+    cpu: "200000" # keep within your EC2 vCPU quota
+  disruption:
+    consolidationPolicy: WhenEmptyOrUnderutilized
+    consolidateAfter: 5m
+---
+# GPU machines: exports (NVENC) and speech-to-text. Only pods that ask for a GPU land here.
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu
+spec:
+  template:
+    metadata:
+      labels: { autocut/pool: gpu, autocut/gpu: "true" }
+    spec:
+      nodeClassRef: { group: karpenter.k8s.aws, kind: EC2NodeClass, name: default }
+      taints:
+        - { key: nvidia.com/gpu, value: "true", effect: NoSchedule }
+      requirements:
+        - { key: kubernetes.io/arch, operator: In, values: [amd64] }
+        - { key: karpenter.sh/capacity-type, operator: In, values: [spot, on-demand] }
+        # L4 (g6), A10G (g5), L40S (g6e), T4 (g4dn): all have NVENC and run Whisper well.
+        - { key: karpenter.k8s.aws/instance-family, operator: In, values: [g6, g5, g6e, g4dn] }
+        # One GPU per pod; machines with 4 or 8 GPUs hold that many pods (fewer machines to run).
+        - { key: karpenter.k8s.aws/instance-gpu-count, operator: In, values: ["1", "4", "8"] }
+      expireAfter: 720h
+  limits:
+    nvidia.com/gpu: "10000" # keep within your G-instance quota
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 5m

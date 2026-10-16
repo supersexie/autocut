@@ -17,7 +17,7 @@ export async function openDb({ url = process.env.DATABASE_URL, dir } = {}) {
   let query, close;
   if (url) {
     const { default: pg } = await import('pg');
-    const pool = new pg.Pool({ connectionString: url, max: Number(process.env.DB_POOL ?? 3), ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false } });
+    const pool = new pg.Pool({ connectionString: url, max: Number(process.env.DB_POOL ?? 3), ssl: /localhost|127\.0\.0\.1|sslmode=disable/.test(url) ? false : { rejectUnauthorized: false } });
     query = (text, params) => pool.query(text, params);
     close = () => pool.end();
   } else {

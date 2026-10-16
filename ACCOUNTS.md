@@ -261,6 +261,14 @@ company is sold, Whop payments, cancelling and refunds). They're served by the A
 
 ---
 
+## Later: AWS (for very large numbers at once)
+
+Not needed for launch. When Railway's limits are reached, AWS.md has the full setup. Accounts it adds:
+an **AWS account** (in his name, with MFA; he requests the EC2 GPU and CPU quota increases on day one),
+and a domain he can add DNS records to (for `api.yourdomain.com`). The keys above all carry over
+unchanged; AWS.md §4 lists the few new settings (`REDIS_URL`, `SUPABASE_DATABASE_URL`, and a
+`DATABASE_URL` pointing at PgBouncer).
+
 ## 6. Done? Quick end-to-end check
 
 1. `/health` looks like section 3's check.

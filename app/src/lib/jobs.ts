@@ -1,5 +1,6 @@
 import { File } from 'expo-file-system';
 import { createCut, download, getJob, getWaveform, ServerUnreachable, stopJob, uploadTake } from './api';
+import { nextChange } from './live';
 import { addCut, cutFile, getCut, getCuts, getSettings, updateCut, type Clip, type CutRecord, type Word } from './store';
 import { sleep } from './theme';
 
@@ -143,9 +144,11 @@ export async function track(id: string) {
         continue;
       }
       updateCut(id, { stage: job.stage, progress: job.progress ?? 0 });
-      // Often enough for the progress bar (it animates between readings), rare enough that thousands
-      // of phones cutting at once don't swamp the server.
-      await sleep(1500);
+      // Wait for the server to push a change (live), or check again in 1.5 s if the connection is
+      // down. Pushed progress goes straight to the bar; a new stage is fetched in full.
+      for (let e; (e = await nextChange(record.serverId, 1500)) && e.stage === job.stage && e.progress !== undefined; ) {
+        updateCut(id, { stage: job.stage, progress: e.progress });
+      }
     }
   } catch (e) {
     updateCut(id, { status: 'failed', error: message(e) });

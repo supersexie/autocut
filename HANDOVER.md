@@ -368,7 +368,7 @@ ever taking another's, and Railway can add and remove copies automatically.
    **Transaction pooler** (port 6543) and raise the Supabase compute size if it reports "max client connections".
 4. **Sign-in checks**: in Supabase → Project Settings → **JWT Keys**, move to the new asymmetric signing keys
    if offered, so the server verifies tokens itself instead of asking Supabase on every request.
-5. **The app** checks a cut's progress every 1.5 s (not faster), and downloads videos straight from R2.
+5. **The app** gets progress pushed over a WebSocket (`/live`), falls back to checking every 1.5 s if that's down, and downloads videos straight from R2.
 
 ### What it runs today (October 2026)
 
@@ -389,6 +389,18 @@ flight, which clears them in about a minute), and 1,000 exports at once ≈ 170 
 four times Railway's 42-copy cap per service, so it needs four render services (or people wait longer). Sustained, that's
 tens of thousands of dollars a month of CPU; with autoscaling you pay for the peaks only. The biggest saving
 at that size is moving exports onto the phone (below).
+
+### Past Railway: AWS (built, ready to set up)
+
+For tens of thousands to 100,000 jobs at once, everything is ready to run on AWS: Kubernetes (EKS)
+with machines started on demand (Karpenter), workers sized by the job list (KEDA), Redis for the job
+list and live progress, exports encoded on NVIDIA GPUs, and our own GPU speech-to-text (Whisper
+large-v3) with Deepgram as the backup. Setup, sizing and the AWS limits to raise on day one are in
+**AWS.md**. Nothing changes on Railway until `REDIS_URL` is set.
+
+Live progress: the app now holds one WebSocket (`/live`) and gets each stage the moment it changes,
+instead of asking every 1.5 s. If the connection drops it falls back to asking, so it works on
+Railway too (Railway mode pushes changes within the same server).
 
 ### Before a big launch
 

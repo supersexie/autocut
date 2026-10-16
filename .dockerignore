@@ -14,3 +14,7 @@ tests
 .git
 *.md
 expo-qr.png
+asr/__pycache__
+infra
+site
+design

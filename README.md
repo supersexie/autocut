@@ -15,7 +15,7 @@ the test list and what's left to do.
 | Folder | What it is |
 |---|---|
 | `app/` | **The app** (frontend). Expo SDK 57, React Native, Expo Router. Screens in `app/src/app/`, components in `app/src/components/`, logic in `app/src/lib/`. |
-| `src/` | **The server** (backend). Node. An API (`server.js`) and any number of workers (`worker.js`) sharing a Postgres job list (Supabase) and video storage (Cloudflare R2); transcribes with Deepgram, finds the cuts, renders exports with ffmpeg. Runs on Railway. API listed at the top of `src/server.js`. |
+| `src/` | **The server** (backend). Node. An API (`server.js`) and any number of workers (`worker.js`) sharing a job list (Postgres on Supabase, or Redis at very large scale) and video storage (Cloudflare R2); transcribes with Deepgram, finds the cuts, renders exports with ffmpeg. Runs on Railway. API listed at the top of `src/server.js`. |
 | `tests/`, `app/tests/` | Server and app tests. |
 | `supabase/migrations/` | The database tables (run once in Supabase). |
 | `.env.example` | Every server setting. |
@@ -25,6 +25,8 @@ the test list and what's left to do.
 | `design/App Store/` | App Store screenshots, iPhone 6.9" and iPad 13", numbered in upload order. |
 | `design/Legal/` | Previews of the privacy policy and terms. |
 | `Dockerfile`, `railway.json` | How the server is built and deployed. |
+| `AWS.md`, `infra/`, `Dockerfile.gpu`, `asr/` | The setup for 100,000 jobs at once on AWS (Kubernetes, GPU exports, our own GPU speech-to-text, Redis job list). Ready, not in use yet. |
+| `site/` | The website that sends people to the App Store (static). |
 | `ios/`, `prototype/` | Old prototypes. Not used. |
 
 ## Run it

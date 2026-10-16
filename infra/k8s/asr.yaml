@@ -1,0 +1,58 @@
+# Speech-to-text on GPUs (asr/): the cut workers send it each take's audio.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asr
+  namespace: autocut
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: asr } }
+  template:
+    metadata:
+      labels: { app: asr }
+    spec:
+      terminationGracePeriodSeconds: 120
+      nodeSelector: { autocut/gpu: "true" }
+      tolerations:
+        - { key: nvidia.com/gpu, operator: Exists, effect: NoSchedule }
+      containers:
+        - name: asr
+          image: autocut-asr
+          env:
+            - { name: ASR_PARALLEL, value: "4" }
+          ports: [{ containerPort: 8000 }]
+          resources:
+            requests: { cpu: "3", memory: 12Gi }
+            limits: { memory: 16Gi, nvidia.com/gpu: "1" }
+          readinessProbe:
+            httpGet: { path: /health, port: 8000 }
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asr
+  namespace: autocut
+spec:
+  selector: { app: asr }
+  ports: [{ port: 80, targetPort: 8000 }]
+---
+# Listening is a short part of each cut, so one GPU keeps up with many cuts; start at one per 24
+# cuts and tune from /health "busy" on the asr pods.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: asr
+  namespace: autocut
+spec:
+  scaleTargetRef: { name: asr }
+  minReplicaCount: 1
+  maxReplicaCount: 5000
+  pollingInterval: 10
+  cooldownPeriod: 300
+  triggers:
+    - type: metrics-api
+      metadata:
+        url: http://api.autocut.svc.cluster.local/queue?kinds=cut
+        valueLocation: load
+        targetValue: "24"

@@ -1,0 +1,56 @@
+# Thousands of worker copies each holding database connections would swamp Supabase. They connect
+# here instead (DATABASE_URL → pgbouncer, transaction mode), and these few copies share a small
+# number of real connections to Supabase's session pooler (SUPABASE_DATABASE_URL).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgbouncer
+  namespace: autocut
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: pgbouncer } }
+  template:
+    metadata:
+      labels: { app: pgbouncer }
+    spec:
+      topologySpreadConstraints:
+        - { maxSkew: 1, topologyKey: topology.kubernetes.io/zone, whenUnsatisfiable: ScheduleAnyway, labelSelector: { matchLabels: { app: pgbouncer } } }
+      containers:
+        - name: pgbouncer
+          image: edoburu/pgbouncer:v1.25.2-p0
+          env:
+            - name: DATABASE_URL
+              valueFrom: { secretKeyRef: { name: autocut-env, key: SUPABASE_DATABASE_URL } }
+            - { name: POOL_MODE, value: transaction }
+            - { name: AUTH_TYPE, value: scram-sha-256 }
+            - { name: SERVER_TLS_SSLMODE, value: require }
+            - { name: MAX_CLIENT_CONN, value: "50000" }
+            # Real connections to Supabase per copy (× 3 copies): keep under the compute size's limit.
+            - { name: DEFAULT_POOL_SIZE, value: "60" }
+            - { name: MAX_DB_CONNECTIONS, value: "80" }
+            - { name: LISTEN_PORT, value: "5432" }
+          ports: [{ containerPort: 5432 }]
+          resources:
+            requests: { cpu: "1", memory: 512Mi }
+            limits: { memory: 1Gi }
+          readinessProbe:
+            tcpSocket: { port: 5432 }
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pgbouncer
+  namespace: autocut
+spec:
+  selector: { app: pgbouncer }
+  ports: [{ port: 5432, targetPort: 5432 }]
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: pgbouncer
+  namespace: autocut
+spec:
+  minAvailable: 2
+  selector: { matchLabels: { app: pgbouncer } }
