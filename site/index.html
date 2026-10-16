@@ -15,7 +15,7 @@
 <link rel="apple-touch-icon" href="media/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter+Tight:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter+Tight:wght@700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --ink: #111114; --muted: #6B6B73; --faint: #A1A1A8; --line: #E4E4E8;
@@ -31,7 +31,6 @@
   button { font: inherit; color: inherit; cursor: pointer; }
   .wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
   .h { text-wrap: balance; font-family: "Inter Tight", Inter, sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; margin: 0; }
-  .eyebrow { font: 600 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .muted { color: var(--muted); }
   section { padding: 96px 0; }
 
@@ -59,8 +58,8 @@
 
   /* ---------- Hero ---------- */
   .hero { background: var(--wash); padding: 48px 0 64px; position: relative; overflow: hidden; }
-  .hero::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
-  .hero .wrap { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
+  .hero::before { z-index: 0; content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
+  .hero .wrap { position: relative; z-index: 1; display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
   .pill { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: #fff; box-shadow: 0 1px 0 rgba(17,17,20,.04), inset 0 0 0 1px var(--line); font-weight: 600; font-size: 14px; }
   .hero h1 { font-size: clamp(46px, 7.2vw, 88px); margin: 22px 0 18px; }
   .hero h1 .soft { color: var(--faint); display: block; }
@@ -209,6 +208,15 @@
   .plan.pick .btn { background: #fff; color: var(--ink); box-shadow: none; }
   .fine { text-align: center; font-size: 14px; color: var(--muted); margin-top: 28px; }
   @media (max-width: 920px) { .plans { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; } .plan.pick { transform: none; } }
+  @media (max-width: 760px) {
+    .plans { display: flex; max-width: none; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)); padding: 6px var(--gutter) 6px; scrollbar-width: none; }
+    .plans::-webkit-scrollbar { display: none; }
+    .plan { flex: 0 0 84%; scroll-snap-align: center; opacity: 1 !important; transform: none !important; }
+    .plan { padding: 26px 24px; }
+    .price { font-size: 44px; white-space: nowrap; }
+    .plan li { font-size: 14.5px; }
+    .dots { display: flex; }
+  }
 
   /* ---------- FAQ ---------- */
   .faq { max-width: 780px; margin: 0 auto; }
@@ -238,10 +246,114 @@
   .sticky .btn { width: 100%; }
   @media (max-width: 760px) { .sticky { display: block; } footer { padding-bottom: 120px; } }
 
+  /* ---------- Mono labels (editor feel) ---------- */
+  .mono, .eyebrow { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase; }
+  .eyebrow { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); }
+  .eyebrow::before { content: ""; width: 6px; height: 6px; border-radius: 2px; background: var(--ink); }
+  .calc .eyebrow::before { background: #fff; }
+
+  /* ---------- Section rhythm: hairlines and alternating panels ---------- */
+  main > section { border-top: 1px solid rgba(17,17,20,.07); padding: 104px 0; }
+  .panel { background: #F5F5F7; background-image: linear-gradient(rgba(17,17,20,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.03) 1px, transparent 1px); background-size: 64px 64px; }
+
+  /* ---------- Hero extras ---------- */
+  .pills { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; }
+  .pill.proof { height: 40px; padding: 0 16px 0 5px; gap: 10px; font-weight: 500; }
+  .stack { display: flex; }
+  .stack i { width: 30px; height: 30px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; border: 2px solid #fff; margin-left: -8px; }
+  .stack i:first-child { margin-left: 0; }
+  .stack i:nth-child(2) { background: #3A3A3F; } .stack i:nth-child(3) { background: #6B6B73; }
+  .pill.small { height: 30px; padding: 0 12px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,.6); }
+  .ghosts { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
+  .ghost-row { position: absolute; left: 0; display: flex; gap: 18px; width: max-content; animation: drift 70s linear infinite; }
+  .ghost-row.r2 { animation-direction: reverse; animation-duration: 85s; }
+  .ghost { display: inline-flex; align-items: center; gap: 10px; padding: 14px 18px; border-radius: 16px; background: rgba(255,255,255,.45); box-shadow: inset 0 0 0 1px rgba(17,17,20,.05); color: rgba(17,17,20,.16); font: 600 15px/1 "JetBrains Mono", ui-monospace, monospace; white-space: nowrap; }
+  .ghost s { text-decoration-thickness: 2px; }
+  @keyframes drift { to { transform: translateX(-50%); } }
+  .btn-glow { position: relative; overflow: hidden; box-shadow: 0 0 0 1px rgba(17,17,20,.9), 0 14px 34px rgba(17,17,20,.28), 0 0 44px rgba(17,17,20,.12); }
+  .btn-glow::after { content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent); transform: skewX(-18deg); animation: shine 4.5s ease-in-out infinite; }
+  @keyframes shine { 0%, 60% { left: -60%; } 100% { left: 130%; } }
+  .textlink { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; color: var(--muted); height: 56px; padding: 0 6px; }
+  .textlink i { width: 34px; height: 34px; border-radius: 50%; background: #fff; display: grid; place-items: center; box-shadow: inset 0 0 0 1px var(--line); transition: transform .2s; }
+  .textlink:hover { color: var(--ink); } .textlink:hover i { transform: scale(1.08); }
+
+  /* ---------- Showcase controls ---------- */
+  .tagline { position: absolute; z-index: 3; left: calc(var(--w) * .06); top: calc(var(--w) * .17); padding: 6px 9px; border-radius: 7px; background: rgba(0,0,0,.5); color: #fff; backdrop-filter: blur(6px); font: 600 10.5px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; }
+  .controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 34px; color: var(--muted); flex-wrap: wrap; }
+  .controls button { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: #fff; box-shadow: inset 0 0 0 1px var(--line); font: 600 11.5px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+
+  /* ---------- Comparison table ---------- */
+  .compare { max-width: 980px; margin: 0 auto; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 0 rgba(17,17,20,.04); }
+  .compare table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .compare th, .compare td { padding: 18px 22px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); font-size: 15.5px; }
+  .compare thead th { border-top: 0; padding-top: 24px; font-family: "Inter Tight", sans-serif; font-size: 20px; letter-spacing: -.02em; }
+  .compare tbody th { font: 600 11.5px/1.4 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 21px; }
+  .compare td { color: var(--muted); }
+  .compare .us { background: var(--ink); color: #fff; }
+  .compare td.us { color: #fff; font-weight: 600; }
+  .compare thead .us { border-radius: 0; }
+  .compare tfoot td { border-top: 1px solid var(--line); font: 600 12px/1.4 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; }
+  .compare .us-lead { display: inline-flex; align-items: center; gap: 8px; }
+  .compare .us-lead img { width: 22px; height: 22px; border-radius: 6px; }
+  @media (max-width: 700px) {
+    .compare { border-radius: 22px; }
+    .compare th, .compare td { padding: 14px 10px; font-size: 13.5px; }
+    .compare thead th { font-size: 15px; }
+    .compare tbody th { font-size: 9.5px; letter-spacing: .05em; }
+    .compare colgroup col:first-child { width: 24%; }
+    .compare .us-lead img { display: none; }
+  }
+
+  /* ---------- Pricing extras ---------- */
+  .plan .for { font-size: 14px; color: var(--muted); margin: 2px 0 18px; }
+  .plan.pick .for { color: #A1A1A8; }
+  .wasline { font-size: 15px; color: var(--faint); min-height: 22px; margin-bottom: 2px; }
+  .wasline s { text-decoration-thickness: 1.5px; }
+  .plan.pick .wasline { color: #6B6B73; }
+  .price s { font-family: Inter, sans-serif; font-size: 20px; font-weight: 500; color: var(--faint); letter-spacing: 0; margin-left: 8px; text-decoration-thickness: 1.5px; }
+  .plan.pick .price s { color: #6B6B73; }
+  .dots { display: none; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; }
+  .dots button { width: 8px; height: 8px; border-radius: 99px; border: 0; padding: 0; background: #C9C9D0; transition: width .25s, background .25s; }
+  .dots button.on { width: 22px; background: var(--ink); }
+  .dots .label { margin-left: 8px; color: var(--muted); }
+  @media (max-width: 760px) { .dots { display: flex; } }
+
+  /* ---------- FAQ tabs ---------- */
+  .faq-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
+  .tabs { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line); }
+  .tabs button { height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 14.5px; color: var(--muted); }
+  .tabs button.on { background: var(--ink); color: #fff; }
+  .contact { font-weight: 600; font-size: 14.5px; display: inline-flex; gap: 6px; align-items: center; }
+  details[hidden] { display: none; }
+
+  /* ---------- Mobile menu ---------- */
+  .menu-btn { display: none; width: 42px; height: 42px; border-radius: 12px; border: 0; background: #fff; box-shadow: inset 0 0 0 1px var(--line); place-items: center; }
+  .sheet { position: fixed; inset: 64px 0 auto 0; z-index: 29; background: rgba(250,250,251,.97); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); padding: 8px var(--gutter) 20px; display: grid; gap: 4px; transform: translateY(-12px); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; }
+  .sheet.open { opacity: 1; transform: none; pointer-events: auto; }
+  .sheet a:not(.btn) { padding: 14px 4px; font-size: 18px; font-weight: 600; border-bottom: 1px solid var(--line); }
+  .sheet .btn { margin-top: 12px; }
+  @media (max-width: 760px) {
+    .links .btn { display: none; }
+    .menu-btn { display: grid; }
+    main > section { padding: 76px 0; }
+    .pills { align-items: center; }
+    .pill.proof { font-size: 13.5px; white-space: nowrap; }
+    .ghost { font-size: 13px; padding: 11px 14px; color: rgba(17,17,20,.11); }
+    .ghost-row.r2 { display: none; }
+  }
+
+  /* ---------- Footer columns ---------- */
+  footer .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 36px; width: 100%; }
+  footer h4 { margin: 0 0 14px; color: #fff; font: 600 11.5px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .1em; text-transform: uppercase; }
+  footer .col a { display: block; padding: 5px 0; }
+  footer .blurb { margin: 14px 0 0; max-width: 300px; line-height: 1.55; }
+  footer .base { width: 100%; border-top: 1px solid #2A2A2E; margin-top: 30px; padding-top: 22px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font: 500 11.5px/1.5 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: #6B6B73; }
+  @media (max-width: 700px) { footer .cols { grid-template-columns: 1fr 1fr; } footer .cols > :first-child { grid-column: 1 / -1; } }
+
   /* Reveal on scroll */
   .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
   .reveal.in { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .marquee, .tag { animation: none; } html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .marquee, .tag, .ghost-row, .btn-glow::after { animation: none; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -252,31 +364,43 @@
     <div class="links">
       <a href="#see-it">See it cut</a>
       <a href="#how">How it works</a>
+      <a href="#compare">Compare</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
       <a class="btn btn-dark store-link" href="#">Get the app</a>
+      <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round"><path d="M1 1h16M1 7h16M1 13h16"/></svg></button>
     </div>
   </div>
 </nav>
+<div class="sheet" id="sheet">
+  <a href="#see-it">See it cut</a>
+  <a href="#how">How it works</a>
+  <a href="#compare">Compare</a>
+  <a href="#pricing">Pricing</a>
+  <a href="#faq">FAQ</a>
+  <a class="btn btn-dark store-link" href="#">Get Autocut on the App Store</a>
+</div>
+<main>
 
 <header class="hero" id="top">
+  <div class="ghosts" aria-hidden="true">
+    <div class="ghost-row" style="top:3%"><span class="ghost"><s>um</s> ✂</span><span class="ghost"><s>dead air · 1.4s</s> ✂</span><span class="ghost"><s>retake</s> ✂</span><span class="ghost"><s>so, uh…</s> ✂</span><span class="ghost"><s>pause · 0.8s</s> ✂</span><span class="ghost"><s>stutter</s> ✂</span><span class="ghost"><s>like, um</s> ✂</span><span class="ghost"><s>dead air · 2.1s</s> ✂</span></div>
+    <div class="ghost-row r2" style="top:auto; bottom:3%"><span class="ghost"><s>wait, let me redo that</s> ✂</span><span class="ghost"><s>uh</s> ✂</span><span class="ghost"><s>pause · 1.1s</s> ✂</span><span class="ghost"><s>retake</s> ✂</span><span class="ghost"><s>okay so</s> ✂</span><span class="ghost"><s>dead air · 0.9s</s> ✂</span><span class="ghost"><s>hmm</s> ✂</span><span class="ghost"><s>take two</s> ✂</span></div>
+  </div>
   <div class="wrap">
     <div>
-      <span class="pill">
-        <svg width="14" height="17" viewBox="0 0 814 1000" aria-hidden="true"><path fill="currentColor" d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-165-40c-77 0-104 41-167 41s-106-57-156-128C42 787-5 657-5 534c0-198 129-303 256-303 67 0 124 44 166 44 40 0 103-47 180-47 29 0 133 3 201 113zM555 158c31-37 53-88 53-139 0-7-1-14-2-20-50 2-110 33-146 75-28 32-55 83-55 135 0 8 1 15 2 18 3 1 9 2 14 2 45 0 102-30 134-71z"/></svg>
-        For iPhone and iPad
-      </span>
+      <div class="pills">
+        <span class="pill proof"><span class="stack" aria-hidden="true"><i><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 17M8.6 16.4 20 7"/></svg></i><i><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 11h4M7 15h7M14 11h3"/></svg></i><i><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></i></span>Cut and captioned in about a minute</span>
+        <span class="pill small"><svg width="11" height="13" viewBox="0 0 814 1000" aria-hidden="true"><path fill="currentColor" d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-165-40c-77 0-104 41-167 41s-106-57-156-128C42 787-5 657-5 534c0-198 129-303 256-303 67 0 124 44 166 44 40 0 103-47 180-47 29 0 133 3 201 113zM555 158c31-37 53-88 53-139 0-7-1-14-2-20-50 2-110 33-146 75-28 32-55 83-55 135 0 8 1 15 2 18 3 1 9 2 14 2 45 0 102-30 134-71z"/></svg> iPhone and iPad</span>
+      </div>
       <h1 class="h">Just talk.<span class="soft">We do the cutting.</span></h1>
       <p class="typer" aria-live="polite">For creators who <b id="typed"></b><span class="caret" aria-hidden="true"></span></p>
       <div class="cta-row">
-        <a class="btn btn-dark store store-link" href="#" aria-label="Download Autocut on the App Store">
+        <a class="btn btn-dark btn-glow store store-link" href="#" aria-label="Download Autocut on the App Store">
           <svg width="24" height="29" viewBox="0 0 814 1000" aria-hidden="true"><path fill="#fff" d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-165-40c-77 0-104 41-167 41s-106-57-156-128C42 787-5 657-5 534c0-198 129-303 256-303 67 0 124 44 166 44 40 0 103-47 180-47 29 0 133 3 201 113zM555 158c31-37 53-88 53-139 0-7-1-14-2-20-50 2-110 33-146 75-28 32-55 83-55 135 0 8 1 15 2 18 3 1 9 2 14 2 45 0 102-30 134-71z"/></svg>
           <span><small>Download on the</small><b>App Store</b></span>
         </a>
-        <a class="btn btn-light" href="#see-it">
-          <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></svg>
-          See it cut
-        </a>
+        <a class="textlink" href="#see-it"><i><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#111114" d="M8 5.5v13l11-6.5z"/></svg></i>See it cut</a>
       </div>
       <div class="note"><span>Dead air, ums and retakes cut</span><span>Every word captioned</span></div>
     </div>
@@ -300,11 +424,11 @@
     <div class="head reveal">
       <div class="eyebrow">See it cut</div>
       <h2 class="h">Raw take in. Tight cut out.</h2>
-      <p>The same take, before and after Autocut. Tap the speaker for sound.</p>
+      <p>The same take, before and after Autocut. Tap one for sound.</p>
     </div>
     <div class="ba reveal">
       <figure>
-        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="badge">Raw take</span>
+        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="tagline">RAW TAKE · 0:25</span>
           <video src="media/raw.mp4" poster="media/raw-poster.jpg" muted loop playsinline preload="none" data-auto></video>
           <button class="sound" aria-label="Play the raw take with sound"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6M17 9l6 6"/></svg></button>
         <div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
@@ -312,17 +436,18 @@
       </figure>
       <div class="arrow" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
       <figure>
-        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="badge">Autocut</span>
+        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="tagline">CUT WITH AUTOCUT</span>
           <video src="media/edited.mp4" poster="media/edited-poster.jpg" muted loop playsinline preload="none" data-auto></video>
           <button class="sound" aria-label="Play the Autocut version with sound"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6M17 9l6 6"/></svg></button>
         <div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
         <figcaption>What you post<small>Tight, captioned, ready</small></figcaption>
       </figure>
     </div>
+    <div class="controls reveal"><span class="mono">Same take · before and after</span><button id="pauseAll" aria-pressed="false"><svg width="10" height="12" viewBox="0 0 10 12" fill="#111114"><rect width="3" height="12" rx="1"/><rect x="7" width="3" height="12" rx="1"/></svg><span>Pause the videos</span></button></div>
   </div>
 </section>
 
-<section id="how" style="padding-top:0">
+<section id="how" class="panel">
   <div class="wrap">
     <div class="head reveal">
       <div class="eyebrow">How it works</div>
@@ -337,7 +462,7 @@
   </div>
 </section>
 
-<section style="padding-top:0">
+<section>
   <div class="wrap">
     <div class="head reveal">
       <div class="eyebrow">Everything you need</div>
@@ -355,7 +480,7 @@
   </div>
 </section>
 
-<section style="padding-top:0">
+<section id="compare" class="panel">
   <div class="wrap">
     <div class="calc reveal">
       <div>
@@ -369,10 +494,28 @@
         <div class="result"><div class="big" id="hours">4.8</div><small>hours back every week · <span id="year">250</span> hours a year</small></div>
       </div>
     </div>
+    <div class="head reveal" style="margin:88px auto 36px">
+      <div class="eyebrow">Compare</div>
+      <h2 class="h">You, an editor, or Autocut.</h2>
+      <p>What each one costs you, in money and in time.</p>
+    </div>
+    <div class="compare reveal">
+      <table>
+        <colgroup><col style="width:22%"><col><col><col></colgroup>
+        <thead><tr><th scope="col"><span class="sr-only"></span></th><th scope="col">Do it yourself</th><th scope="col">Hire an editor</th><th scope="col" class="us"><span class="us-lead"><img src="media/logo.svg" alt="">Autocut</span></th></tr></thead>
+        <tbody>
+          <tr><th scope="row">Cost</th><td>$0, and your evenings</td><td>$500 to $5,000 a month</td><td class="us">From $13.39 a month</td></tr>
+          <tr><th scope="row">Your time</th><td>An hour or more a video</td><td>Briefs and revision notes</td><td class="us">One tap</td></tr>
+          <tr><th scope="row">Ready in</th><td>Whenever you finish</td><td>A few days</td><td class="us">About a minute</td></tr>
+          <tr><th scope="row">Skill needed</th><td>Editing software</td><td>Explaining what you want</td><td class="us">None</td></tr>
+          <tr><th scope="row">Posting more</th><td>Costs you more nights</td><td>Costs you more money</td><td class="us">Same price, same tap</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </section>
 
-<section id="pricing" style="padding-top:0">
+<section id="pricing">
   <div class="wrap" style="text-align:center">
     <div class="head reveal" style="margin-bottom:32px">
       <div class="eyebrow">Pricing</div>
@@ -385,44 +528,53 @@
     </div>
     <div class="plans" style="text-align:left">
       <div class="plan reveal" data-monthly="19.99">
-        <h3>Starter</h3><div class="edits">100 AI edits a month</div>
-        <div class="price"><span class="amt">$13.39</span><small> / month</small></div><div class="billed"></div>
+        <h3>Starter</h3><div class="for">For posting a few times a week</div><div class="edits">100 AI edits a month</div>
+        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$13.39</span><small> / month</small></div><div class="billed"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li class="no">Overlap audio</li><li class="no">Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
       <div class="plan pick reveal" data-monthly="49.99">
         <span class="ribbon">MOST POPULAR</span>
-        <h3>Pro</h3><div class="edits">300 AI edits a month</div>
-        <div class="price"><span class="amt">$33.49</span><small> / month</small></div><div class="billed"></div>
+        <h3>Pro</h3><div class="for">For posting every day</div><div class="edits">300 AI edits a month</div>
+        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$33.49</span><small> / month</small></div><div class="billed"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li>Overlap audio</li><li>Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
       <div class="plan reveal" data-monthly="99.99">
-        <h3>Ultimate</h3><div class="edits">Unlimited AI edits</div>
-        <div class="price"><span class="amt">$66.99</span><small> / month</small></div><div class="billed"></div>
+        <h3>Ultimate</h3><div class="for">For teams and high-volume creators</div><div class="edits">Unlimited AI edits</div>
+        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$66.99</span><small> / month</small></div><div class="billed"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li>Overlap audio</li><li>Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
     </div>
+    <div class="dots" id="dots" aria-hidden="true"><button></button><button></button><button></button><span class="label mono" id="dotsLabel"></span></div>
     <p class="fine">Prices in USD. Subscriptions renew automatically until cancelled. App Store prices may vary by country.</p>
   </div>
 </section>
 
-<section id="faq" style="padding-top:0">
+<section id="faq" class="panel">
   <div class="wrap">
     <div class="head reveal">
       <div class="eyebrow">FAQ</div>
       <h2 class="h">Questions, answered.</h2>
     </div>
     <div class="faq reveal">
-      <details><summary>What does Autocut cut, exactly?</summary><p>Long pauses (dead air), filler words like "um" and "uh", stutters, and retakes: when you say a line again, it keeps your last attempt and cuts the earlier one. Then it captions every word that's left.</p></details>
-      <details><summary>Can I change what it cut?</summary><p>Yes. Your cut opens in a full editor: trim, split, change speed, restore anything, edit captions, and add text, music, photos and clips. Undo is always there.</p></details>
-      <details><summary>Is there a watermark? What quality does it export?</summary><p>No watermark. Exports go up to 4K and 60 fps, and save straight to Photos, with one tap to TikTok or Instagram.</p></details>
-      <details><summary>How long can my videos be?</summary><p>Record up to 20 minutes in the app, or import videos up to 1 GB. Most videos are cut in about a minute.</p></details>
-      <details><summary>Which languages does it understand?</summary><p>English and Spanish.</p></details>
-      <details><summary>Is Autocut on Android?</summary><p>Not yet. Autocut is for iPhone and iPad.</p></details>
-      <details><summary>Do my videos stay in the app?</summary><p>Yes. Your cuts stay in Autocut until you delete them, and your videos are kept on our servers until you delete your account, so you can come back and edit again. Delete your account anytime in Settings.</p></details>
-      <details><summary>How do I cancel or change my plan?</summary><p>In the app, under Your plan. If you subscribed through the App Store, you can also cancel in your iPhone's Settings › Apple ID › Subscriptions. You keep your plan until the end of the period you paid for.</p></details>
+      <div class="faq-top">
+        <div class="tabs" role="tablist" aria-label="Question topics"><button role="tab" class="on" data-cat="cuts" aria-selected="true">The cuts</button><button role="tab" data-cat="app" aria-selected="false">The app</button><button role="tab" data-cat="billing" aria-selected="false">Billing</button></div>
+        <a class="contact" id="contact" href="#">Contact us →</a>
+      </div>
+      <details data-cat="cuts"><summary>What does Autocut cut, exactly?</summary><p>Long pauses (dead air), filler words like "um" and "uh", stutters, and retakes: when you say a line again, it keeps your last attempt and cuts the earlier one. Then it captions every word that's left.</p></details>
+      <details data-cat="cuts"><summary>Can I change what it cut?</summary><p>Yes. Your cut opens in a full editor: trim, split, change speed, restore anything, edit captions, and add text, music, photos and clips. Undo is always there.</p></details>
+      <details data-cat="cuts"><summary>Is there a watermark? What quality does it export?</summary><p>No watermark. Exports go up to 4K and 60 fps, and save straight to Photos, with one tap to TikTok or Instagram.</p></details>
+      <details data-cat="cuts"><summary>How long can my videos be?</summary><p>Record up to 20 minutes in the app, or import videos up to 1 GB. Most videos are cut in about a minute.</p></details>
+      <details data-cat="cuts"><summary>Which languages does it understand?</summary><p>English and Spanish.</p></details>
+      <details data-cat="app"><summary>Is Autocut on Android?</summary><p>Not yet. Autocut is for iPhone and iPad.</p></details>
+      <details data-cat="app"><summary>Do my videos stay in the app?</summary><p>Yes. Your cuts stay in Autocut until you delete them, and your videos are kept on our servers until you delete your account, so you can come back and edit again. Delete your account anytime in Settings.</p></details>
+      <details data-cat="app"><summary>Does it work on iPad?</summary><p>Yes. Autocut runs on iPhone and iPad, with the editor laid out for the bigger screen.</p></details>
+      <details data-cat="app"><summary>Can I edit more than one video at once?</summary><p>Yes. In Batch, line up several videos (each from one or more clips) and tap Edit all. On Pro and Ultimate you can also schedule them for later; they're cut even with your phone off.</p></details>
+      <details data-cat="billing"><summary>What counts as an edit?</summary><p>Each video Autocut cuts for you. Stopped or failed cuts don't count, and your edits reset at the start of every month.</p></details>
+      <details data-cat="billing"><summary>How do I cancel or change my plan?</summary><p>In the app, under Your plan. If you subscribed through the App Store, you can also cancel in your iPhone's Settings › Apple ID › Subscriptions. You keep your plan until the end of the period you paid for.</p></details>
+      <details data-cat="billing"><summary>Do you offer refunds?</summary><p>Purchases made through the App Store are refunded by Apple: request one at reportaproblem.apple.com. For anything else, contact us.</p></details>
     </div>
   </div>
 </section>
@@ -439,15 +591,15 @@
   </div>
 </section>
 
+</main>
 <footer>
   <div class="wrap">
-    <a class="brand" href="#top"><img src="media/logo.svg" alt=""><span>Autocut</span></a>
-    <div class="fl">
-      <a id="privacy" href="#">Privacy Policy</a>
-      <a id="terms" href="#">Terms of Service</a>
-      <a id="support" href="#">Support</a>
+    <div class="cols">
+      <div><a class="brand" href="#top"><img src="media/logo.svg" alt=""><span>Autocut</span></a><p class="blurb">AI video editing for creators who talk to camera. Dead air, ums and retakes cut; every word captioned.</p></div>
+      <div class="col"><h4>Product</h4><a href="#see-it">See it cut</a><a href="#how">How it works</a><a href="#compare">Compare</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div>
+      <div class="col"><h4>Legal</h4><a id="privacy" href="#">Privacy Policy</a><a id="terms" href="#">Terms of Service</a><a id="support" href="#">Support</a></div>
     </div>
-    <div>© <span id="yr"></span> Autocut</div>
+    <div class="base"><span>© <span id="yr"></span> Autocut</span><span>iPhone and iPad</span></div>
   </div>
 </footer>
 
@@ -504,7 +656,7 @@
 
   // Before/after videos play when on screen; the speaker gives one sound (and mutes the other).
   const vids = [...document.querySelectorAll('video[data-auto]')];
-  const io = new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting ? e.target.play().catch(() => {}) : e.target.pause())), { threshold: .4 });
+  const io = new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting && !paused ? e.target.play().catch(() => {}) : e.target.pause())), { threshold: .4 });
   vids.forEach((v) => io.observe(v));
   const ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
   const OFF = document.querySelector('.sound').innerHTML;
@@ -540,6 +692,57 @@
   }
   document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => setBilling(b.dataset.billing)));
   setBilling('yearly');
+
+  // Crossed-out monthly price beside the yearly one.
+  function wasPrices(b) {
+    document.querySelectorAll('.plan').forEach((p) => (p.querySelector('.was').textContent = b === 'yearly' ? money(+p.dataset.monthly) : ''));
+  }
+  document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => wasPrices(b.dataset.billing)));
+  wasPrices('yearly');
+
+  // Phones: plans swipe sideways, with dots ("Pro plan, 2 of 3"); Pro is shown first.
+  const plansEl = document.querySelector('.plans'), planEls = [...document.querySelectorAll('.plan')];
+  const dotBtns = [...document.querySelectorAll('#dots button')], dotsLabel = document.getElementById('dotsLabel');
+  const names = planEls.map((p) => p.querySelector('h3').textContent);
+  function markDot() {
+    const mid = plansEl.scrollLeft + plansEl.clientWidth / 2;
+    let best = 0;
+    planEls.forEach((p, i) => { if (Math.abs(p.offsetLeft + p.offsetWidth / 2 - mid) < Math.abs(planEls[best].offsetLeft + planEls[best].offsetWidth / 2 - mid)) best = i; });
+    dotBtns.forEach((d, i) => d.classList.toggle('on', i === best));
+    dotsLabel.textContent = `${names[best]} plan · ${best + 1} of ${planEls.length}`;
+  }
+  const toPlan = (i, smooth = true) => plansEl.scrollTo({ left: planEls[i].offsetLeft - (plansEl.clientWidth - planEls[i].offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
+  dotBtns.forEach((d, i) => d.addEventListener('click', () => toPlan(i)));
+  plansEl.addEventListener('scroll', () => requestAnimationFrame(markDot), { passive: true });
+  if (matchMedia('(max-width: 760px)').matches) toPlan(1, false);
+  markDot();
+
+  // FAQ topics.
+  function showCat(cat) {
+    document.querySelectorAll('.tabs button').forEach((b) => { const on = b.dataset.cat === cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
+    document.querySelectorAll('details[data-cat]').forEach((d) => { d.hidden = d.dataset.cat !== cat; if (d.hidden) d.open = false; });
+  }
+  document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => showCat(b.dataset.cat)));
+  showCat('cuts');
+  const contact = document.getElementById('contact');
+  if (SUPPORT_EMAIL) contact.href = 'mailto:' + SUPPORT_EMAIL + '?subject=Question%20about%20Autocut'; else contact.remove();
+
+  // Pause / play the before-and-after videos.
+  const pauseAll = document.getElementById('pauseAll');
+  let paused = false;
+  pauseAll.addEventListener('click', () => {
+    paused = !paused;
+    vids.forEach((v) => (paused ? v.pause() : v.play().catch(() => {})));
+    pauseAll.setAttribute('aria-pressed', paused);
+    pauseAll.querySelector('span').textContent = paused ? 'Play the videos' : 'Pause the videos';
+    pauseAll.querySelector('svg').innerHTML = paused ? '<path d="M1 0l9 6-9 6z"/>' : '<rect width="3" height="12" rx="1"/><rect x="7" width="3" height="12" rx="1"/>';
+  });
+
+  // Phone menu.
+  const menuBtn = document.getElementById('menuBtn'), sheet = document.getElementById('sheet');
+  const setMenu = (open) => { sheet.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open); };
+  menuBtn.addEventListener('click', () => setMenu(!sheet.classList.contains('open')));
+  sheet.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setMenu(false)));
 
   // One FAQ open at a time.
   document.querySelectorAll('details').forEach((d) => d.addEventListener('toggle', () => { if (d.open) document.querySelectorAll('details').forEach((o) => o !== d && (o.open = false)); }));
