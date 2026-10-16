@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autocut, Edits and CapCut style</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#F4F4F6;--ink:#111114;--muted:#6B6B73}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:40px;letter-spacing:-1px;margin:0}
+.sub{color:var(--muted);margin:8px 0 28px;font-size:15px;line-height:1.5;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;align-items:baseline;gap:8px}
+.num{font-weight:700;font-size:13px;color:var(--muted)}
+.name{font-weight:700;font-size:16px}
+.note{color:var(--muted);font-size:13px;line-height:1.45}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tile{width:92px;height:92px;border-radius:21px;display:grid;place-items:center;flex:none;overflow:hidden}
+.tile svg{width:100%;height:100%;display:block}
+.dark{background:#000;color:#fff}
+.light{background:#fff;color:#111114;box-shadow:inset 0 0 0 1px #E6E6EA}
+.mini{width:30px;height:30px;border-radius:7px}
+.minis{display:flex;flex-direction:column;gap:8px}
+.word{display:flex;align-items:center;gap:8px;background:#fff;color:#111114;border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px #E6E6EA}
+.word .tile{width:26px;height:26px;border-radius:7px}
+.word span{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+</style></head>
+<body><main>
+<h1>Autocut, Edits and CapCut style</h1>
+<p class="sub">Built like the Edits and CapCut icons: a clip drawn as rounded brackets, plus one cut, in two or three thick strokes. Each is shown white on black, black on white, Edits-style (gradient clip, white cut), small, and with the wordmark.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+let uid = 0;
+const W = 10; // stroke width (of 100), as heavy as Edits
+const line = (d, paint, extra = '') => `<path d="${d}" fill="none" stroke="${paint}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+const masked = (inner, cut) => { const id = 'm' + uid++; return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>${cut}</mask><g mask="url(#${id})">${inner}</g>`; };
+const gap = (x, w = 14) => `<rect x="${x - w / 2}" y="0" width="${w}" height="100" fill="#000"/>`;
+
+// Clips drawn as brackets: wide (room for something inside) and narrow (like Edits).
+const LB = 'M34 26 H30 Q18 26 18 38 V62 Q18 74 30 74 H34', RB = 'M66 26 H70 Q82 26 82 38 V62 Q82 74 70 74 H66';
+const LBn = 'M40 26 H36 Q24 26 24 38 V62 Q24 74 36 74 H40', RBn = 'M60 26 H64 Q76 26 76 38 V62 Q76 74 64 74 H60';
+const PILL = 'M34 34 H66 A16 16 0 0 1 66 66 H34 A16 16 0 0 1 34 34 Z';
+
+// draw(p, a): p paints the clip, a the cut / playhead (white in the Edits-style version).
+const LOGOS = [
+  { name: 'Clip play', note: 'A clip with play inside it: the video, ready to go.',
+    draw: (p, a) => line(LB, p) + line(RB, p) + line('M44 37 V63 L62 50 Z', a, 'stroke-width="9"') },
+  { name: 'Cut playhead', note: 'The playhead between the brackets, broken and shifted where the cut is made.',
+    draw: (p, a) => line(LBn, p) + line(RBn, p) + line('M47 18 V44', a) + line('M53 56 V82', a) },
+  { name: 'Clip X', note: 'A clip with an X in it: the bad part, taken out.',
+    draw: (p, a) => line(LB, p) + line(RB, p) + line('M42 39 L58 61', a) + line('M58 39 L42 61', a) },
+  { name: 'Jump clip', note: 'The clip’s two ends out of line, the playhead between them: a jump cut.',
+    draw: (p, a) => line('M40 31 H36 Q24 31 24 43 V67 Q24 79 36 79 H40', p) + line('M60 21 H64 Q76 21 76 33 V57 Q76 69 64 69 H60', p) + line('M50 16 V84', a) },
+  { name: 'Play playhead', note: 'Play, with the playhead running straight through it.',
+    draw: (p, a) => masked(line('M26 24 V76 L72 50 Z', p), gap(51)) + line('M51 14 V86', a) },
+  { name: 'Cut handles, restyled', note: 'Your current logo in this heavier weight, with the Edits-style colour: gradient clip, white cut.',
+    draw: (p, a) => line('M43 25 H36 Q23 25 23 38 V62 Q23 75 36 75 H43', p) + line('M57 25 H64 Q77 25 77 38 V62 Q77 75 64 75 H57', p) + line('M56 19 L44 81', a) },
+  { name: 'A cut', note: 'An A for Autocut whose crossbar is the cut, running out past both legs.',
+    draw: (p, a) => line('M27 80 L50 22 L73 80', p) + line('M18 66 L82 53', a) },
+  { name: 'Clip start, play', note: 'The start of a clip with play coming out of it.',
+    draw: (p, a) => line('M38 24 H34 Q22 24 22 36 V64 Q22 76 34 76 H38', p) + line('M49 31 V69 L78 50 Z', a) },
+  { name: 'Clip playhead', note: 'A clip on the timeline with the playhead cutting through it.',
+    draw: (p, a) => masked(line('M30 36 H70 A14 14 0 0 1 70 64 H30 A14 14 0 0 1 30 36 Z', p), gap(50)) + line('M50 18 V82', a) },
+  { name: 'Clip forward', note: 'A clip with an arrow through it: straight to the good part.',
+    draw: (p, a) => line(LB, p) + line(RB, p) + line('M44 36 L58 50 L44 64', a) },
+];
+
+const grad = () => { const id = 'g' + uid++; return { id, def: `<defs><linearGradient id="${id}" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7B3FF2"/><stop offset=".45" stop-color="#FF0A78"/><stop offset=".8" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC21A"/></linearGradient></defs>` }; };
+const svg = (inner) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const mono = (l) => svg(l.draw('currentColor', 'currentColor'));
+const colour = (l) => { const g = grad(); return svg(g.def + l.draw(`url(#${g.id})`, '#fff')); };
+
+document.getElementById('grid').innerHTML = LOGOS.map((l, i) => `
+  <section class="card">
+    <div class="head"><span class="num">${String(i + 17).padStart(2, '0')}</span><span class="name">${l.name}</span></div>
+    <div class="note">${l.note}</div>
+    <div class="row">
+      <div class="tile dark">${mono(l)}</div>
+      <div class="tile light">${mono(l)}</div>
+      <div class="tile dark">${colour(l)}</div>
+      <div class="minis"><div class="tile dark mini">${mono(l)}</div><div class="tile dark mini">${colour(l)}</div></div>
+    </div>
+    <div class="word"><div class="tile dark">${mono(l)}</div><span>Autocut</span></div>
+  </section>`).join('');
+</script>
+</body></html>

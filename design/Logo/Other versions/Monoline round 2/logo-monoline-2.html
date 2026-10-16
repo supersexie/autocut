@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autocut monoline, round 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#F4F4F6;--ink:#111114;--muted:#6B6B73}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:40px;letter-spacing:-1px;margin:0}
+.sub{color:var(--muted);margin:8px 0 28px;font-size:15px;line-height:1.5;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;align-items:baseline;gap:8px}
+.num{font-weight:700;font-size:13px;color:var(--muted)}
+.name{font-weight:700;font-size:16px}
+.note{color:var(--muted);font-size:13px;line-height:1.45}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tile{width:92px;height:92px;border-radius:21px;display:grid;place-items:center;flex:none;overflow:hidden}
+.tile svg{width:100%;height:100%;display:block}
+.dark{background:#000;color:#fff}
+.light{background:#fff;color:#111114;box-shadow:inset 0 0 0 1px #E6E6EA}
+.mini{width:30px;height:30px;border-radius:7px}
+.minis{display:flex;flex-direction:column;gap:8px}
+.word{display:flex;align-items:center;gap:8px;background:#fff;color:#111114;border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px #E6E6EA}
+.word .tile{width:26px;height:26px;border-radius:7px}
+.word span{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+</style></head>
+<body><main>
+<h1>Autocut, monoline round 2</h1>
+<p class="sub">Ten more in the same style as the first six: one bold rounded stroke, readable at any size, numbered on from them. Each is shown white on black, black on white, with an Edits-style gradient, small, and with the wordmark.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+let uid = 0;
+const W = 8.5; // stroke width (of 100)
+const line = (d, paint, extra = '') => `<path d="${d}" fill="none" stroke="${paint}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+const masked = (inner, cut) => { const id = 'm' + uid++; return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>${cut}</mask><g mask="url(#${id})">${inner}</g>`; };
+
+const LOGOS = [
+  { name: 'Split play', note: 'A play button sliced in two, the front half nudged forward: the moment of the cut.',
+    draw: (p) => masked(line('M30 24 V76 L76 50 Z', p), '<polygon points="55,0 100,0 100,100 43,100" fill="#000"/>') + `<g transform="translate(5 -5)">${masked(line('M30 24 V76 L76 50 Z', p), '<polygon points="0,0 63,0 51,100 0,100" fill="#000"/>')}</g>` },
+  { name: 'Silence gap', note: 'A waveform with the quiet middle taken out, marked by a small slash: dead air, removed.',
+    draw: (p) => line('M20 40 V60', p) + line('M32 26 V74', p) + line('M68 26 V74', p) + line('M80 40 V60', p) + line('M55 40 L45 60', p, 'stroke-width="5"') },
+  { name: 'Caption bubble', note: 'A speech bubble with two lines of caption, the second one cut where a flub was taken out.',
+    draw: (p) => line('M34 22 H66 Q80 22 80 36 V50 Q80 64 66 64 H44 L30 77 V64 Q20 62 20 50 V36 Q20 22 34 22 Z', p) + line('M34 37 H66', p, 'stroke-width="6"') + line('M34 49 H41', p, 'stroke-width="6"') + line('M54 49 H66', p, 'stroke-width="6"') },
+  { name: 'A, cut', note: 'An A for Autocut whose crossbar is a cut line running out past both legs.',
+    draw: (p) => line('M26 80 L50 22 L74 80', p) + line('M18 70 L84 48', p, 'stroke-width="6"') },
+  { name: 'Clapper', note: 'A film clapper with its board swung open, a small play button on the front.',
+    draw: (p) => line('M22 46 H78 V68 Q78 80 66 80 H34 Q22 80 22 68 Z', p) + line('M22 36 L74 22', p) + line('M44 55 V71 L57 63 Z', p, 'stroke-width="6"') },
+  { name: 'Playhead', note: 'The playhead standing on the timeline, which breaks around it: where every cut happens.',
+    draw: (p) => line('M18 68 H40', p) + line('M60 68 H82', p) + line('M50 40 V82', p) + line('M50 32 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0', p) },
+  { name: 'C-play', note: 'An open C, for cut, wrapped around a play button that points out through the gap.',
+    draw: (p) => line('M69.8 30.2 A28 28 0 1 0 69.8 69.8', p) + line('M45 39 V61 L63 50 Z', p, 'stroke-width="7"') },
+  { name: 'Skip', note: 'Play, then a leaning bar: skipping straight past the parts that don’t make the cut.',
+    draw: (p) => line('M24 26 V74 L60 50 Z', p) + line('M78 24 L70 76', p) },
+  { name: 'Auto play', note: 'A play button with a sparkle: the edit happens on its own.',
+    draw: (p) => line('M24 32 V78 L62 55 Z', p) + line('M73 14 Q73 29 88 29 Q73 29 73 44 Q73 29 58 29 Q73 29 73 14 Z', p, 'stroke-width="5"') },
+  { name: 'Quick cut', note: 'A rounded video frame split by a lightning bolt: fast cuts, done for you.',
+    draw: (p) => masked(line('M36 22 H64 Q78 22 78 36 V64 Q78 78 64 78 H36 Q22 78 22 64 V36 Q22 22 36 22 Z', p), '<path d="M58 12 L41 50 H60 L43 88" fill="none" stroke="#000" stroke-width="22" stroke-linejoin="round" stroke-linecap="round"/>') + line('M58 12 L41 50 H60 L43 88', p) },
+];
+
+const grad = () => { const id = 'g' + uid++; return { id, def: `<defs><linearGradient id="${id}" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7B3FF2"/><stop offset=".45" stop-color="#FF0A78"/><stop offset=".8" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC21A"/></linearGradient></defs>` }; };
+const svg = (inner) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const mono = (l) => svg(l.draw('currentColor'));
+const colour = (l) => { const g = grad(); return svg(g.def + l.draw(`url(#${g.id})`)); };
+
+document.getElementById('grid').innerHTML = LOGOS.map((l, i) => `
+  <section class="card">
+    <div class="head"><span class="num">${String(i + 7).padStart(2, '0')}</span><span class="name">${l.name}</span></div>
+    <div class="note">${l.note}</div>
+    <div class="row">
+      <div class="tile dark">${mono(l)}</div>
+      <div class="tile light">${mono(l)}</div>
+      <div class="tile dark">${colour(l)}</div>
+      <div class="minis"><div class="tile dark mini">${mono(l)}</div><div class="tile dark mini">${colour(l)}</div></div>
+    </div>
+    <div class="word"><div class="tile dark">${mono(l)}</div><span>Autocut</span></div>
+  </section>`).join('');
+</script>
+</body></html>

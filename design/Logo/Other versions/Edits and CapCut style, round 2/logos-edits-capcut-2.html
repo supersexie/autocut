@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autocut, Edits and CapCut style 2</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#F4F4F6;--ink:#111114;--muted:#6B6B73}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:40px;letter-spacing:-1px;margin:0}
+.sub{color:var(--muted);margin:8px 0 28px;font-size:15px;line-height:1.5;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;align-items:baseline;gap:8px}
+.num{font-weight:700;font-size:13px;color:var(--muted)}
+.name{font-weight:700;font-size:16px}
+.note{color:var(--muted);font-size:13px;line-height:1.45}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tile{width:92px;height:92px;border-radius:21px;display:grid;place-items:center;flex:none;overflow:hidden}
+.tile svg{width:100%;height:100%;display:block}
+.dark{background:#000;color:#fff}
+.light{background:#fff;color:#111114;box-shadow:inset 0 0 0 1px #E6E6EA}
+.mini{width:30px;height:30px;border-radius:7px}
+.minis{display:flex;flex-direction:column;gap:8px}
+.word{display:flex;align-items:center;gap:8px;background:#fff;color:#111114;border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px #E6E6EA}
+.word .tile{width:26px;height:26px;border-radius:7px}
+.word span{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+</style></head>
+<body><main>
+<h1>Autocut, Edits and CapCut style, round 2</h1>
+<p class="sub">Built like the Edits and CapCut icons: a clip drawn as rounded brackets, plus one cut, in two or three thick strokes. Each is shown white on black, black on white, Edits-style (gradient clip, white cut), small, and with the wordmark.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+let uid = 0;
+const W = 10; // stroke width (of 100), as heavy as Edits
+const line = (d, paint, extra = '') => `<path d="${d}" fill="none" stroke="${paint}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+const masked = (inner, cut) => { const id = 'm' + uid++; return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>${cut}</mask><g mask="url(#${id})">${inner}</g>`; };
+const gap = (x, w = 14) => `<rect x="${x - w / 2}" y="0" width="${w}" height="100" fill="#000"/>`;
+
+// Clips drawn as brackets: wide (room for something inside) and narrow (like Edits).
+const LB = 'M34 26 H30 Q18 26 18 38 V62 Q18 74 30 74 H34', RB = 'M66 26 H70 Q82 26 82 38 V62 Q82 74 70 74 H66';
+const LBn = 'M40 26 H36 Q24 26 24 38 V62 Q24 74 36 74 H40', RBn = 'M60 26 H64 Q76 26 76 38 V62 Q76 74 64 74 H60';
+const PILL = 'M34 34 H66 A16 16 0 0 1 66 66 H34 A16 16 0 0 1 34 34 Z';
+
+// draw(p, a): p paints the clip, a the cut / playhead (white in the Edits-style version).
+const SQ = 'M38 24 H62 Q76 24 76 38 V62 Q76 76 62 76 H38 Q24 76 24 62 V38 Q24 24 38 24 Z';
+const band = (d, w = 18) => `<path d="${d}" fill="none" stroke="#000" stroke-width="${w}" stroke-linecap="round"/>`;
+const poly = (pts) => `<polygon points="${pts}" fill="#000"/>`;
+const LOGOS = [
+  { name: 'Offset corners', note: 'Two corners of a frame, out of line: the clip, already edited.',
+    draw: (p) => line('M28 60 V38 Q28 26 40 26 H60', p) + line('M72 40 V62 Q72 74 60 74 H40', p) },
+  { name: 'Corners, cut', note: 'The two corners with the cut running between them.',
+    draw: (p, a) => line('M26 56 V38 Q26 26 38 26 H54', p) + line('M74 44 V62 Q74 74 62 74 H46', p) + line('M60 38 L40 62', a) },
+  { name: 'Split frame', note: 'A frame cut on a slant, the halves pulled apart.',
+    draw: (p) => `<g transform="translate(-4 6)">${masked(line(SQ, p), poly('50,0 100,0 100,100 38,100'))}</g>` + `<g transform="translate(4 -6)">${masked(line(SQ, p), poly('0,0 62,0 50,100 0,100'))}</g>` },
+  { name: 'Open frame, play', note: 'A frame open on one side, play pushing out through it.',
+    draw: (p, a) => line('M46 24 H36 Q22 24 22 38 V62 Q22 76 36 76 H46', p) + line('M54 33 V67 L82 50 Z', a, 'stroke-width="9"') },
+  { name: 'Double cut', note: 'A clip with two cuts close together: the bit between them is gone.',
+    draw: (p, a) => line(LBn, p) + line(RBn, p) + line('M48 37 L41 63', a, 'stroke-width="7"') + line('M59 37 L52 63', a, 'stroke-width="7"') },
+  { name: 'Close the gap', note: 'Two ends pulled together: the dead air between them, removed.',
+    draw: (p) => line('M26 32 L42 50 L26 68', p) + line('M74 32 L58 50 L74 68', p) },
+  { name: 'Track gap', note: 'Two timeline tracks, the lower one with a piece cut out.',
+    draw: (p, a) => line('M22 39 H78', p) + line('M22 61 H40', a) + line('M60 61 H78', a) },
+  { name: 'Trimmed play', note: 'Play with its tip trimmed off: the end of the take, cut.',
+    draw: (p, a) => line('M56 37 L28 23 V77 L56 63', p) + line('M72 50 h0', a, 'stroke-width="12"') },
+  { name: 'Dead air', note: 'Two bars of sound with the silence between them shrunk to a dot.',
+    draw: (p, a) => line('M30 34 V66', p) + line('M70 24 V76', p) + line('M50 50 h0', a, 'stroke-width="12"') },
+  { name: 'Frame slash', note: 'A frame with one clean cut straight through it.',
+    draw: (p, a) => masked(line(SQ, p), band('M66 12 L34 88')) + line('M64 20 L36 80', a, 'stroke-width="6"') },
+  { name: 'Trimmed clip', note: 'The two ends of a clip, the second one trimmed shorter.',
+    draw: (p) => line('M40 24 H36 Q24 24 24 36 V64 Q24 76 36 76 H40', p) + line('M60 36 H64 Q76 36 76 46 V54 Q76 64 64 64 H60', p) },
+  { name: 'Jump frames', note: 'Two frames, the second one jumping up: a jump cut.',
+    draw: (p) => line('M26 40 H36 Q46 40 46 50 V64 Q46 74 36 74 H26 Q16 74 16 64 V50 Q16 40 26 40 Z', p) + line('M64 26 H74 Q84 26 84 36 V50 Q84 60 74 60 H64 Q54 60 54 50 V36 Q54 26 64 26 Z', p) },
+  { name: 'Ums, cut', note: 'A clip with its filler words shrunk to two dots.',
+    draw: (p, a) => line(LBn, p) + line(RBn, p) + line('M43 50 h0', a, 'stroke-width="11"') + line('M57 50 h0', a, 'stroke-width="11"') },
+  { name: 'Hook cut', note: 'One stroke: a clip’s edge that turns into the cut.',
+    draw: (p) => line('M64 26 H38 Q26 26 26 38 V62 Q26 74 38 74 H48 L70 36', p) },
+  { name: 'Pause, cut', note: 'A pause sign whose second bar leans over into a cut.',
+    draw: (p, a) => line('M38 28 V72', p) + line('M68 28 L57 72', a) },
+  { name: 'Open play', note: 'Play with a gap in its back: the take, opened up for cutting.',
+    draw: (p) => line('M32 41 V25 L76 50 L32 75 V59', p) },
+  { name: 'Play out', note: 'A frame with play breaking out through its side.',
+    draw: (p, a) => masked(line(SQ, p), '<rect x="62" y="36" width="40" height="28" fill="#000"/>') + line('M62 38 L76 50 L62 62', a) },
+  { name: 'A, split', note: 'An A for Autocut with its top cut apart.',
+    draw: (p, a) => line('M24 78 L46 24', p) + line('M56 34 L76 78', a) },
+  { name: 'Handles', note: 'Just the two trim handles and the cut: the logo at its simplest.',
+    draw: (p, a) => line('M30 30 V70', p) + line('M70 30 V70', p) + line('M58 26 L42 74', a) },
+  { name: 'Corner out', note: 'A frame with its corner cut off and lifted away.',
+    draw: (p, a) => masked(line(SQ, p), poly('28,0 100,0 100,72')) + `<g transform="translate(7 -7)">${masked(line(SQ, a), poly('0,0 40,0 100,60 100,100 0,100'))}</g>` },
+];
+
+const grad = () => { const id = 'g' + uid++; return { id, def: `<defs><linearGradient id="${id}" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7B3FF2"/><stop offset=".45" stop-color="#FF0A78"/><stop offset=".8" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC21A"/></linearGradient></defs>` }; };
+const svg = (inner) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const mono = (l) => svg(l.draw('currentColor', 'currentColor'));
+const colour = (l) => { const g = grad(); return svg(g.def + l.draw(`url(#${g.id})`, '#fff')); };
+
+document.getElementById('grid').innerHTML = LOGOS.map((l, i) => `
+  <section class="card">
+    <div class="head"><span class="num">${String(i + 27).padStart(2, '0')}</span><span class="name">${l.name}</span></div>
+    <div class="note">${l.note}</div>
+    <div class="row">
+      <div class="tile dark">${mono(l)}</div>
+      <div class="tile light">${mono(l)}</div>
+      <div class="tile dark">${colour(l)}</div>
+      <div class="minis"><div class="tile dark mini">${mono(l)}</div><div class="tile dark mini">${colour(l)}</div></div>
+    </div>
+    <div class="word"><div class="tile dark">${mono(l)}</div><span>Autocut</span></div>
+  </section>`).join('');
+</script>
+</body></html>
