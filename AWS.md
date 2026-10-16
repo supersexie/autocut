@@ -19,11 +19,34 @@ Everything is in the repo:
 
 ## 1. What runs where
 
+**In short, who does what on AWS:**
+
+- **Speech-to-text: our own GPU machines.** The `asr` service (`asr/`) runs Whisper large-v3, OpenAI's
+  speech-recognition model, on NVIDIA GPU machines rented from AWS. Each GPU handles many videos at once,
+  and more GPUs are added automatically as the list of waiting cuts grows. **Deepgram stays as the
+  backup:** if our speech-to-text fails or is overloaded, that cut goes to Deepgram instead, so nothing
+  breaks.
+- **Cutting: CPU machines running our own code.** The cut workers are ordinary computers with no GPU. For
+  each cut they:
+  1. join the takes together;
+  2. send the audio to speech-to-text and get the words back;
+  3. find the ums, pauses and retakes with our own rules (`src/`, the same code as on Railway);
+  4. save the result, which is pushed to the phone at once.
+
+  They're also added and removed automatically with the number of cuts waiting.
+- **Exports: the phone.** In the real app, every iPhone exports its own video, the same as on Railway. The
+  GPU export workers are only the fallback, for Expo Go or an export that fails on the phone, so few are
+  needed.
+- **Before relying on our own speech-to-text:** compare it with Deepgram on real fast-talker videos, to check
+  it keeps every "um" and repeat with the right times (§8). That's the one quality check that matters.
+
+The full list:
+
 | Piece | Runs on | Grows by |
 |---|---|---|
 | **API** (`ROLE=api`): what the app talks to, live progress on `/live` | CPU machines, behind an AWS load balancer (HTTPS, WebSockets) | CPU use (3 to 500 copies) |
 | **Cut workers** (`WORKER_KINDS=cut`): join takes, read audio, find what to cut | CPU machines (spot when available) | KEDA: one copy per 8 cuts waiting or running |
-| **Export workers** (`WORKER_KINDS=render,preview`): exports and previews, encoded on the GPU | GPU machines (L4, A10G, L40S, T4) | KEDA: one copy (one GPU) per 6 exports |
+| **Export workers** (`WORKER_KINDS=render,preview`): the fallback for exports the phone can't do (Expo Go, a failed phone export) and editor previews, encoded on the GPU | GPU machines (L4, A10G, L40S, T4) | KEDA: one copy (one GPU) per 6 exports |
 | **Speech-to-text** (`asr/`): every word with its time, ums kept | GPU machines | KEDA: one GPU per 24 cuts |
 | **Job list and live progress**: Redis (ElastiCache Valkey) | Managed by AWS, primary plus standby in another zone | Bigger machine (`redis_node_type`) |
 | **PgBouncer**: shares a few database connections among thousands of workers | CPU machines | Fixed (3) |
@@ -36,7 +59,7 @@ How a cut flows:
 1. The phone uploads to R2 and asks the API for a cut. The API puts a job on the Redis list.
 2. A cut worker claims it (never two workers on one job) and sends the audio to speech-to-text.
 3. Each stage is pushed straight to the phone over the WebSocket.
-4. Exports work the same way on a GPU worker.
+4. Exports run on the phone. Only fallback exports go to a GPU export worker.
 5. KEDA watches `GET /queue` and adds workers as the list grows. Karpenter adds machines for them.
 
 ---
@@ -51,14 +74,15 @@ the numbers in `infra/k8s/workers.yaml` and `asr.yaml`.
 | A cut | ½ vCPU (8 per 4-vCPU copy), plus 1/24 of a speech-to-text GPU |
 | An export | 1/6 of a GPU plus 1 vCPU |
 
-Example: 60,000 cuts and 40,000 exports at once.
+Example: 100,000 cuts at once. Exports run on the phones, so only a small share reach the servers; this
+assumes 2,000 fallback exports at once.
 
 | Pool | Copies | Hardware |
 |---|---|---|
-| Cut workers | 7,500 | ~30,000 vCPU |
-| Export workers | ~6,700 | ~6,700 GPUs (+ ~40,000 vCPU on the same machines) |
-| Speech-to-text | 2,500 | 2,500 GPUs |
-| **Total** | | **~9,200 GPUs, ~80,000 vCPU** |
+| Cut workers | 12,500 | ~50,000 vCPU |
+| Speech-to-text | ~4,200 | ~4,200 GPUs |
+| Export workers (fallback only) | ~330 | ~330 GPUs |
+| **Total** | | **~4,500 GPUs, ~55,000 vCPU** |
 
 Machines with 4 or 8 GPUs are allowed, so that's a few thousand machines rather than tens of thousands.
 
