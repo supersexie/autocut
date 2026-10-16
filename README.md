@@ -14,6 +14,7 @@ the test list and what's left to do.
 
 | Folder | What it is |
 |---|---|
+| `HANDOVER.md`, `CLAUDE.md` | **Start here.** The step-by-step handover, and notes for Claude Code if you use it. |
 | `app/` | **The app** (frontend). Expo SDK 57, React Native, Expo Router. Screens in `app/src/app/`, components in `app/src/components/`, logic in `app/src/lib/`. |
 | `src/` | **The server** (backend). Node. An API (`server.js`) and any number of workers (`worker.js`) sharing a job list (Postgres on Supabase, or Redis at very large scale) and video storage (Cloudflare R2); transcribes with Deepgram, finds the cuts, renders exports with ffmpeg. Runs on Railway. API listed at the top of `src/server.js`. |
 | `tests/`, `app/tests/` | Server and app tests. |

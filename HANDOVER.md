@@ -1,9 +1,38 @@
 # Autocut: handover
 
 Everything you need to get Autocut onto the App Store and running at scale. The app works and has
-been tested end to end on iPhone (Expo Go) and on the iPad Simulator. The server is built to run as
-many machines at once. What's left is creating the accounts below, entering their keys, store setup,
-and a lawyer's review of the privacy policy and terms.
+been tested end to end: on iPhone in Expo Go, and as a real iOS build (with phone export) in the iPhone
+Simulator (see §4, "Tested on a development build"). What's left is creating your accounts, entering
+their keys, store setup, and a lawyer's review of the privacy policy and terms.
+
+## Start here: what to do, in order
+
+Each step points to the section with the details.
+
+1. **Read this file** (about 15 minutes) for the whole picture.
+2. **Put the code on your own GitHub.** Create a **private** repository and upload this folder. Railway
+   deploys the server from it, and every push to `main` redeploys.
+3. **Create your accounts and copy the keys across.** ACCOUNTS.md walks through each one:
+   - **Supabase**: accounts and the database. Run the one file in `supabase/migrations/` in its SQL editor.
+   - **Cloudflare R2**: video storage.
+   - **Deepgram**: speech-to-text. Move to Enterprise later for more at once (§10).
+   - **Railway Pro**: the server. Connect your GitHub and create the 3 services with the settings in
+     ACCOUNTS.md §3.
+   - **Expo**: builds the app and sends updates.
+   - **Sentry**: crash reports (optional, §5).
+4. **Point the app at your accounts.** Change three values in `app/eas.json`: your Railway server address
+   and your two Supabase keys (ACCOUNTS.md §4).
+5. **Set up payments** with Apple purchases through RevenueCat, and Whop for the web (§6 and PAYMENTS.md).
+6. **Legal.** Put your company name, contact email and country in Railway's settings, and have a lawyer
+   approve the privacy policy and terms (§7 and ACCOUNTS.md §5).
+7. **Build and test on a real iPhone.** Run `cd app && npx eas-cli build --platform ios --profile production`,
+   submit it to TestFlight, and work through "Check these on your first TestFlight build" (§4) and §8.
+8. **Submit to the App Store,** using the screenshots in `design/App Store/` and the answers in §7.
+9. **Website (optional).** Put the `site/` folder on any web host and add the App Store link once the app
+   is live (`site/README.md`).
+
+The previous owner's accounts keep the app running until you switch it to yours (steps 3–4). Then they
+can be shut down.
 
 ---
 
