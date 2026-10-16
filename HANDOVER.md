@@ -113,6 +113,9 @@ They can't run in Expo Go, so they've never run on a real device:
 
 ## 5. Accounts and settings to set up
 
+Moving to your own accounts? **[ACCOUNTS.md](ACCOUNTS.md)** lists every account, every key, where to get it
+and where it goes, including what to change in `app/app.json` and `app/eas.json`.
+
 Railway → the project → each service → **Variables**. `.env.example` lists every setting.
 
 ### Required
