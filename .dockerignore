@@ -8,8 +8,6 @@ app/src/*
 !app/src/lib
 app/src/lib/*
 !app/src/lib/styles.json
-ios
-prototype
 tests
 .git
 *.md

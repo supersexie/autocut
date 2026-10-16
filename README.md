@@ -27,7 +27,6 @@ the test list and what's left to do.
 | `Dockerfile`, `railway.json` | How the server is built and deployed. |
 | `AWS.md`, `infra/`, `Dockerfile.gpu`, `asr/` | The setup for 100,000 jobs at once on AWS (Kubernetes, GPU exports, our own GPU speech-to-text, Redis job list). Ready, not in use yet. |
 | `site/` | The website that sends people to the App Store (static). |
-| `ios/`, `prototype/` | Old prototypes. Not used. |
 
 ## Run it
 

@@ -27,7 +27,7 @@ zoom keyframes, captions, text, music, photo/video overlays). Export saves the f
 Run with none of the settings in §5 (local development), everything runs in one process on your Mac:
 a local database (PGlite) and a folder of videos instead of Supabase and R2.
 
-**Ignore** `ios/` (an old Swift prototype, not used), `prototype/` and `samples/`. In `design/`, only
+**Ignore** `samples/` (test videos, not in the handover copy). In `design/`, only
 `design/Logo/` (the logo in every format) and `design/App Store/` (the store screenshots) matter.
 The real iOS app is generated from `app/` by EAS. Don't commit an `app/ios` folder.
 
