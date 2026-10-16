@@ -75,6 +75,23 @@ async function settled(plan: PlanId, seconds = 40) {
   return false;
 }
 
+export type ApplePrice = { price: string; perMonth: string | null };
+
+/**
+ * Apple's own prices, in the buyer's currency, keyed "<plan>_<billing>". Apple charges each country
+ * its own price, and review checks the plan screen shows what will be charged, so these replace the
+ * US prices in plans.ts wherever Apple purchases are on. Empty where they aren't.
+ */
+export async function applePrices(userId: string): Promise<Record<string, ApplePrice>> {
+  const p = await purchases(userId);
+  if (!p) return {};
+  const out: Record<string, ApplePrice> = {};
+  for (const pkg of (await p.getOfferings()).current?.availablePackages ?? []) {
+    out[pkg.identifier] = { price: pkg.product.priceString, perMonth: pkg.product.pricePerMonthString };
+  }
+  return out;
+}
+
 /** Buys with Apple. Resolves false if they cancelled. */
 export async function buyWithApple(userId: string, plan: PlanId, billing: Billing) {
   const p = await purchases(userId);

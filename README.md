@@ -4,6 +4,8 @@ An iPhone and iPad app for UGC creators. Record or import a raw take; Autocut cu
 air, ums and flubbed retakes, captions every word, and opens it in an editor (trim, split, speed,
 zoom, captions, text, music, photo and video overlays). Export saves the finished video to Photos.
 
+**Setting up payments? See [PAYMENTS.md](PAYMENTS.md).**
+
 **Shipping it? Start with [HANDOVER.md](HANDOVER.md):** setup, builds, payments, App Store answers, scaling,
 the test list and what's left to do.
 

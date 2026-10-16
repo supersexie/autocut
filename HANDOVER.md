@@ -157,6 +157,9 @@ Railway → the project → each service → **Variables**. `.env.example` lists
 
 ## 6. Payments
 
+**The full step-by-step setup guide is [PAYMENTS.md](PAYMENTS.md)** (Apple, RevenueCat, Whop, switching on,
+testing, troubleshooting). This section is the summary.
+
 Two ways to pay, as Apple allows: **Apple's in-app purchase everywhere**, and **Whop on the web, only on
 the US App Store**, offered next to Apple's, never instead of it. (Apple guideline 3.1.1: a subscription
 app must offer in-app purchase; links to outside checkout are allowed on the US storefront only. Apple

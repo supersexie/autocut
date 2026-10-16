@@ -8,7 +8,7 @@ import { HIGHLIGHT, OnbScreen } from './Onboarding';
 import { Button, ErrorText, Logo, PressableScale, Segmented, Wash } from './ui';
 import { openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type Ways } from '../lib/billing';
+import { applePrices, buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type ApplePrice, type Ways } from '../lib/billing';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
 import { BRAND_FONT } from '../lib/fonts';
@@ -39,9 +39,14 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
   // How this account can pay here (when payments are on): Apple everywhere, Whop on the US store.
   const [ways, setWays] = useState<Ways | null>(null);
   const paying = PAYMENTS_ON && mode !== 'setup';
+  // Where Apple purchases are on, Apple's prices in the buyer's currency (what they'll be charged).
+  const [prices, setPrices] = useState<Record<string, ApplePrice>>({});
   useEffect(() => {
-    if (paying && account) waysToPay(account.id).then(setWays, () => setWays({ apple: false, web: false }));
+    if (!paying || !account) return;
+    waysToPay(account.id).then(setWays, () => setWays({ apple: false, web: false }));
+    applePrices(account.id).then(setPrices, () => {});
   }, [paying, account]);
+  const apple = (id: PlanId, b: Billing) => prices[`${id}_${b}`];
 
   async function start(how: 'apple' | 'web' = 'apple') {
     // Kept with the setup answers; they're saved with the rest when setup finishes.
@@ -123,7 +128,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
                   <Text style={styles.planEdits}>{p.edits}</Text>
                 </View>
                 <Text style={styles.price}>
-                  {money(pricePerMonth(p.monthly, billing))}
+                  {apple(p.id, billing)?.perMonth ?? money(pricePerMonth(p.monthly, billing))}
                   <Text style={styles.per}> a month</Text>
                 </Text>
               </View>
@@ -162,7 +167,10 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
         />
       )}
       <Text style={styles.terms}>
-        {money(monthly)} a month{billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}. Renews automatically. Cancel anytime.
+        {apple(plan, billing)
+          ? `${apple(plan, billing)!.price} ${billing === 'yearly' ? 'a year' : 'a month'}`
+          : `${money(monthly)} a month${billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}`}
+        . Renews automatically. Cancel anytime.
         {'\n'}
         {PAYMENTS_ON
           ? 'Charged to your Apple ID (or card, on the web) when you confirm. Renews unless cancelled at least 24 hours before the period ends; manage it in your account settings.'
