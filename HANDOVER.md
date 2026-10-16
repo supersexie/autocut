@@ -422,6 +422,23 @@ four times Railway's 42-copy cap per service, so it needs four render services (
 tens of thousands of dollars a month of CPU; with autoscaling you pay for the peaks only. The biggest saving
 at that size is moving exports onto the phone (below).
 
+### Going big on Railway: about 1,000–2,500 cuts at once (no code changes)
+
+Exports run on the phone, so the server only does cutting. To raise how many cuts run at once:
+
+1. **Railway Pro.** Railway → Workspace settings → Plan → Pro.
+2. **worker-cut** service → Settings → Resources: **24 vCPU / 24 GB**. Then Variables: `CONCURRENCY=64`.
+3. **api** service → Variables: in `SCALE_POOLS`, set the cut pool to `cut=<worker-cut id>:64:1:42`, which means
+   64 cuts per copy, at least 1 copy, at most 42. The autoscaler adds and removes copies by itself.
+4. **Deepgram.** A normal account allows about 50–100 transcriptions at once, which supports about
+   **1,000 cuts at once**. For more, ask Deepgram sales for **Enterprise** with a higher limit (ask for
+   500+ at once). Then raise `DEEPGRAM_MAX` on worker-cut so that DEEPGRAM_MAX × 42 copies stays under it.
+   With that, Railway Pro reaches about **2,500 cuts at once**.
+5. **Supabase.** Switch `DATABASE_URL` to the **Transaction pooler** (port 6543), and raise the compute size
+   if Supabase reports "max client connections".
+
+Check it on `/health`: `queued` should drop back to 0 within a minute or two at busy times.
+
 ### Past Railway: AWS (built, ready to set up)
 
 For tens of thousands to 100,000 jobs at once, everything is ready to run on AWS: Kubernetes (EKS)
