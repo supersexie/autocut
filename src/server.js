@@ -70,13 +70,28 @@ if (storage.check) {
     console.log(problem ? `Storage check FAILED: ${problem}` : 'Storage check: R2 works (signed upload, read, delete).');
   });
 }
+// Deepgram is checked at start and every 10 minutes, so a passing hiccup clears and a real problem
+// (a revoked key, no credit left) shows on /health with its reason.
+async function checkDeepgram() {
+  try {
+    const r = await fetch('https://api.deepgram.com/v1/projects', {
+      headers: { Authorization: `Token ${process.env.DEEPGRAM_API_KEY}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    const was = checks.deepgramOk;
+    checks.deepgramOk = r.ok;
+    if (r.ok) delete checks.deepgramError;
+    else checks.deepgramError = `HTTP ${r.status}${r.status === 401 || r.status === 403 ? ' (the key is wrong or was revoked)' : r.status === 402 ? ' (out of credit)' : ''}`;
+    if (r.ok !== was) console.log(r.ok ? 'Deepgram check: key works.' : `Deepgram check FAILED: ${checks.deepgramError}`);
+  } catch (e) {
+    checks.deepgramOk = false;
+    checks.deepgramError = e.message;
+    console.log(`Deepgram check FAILED: ${e.message}`);
+  }
+}
 if (process.env.DEEPGRAM_API_KEY) {
-  fetch('https://api.deepgram.com/v1/projects', { headers: { Authorization: `Token ${process.env.DEEPGRAM_API_KEY}` } })
-    .then((r) => {
-      checks.deepgramOk = r.ok;
-      console.log(r.ok ? 'Deepgram check: key works.' : `Deepgram check FAILED: HTTP ${r.status}`);
-    })
-    .catch((e) => console.log(`Deepgram check FAILED: ${e.message}`));
+  checkDeepgram();
+  setInterval(checkDeepgram, 10 * 60_000).unref();
 }
 checks.encoder = process.env.VIDEO_ENCODER || 'libx264';
 if (process.env.ASR_URL) {
