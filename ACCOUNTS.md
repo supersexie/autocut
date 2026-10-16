@@ -122,6 +122,7 @@ ROLE=worker
 WORKER_KINDS=cut
 CONCURRENCY=16
 DEEPGRAM_MAX=8
+DEEPGRAM_MIP_OPT_OUT=1
 WHISPER_FALLBACK=0
 RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30
 SUPABASE_URL=
@@ -195,7 +196,51 @@ Optional there: `EXPO_PUBLIC_SUPPORT_EMAIL` (shows "Help & contact" in Settings)
 
 ---
 
-## 5. Done? Quick end-to-end check
+## 5. Two things to decide, and the legal checklist
+
+### Deepgram: pay more so it doesn't train on users' audio?
+
+Deepgram has two prices. The cheaper one lets Deepgram use the audio you send to train its own speech
+models (its "Model Improvement Program"). Opting out costs more per minute (Deepgram doesn't publish the
+difference; it shows on the bill).
+
+Autocut is set to **opt out**: `DEEPGRAM_MIP_OPT_OUT=1` (also the default when unset), because the privacy
+policy promises users: *"We ask Deepgram not to use your audio to train its own models."*
+
+- **Keep it (recommended):** nothing to do.
+- **Take the cheaper rate:** set `DEEPGRAM_MIP_OPT_OUT=0` on worker-cut **and** remove that sentence from
+  `legal/privacy.html` (section "Who processes your data for us"). Both together, or the policy is untrue.
+
+### Legal checklist (before App Store review)
+
+The privacy policy and terms are already written for how Autocut works (videos kept until the account is
+deleted, used to improve the app and its AI with consent, the outside companies named, data moving if the
+company is sold, Whop payments, cancelling and refunds). They're served by the API at `/privacy` and
+`/terms`; the text is in `legal/privacy.html` and `legal/terms.html`. Still to do:
+
+1. **Your details** on those pages (they show `[operator name]` until set). Railway → **autocut** → Variables:
+   - `LEGAL_OPERATOR`: who publishes the app (person or company, as on the App Store listing)
+   - `LEGAL_EMAIL`: contact for privacy requests
+   - `LEGAL_COUNTRY`: whose laws apply, e.g. `United States`
+
+   Check `https://<your api domain>/privacy` shows them. Apple rejects the app with placeholders.
+2. **A lawyer approves the final wording.** Points for them: the licence to use videos for AI, what happens
+   to model improvements after an account is deleted, deleting consent records with the account, Whop
+   refunds, and which law applies.
+3. **The lawyer decides whether agreeing to AI use is required or optional.** Today it's optional (a second,
+   unticked box at sign-up, and a switch in Settings). To make it required: `app/src/lib/consent.ts` →
+   `AI_CONSENT_REQUIRED = true`, then a new build. The server records each person's choice in the `consents`
+   table; **only use videos from accounts with `ai = true` for AI work.**
+4. **Changing the terms later:** bump `TERMS_VERSION` in both `src/legal.js` and `app/src/lib/consent.ts`;
+   everyone is asked to agree again in the app.
+5. **App Store privacy labels**: fill them in App Store Connect from the table in HANDOVER.md §7.
+6. **The other creator's video.** The intro video (`app/assets/intro/`) and all 20 App Store screenshots
+   (`design/App Store/`) show another creator (his face, an "@STEE.UGC" watermark, brand logos). Get his
+   written permission, or replace them with your own take before release.
+
+---
+
+## 6. Done? Quick end-to-end check
 
 1. `/health` looks like section 3's check.
 2. In the app (TestFlight, or Expo Go pointed at your server): create an account (two consent boxes) →
