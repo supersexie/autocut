@@ -73,6 +73,12 @@ Supabase also needs (once):
 ### Expo
 No keys to copy. Log in on the build machine (`npx eas-cli@latest login`) and run `eas init` (section 4).
 
+### Sentry (crash reports, optional but recommended)
+
+sentry.io → create a project (React Native) → **Settings → Client Keys (DSN)**. The key goes in
+`app/eas.json` → `build.production.env.EXPO_PUBLIC_SENTRY_DSN`. It's safe in the app: it can only send
+reports.
+
 ### Apple, RevenueCat, Whop (payments; steps in PAYMENTS.md)
 | Key | Where to get it | Goes in | Secret? |
 |---|---|---|---|

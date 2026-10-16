@@ -153,7 +153,7 @@ export function CuttingView({ id }: { id: string }) {
   }
 
   const status = cut.stage === 'reconnecting'
-    ? 'Connection lost. Retrying, keep Autocut open'
+    ? 'Connection lost. Trying again…'
     : uploading
     ? cut.stage === 'waiting'
       ? 'Waiting for your other videos to upload'

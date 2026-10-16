@@ -98,6 +98,25 @@ npx eas-cli@latest update --channel production --message "Fix caption timing"
 - Apple allows this for fixes and small changes. New features that change what the app does still go
   through review.
 
+### Tested on a development build (16 October 2026)
+
+A real iOS build (Simulator, iOS 27, with all the native code) against the server:
+
+| Checked | Result |
+|---|---|
+| Launch on iOS 27 | Works (after the scene life cycle fix below) |
+| Sign-up consent, plan picker, onboarding | Works |
+| Import a 38 s take, cut on the server, live progress over `/live` | Works: reading → listening → cutting → ready |
+| Editor with the native player (play through the cuts, captions on the timeline) | Works |
+| Export on the phone (no server export job at all), saved to Photos | Works: 38 s exported in about 10 s |
+| Leaving the app mid-export | The export picks up again and finishes |
+| App closed and reopened | The cut is still there, "Ready to edit" |
+| Server down while sending a cut | "Connection lost. Trying again…", then finishes by itself when the server is back |
+| Phone export of 4K, a 10-minute take, iPhone HDR (HLG) and a rotated video | All correct, about 70 MB memory throughout. HDR comes out as standard colour, which is right for social apps |
+
+Not tested here (do it on TestFlight): the iPad layout (the iPad Simulator wouldn't take input), a real
+device's camera and microphone, Sign in with Apple, and purchases.
+
 ### ⚠️ Check these on your first TestFlight build
 
 They can't run in Expo Go, so they've never run on a real device:
@@ -159,6 +178,10 @@ Railway → the project → each service → **Variables**. `.env.example` lists
 
 - **Support email**: add `"EXPO_PUBLIC_SUPPORT_EMAIL": "…"` to each profile's `env` in `app/eas.json`
   to show "Help & contact" in Settings.
+- **Crash reports (Sentry)**: create a free project at sentry.io (platform: React Native), then add
+  `"EXPO_PUBLIC_SENTRY_DSN": "…"` (Settings → Client Keys) to the `production` profile's `env` in
+  `app/eas.json`. Until then crash reporting is off. No names, emails, videos or IP addresses are sent, and
+  the privacy policy already lists Sentry.
 - **Sign in with Apple / Google**: currently **off** in Supabase, so only email sign-in shows in store
   builds. Turn on **both or neither** (Apple requires Sign in with Apple whenever Google is offered).
   - Supabase → Authentication → Providers → **Apple**: enable, add `com.rishavvashisht.autocut` as a client ID.
