@@ -9,7 +9,8 @@ import { CuttingSettings } from '../components/CuttingSettings';
 import { PressableScale, Wash } from '../components/ui';
 import { Card, Footnote, listStyles, PageHeader, Row, SectionLabel } from '../components/list';
 import { forgetThumbnails } from '../components/Thumb';
-import { autoServerUrl, checkServer, openLegal } from '../lib/api';
+import { autoServerUrl, checkServer, openLegal, postConsent } from '../lib/api';
+import { AI_CONSENT_REQUIRED } from '../lib/consent';
 import { displayName, initialsOf, useAuth } from '../lib/auth';
 import { cacheBytes, clearCache, updateSettings, useSettings } from '../lib/store';
 import { useTours } from '../lib/tours';
@@ -21,7 +22,7 @@ const VERSION = `v${Constants.expoConfig?.version ?? '1.0.0'}${Constants.expoCon
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
-  const { account, signOut, deleteAccount } = useAuth();
+  const { account, signOut, deleteAccount, updateProfile } = useAuth();
   const tours = useTours();
   const { plan } = useUsage();
   const settings = useSettings();
@@ -130,11 +131,29 @@ export default function SettingsScreen() {
           <Row icon="graduationcap" label="Replay tutorial" onPress={replayTutorial} last />
         </Card>
 
-        <SectionLabel>Legal</SectionLabel>
+        <SectionLabel>Privacy</SectionLabel>
         <Card>
+          {!AI_CONSENT_REQUIRED && (
+            <Row
+              icon="sparkles"
+              label="Help improve Autocut’s AI"
+              right={
+                <Switch
+                  value={!!account?.profile.aiConsent}
+                  onValueChange={(ai) => {
+                    // On the account at once; the server's record (what it goes by) right after.
+                    updateProfile({ aiConsent: ai }).catch(() => {});
+                    postConsent({ ai }).catch(() => {});
+                  }}
+                  trackColor={{ true: theme.ink }}
+                />
+              }
+            />
+          )}
           <Row icon="checkmark.shield" label="Privacy Policy" onPress={() => openLegal('privacy')} />
           <Row icon="doc.text" label="Terms of Service" onPress={() => openLegal('terms')} last />
         </Card>
+        {!AI_CONSENT_REQUIRED && <Footnote>On: your videos can be used to improve how Autocut cuts and captions. Off: they’re only used to make your edits.</Footnote>}
 
         {__DEV__ && (
           <>

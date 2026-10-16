@@ -8,6 +8,7 @@ import { Button, ErrorText, Field, Logo, Segmented } from '../components/ui';
 import { displayName, useAuth, type Language } from '../lib/auth';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
 import { updateSettings } from '../lib/store';
+import { PAYMENTS_ON } from '../lib/billing';
 import { theme } from '../lib/theme';
 
 type Step = 'plan' | 'name' | 'handle' | 'ready' | 'help';
@@ -20,7 +21,8 @@ type Step = 'plan' | 'name' | 'handle' | 'ready' | 'help';
 export default function Paywall() {
   const { account, updateProfile, signOut } = useAuth();
   const draft = getDraft();
-  const steps: Step[] = draft.plan ? ['name', 'handle', 'ready', 'help'] : ['plan', 'name', 'handle', 'ready', 'help'];
+  // With payments on, the plan chosen during setup is bought here, once the account exists.
+  const steps: Step[] = draft.plan && !PAYMENTS_ON ? ['name', 'handle', 'ready', 'help'] : ['plan', 'name', 'handle', 'ready', 'help'];
   const [step, setStep] = useState<Step>(steps[0]);
   const index = steps.indexOf(step);
   const next = () => setStep(steps[Math.min(steps.length - 1, index + 1)]);

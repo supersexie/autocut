@@ -1,10 +1,14 @@
+import * as Linking from 'expo-linking';
 import { router } from 'expo-router';
+import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card, Footnote, Meter, PageHeader, Row } from '../components/list';
 import { Button, Wash } from '../components/ui';
-import { FEATURES } from '../lib/plans';
+import { useAuth } from '../lib/auth';
+import { MANAGE_APPLE_URL, MANAGE_WHOP_URL, PAYMENTS_ON, restore } from '../lib/billing';
+import { FEATURES, planFor } from '../lib/plans';
 import { column, COLUMN, theme } from '../lib/theme';
 import { usageLine, useUsage } from '../lib/usage';
 
@@ -12,6 +16,33 @@ import { usageLine, useUsage } from '../lib/usage';
 export default function PlanScreen() {
   const insets = useSafeAreaInsets();
   const { plan, used, limit, left, resets } = useUsage();
+  const { account, updateProfile } = useAuth();
+  const [restoring, setRestoring] = useState(false);
+
+  async function restorePurchases() {
+    if (!PAYMENTS_ON) return Alert.alert('Nothing to restore', 'Autocut is free during the beta, so there are no purchases to bring back yet.');
+    if (!account) return;
+    setRestoring(true);
+    try {
+      const paid = await restore(account.id);
+      if (paid) {
+        await updateProfile({ plan: paid });
+        Alert.alert('Restored', `You’re on ${planFor(paid).name}.`);
+      } else Alert.alert('Nothing to restore', 'We couldn’t find a plan on this account. If you paid on the web, sign in with the same email you used there.');
+    } catch (e) {
+      Alert.alert('Couldn’t restore', e instanceof Error ? e.message : String(e));
+    } finally {
+      setRestoring(false);
+    }
+  }
+
+  // Subscriptions are changed or cancelled where they were bought.
+  const manage = () =>
+    Alert.alert('Manage subscription', 'Where did you subscribe?', [
+      { text: 'In the App Store', onPress: () => Linking.openURL(MANAGE_APPLE_URL) },
+      { text: 'On the web (Whop)', onPress: () => Linking.openURL(MANAGE_WHOP_URL) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
 
   return (
     <View style={styles.screen}>
@@ -20,10 +51,10 @@ export default function PlanScreen() {
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 18, paddingTop: 8, paddingBottom: insets.bottom + 30 }, column(COLUMN + 36)]}>
         <Card style={styles.pad}>
           <Text style={styles.plan}>
-            {plan.name} <Text style={styles.tag}>Beta</Text>
+            {plan.name} {!PAYMENTS_ON && <Text style={styles.tag}>Beta</Text>}
           </Text>
           <Text style={styles.line}>{plan.edits}</Text>
-          <Text style={styles.small}>Free while Autocut is in beta. You won’t be charged.</Text>
+          {!PAYMENTS_ON && <Text style={styles.small}>Free while Autocut is in beta. You won’t be charged.</Text>}
           <Button title="Change plan" onPress={() => router.push('/change-plan')} style={{ marginTop: 16 }} />
         </Card>
 
@@ -46,12 +77,8 @@ export default function PlanScreen() {
         </Card>
 
         <Card style={{ marginTop: 12 }}>
-          <Row
-            label="Restore purchases"
-            muted
-            last
-            onPress={() => Alert.alert('Nothing to restore', 'Autocut is free during the beta, so there are no purchases to bring back yet.')}
-          />
+          {PAYMENTS_ON && <Row label="Manage subscription" onPress={manage} />}
+          <Row label={restoring ? 'Restoring…' : 'Restore purchases'} muted last onPress={restoring ? undefined : restorePurchases} />
         </Card>
         <Footnote center>Changes made in the App Store can take up to 24 hours to show here.</Footnote>
       </ScrollView>

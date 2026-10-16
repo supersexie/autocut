@@ -8,3 +8,6 @@ DerivedData/
 data/
 .expo/
 expo-qr.png
+.env
+.env.local
+.env.*.local

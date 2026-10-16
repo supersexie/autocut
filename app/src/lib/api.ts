@@ -70,25 +70,56 @@ export const checkServer = async () => (await call('/health')).ok === true;
 
 export async function uploadTake(uri: string, mime: string, onProgress: (fraction: number) => void): Promise<string> {
   const base = serverUrl();
+  const file = new File(uri);
+  // Ask for a signed link, then send the file straight to storage (Cloudflare R2), not through
+  // our servers. A server from before direct uploads doesn't know /uploads/sign: send it there.
+  let signed: { id: string; url: string; headers: Record<string, string> } | null = null;
+  try {
+    signed = await call('/uploads/sign', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ type: mime, size: file.size }) });
+  } catch (e) {
+    if (e instanceof ServerUnreachable || !(e instanceof Error) || !/\(404\)|Not found/.test(e.message)) throw e;
+  }
   let result;
   try {
-    result = await new File(uri).upload(`${base}/uploads`, {
-      httpMethod: 'POST',
-      uploadType: UploadType.BINARY_CONTENT,
-      headers: { 'content-type': mime, ...(await authHeaders()) },
-      onProgress: ({ bytesSent, totalBytes }) => onProgress(totalBytes ? bytesSent / totalBytes : 0),
-    });
+    result = signed
+      ? await file.upload(signed.url, {
+          httpMethod: 'PUT',
+          uploadType: UploadType.BINARY_CONTENT,
+          headers: signed.headers,
+          onProgress: ({ bytesSent, totalBytes }) => onProgress(totalBytes ? bytesSent / totalBytes : 0),
+        })
+      : await file.upload(`${base}/uploads`, {
+          httpMethod: 'POST',
+          uploadType: UploadType.BINARY_CONTENT,
+          headers: { 'content-type': mime, ...(await authHeaders()) },
+          onProgress: ({ bytesSent, totalBytes }) => onProgress(totalBytes ? bytesSent / totalBytes : 0),
+        });
   } catch {
     throw new ServerUnreachable(base);
+  }
+  // 502–504: restarting (a new version going live) or swamped. Worth another go.
+  if (result.status >= 502 && result.status <= 504) throw new ServerUnreachable(base);
+  if (signed) {
+    if (result.status < 200 || result.status >= 300) throw new Error(`Upload failed (${result.status}).`);
+    return signed.id;
   }
   let body: { id?: string; error?: string } | null = null;
   try {
     body = JSON.parse(result.body);
   } catch {}
-  // 502–504: the server is restarting (a new version going live) or swamped. Worth another go.
-  if (result.status >= 502 && result.status <= 504) throw new ServerUnreachable(base);
   if (result.status !== 201 || !body?.id) throw new Error(body?.error ?? `Upload failed (${result.status}).`);
   return body.id;
+}
+
+/**
+ * Where to fetch one of a cut's videos: a signed link straight to storage, or (from a server
+ * before direct downloads) the server itself, with the sign-in token.
+ */
+async function videoUrl(path: string): Promise<{ url: string; headers: Record<string, string> }> {
+  const sep = path.includes('?') ? '&' : '?';
+  const linked = await call(`${path}${sep}link=1`).catch(() => null);
+  if (typeof linked?.url === 'string') return { url: linked.url, headers: {} };
+  return { url: serverUrl() + path, headers: await authHeaders() };
 }
 
 /** Starts cutting the uploads, or with `at` (ms since 1970) has the server cut them at that time. */
@@ -109,6 +140,18 @@ export async function createCut(uploadIds: string[], flips: boolean[], language:
 }
 
 export const deleteAccountOnServer = () => call('/account', { method: 'DELETE' });
+
+/** Records on the server what the user agreed to (and when): the terms, and AI use of their videos. */
+export const postConsent = (consent: { termsVersion?: string; ai?: boolean }) =>
+  call('/consent', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(consent) });
+
+export type Me = { plan: string | null; paid: string | null; termsVersion: string };
+
+/** A Whop checkout link for this account (the server attaches the account to it). */
+export async function startWhopCheckout(plan: string, billing: string): Promise<string> {
+  return (await call('/billing/whop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ plan, billing }) })).url;
+}
+export const getMe = (): Promise<Me> => call('/me');
 
 export const getJob = (id: string): Promise<Job> => call(`/cuts/${id}`);
 
@@ -147,7 +190,8 @@ export async function previewOf(
     ({ stage } = await call(`/cuts/${serverId}/preview?key=${key}&status=1`));
   }
   if (stage !== 'ready' || !alive()) return;
-  await File.downloadFileAsync(`${serverUrl()}/cuts/${serverId}/preview?key=${key}`, file, { headers: await authHeaders() });
+  const { url, headers } = await videoUrl(`/cuts/${serverId}/preview?key=${key}`);
+  await File.downloadFileAsync(url, file, { headers });
   deletePreviews(cutId, file.name);
   return file.uri;
 }
@@ -157,8 +201,9 @@ export async function download(path: string, name: string, onProgress?: (fractio
   const file = new File(cutsDir, name);
   if (file.exists) file.delete();
   try {
-    await File.downloadFileAsync(serverUrl() + path, file, {
-      headers: await authHeaders(),
+    const { url, headers } = await videoUrl(path);
+    await File.downloadFileAsync(url, file, {
+      headers,
       onProgress: onProgress && (({ bytesWritten, totalBytes }) => onProgress(totalBytes ? bytesWritten / totalBytes : 0)),
     });
   } catch {

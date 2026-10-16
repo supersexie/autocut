@@ -4,16 +4,22 @@ import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { APP_FONTS } from '../lib/fonts';
+import { useBackgroundUpdates } from '../lib/updates';
+import { ConsentGate } from '../components/ConsentGate';
+import { PlanSync } from '../components/PlanSync';
 import { AuthProvider, useAuth } from '../lib/auth';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  useBackgroundUpdates();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <StatusBar style="dark" />
         <RootNavigator />
+        <ConsentGate />
+        <PlanSync />
       </AuthProvider>
     </GestureHandlerRootView>
   );

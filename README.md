@@ -12,8 +12,10 @@ the test list and what's left to do.
 | Folder | What it is |
 |---|---|
 | `app/` | **The app** (frontend). Expo SDK 57, React Native, Expo Router. Screens in `app/src/app/`, components in `app/src/components/`, logic in `app/src/lib/`. |
-| `src/` | **The cutting server** (backend). Node. Transcribes with Whisper, finds the cuts, renders exports with ffmpeg. Runs on Railway. API listed at the top of `src/server.js`. |
+| `src/` | **The server** (backend). Node. An API (`server.js`) and any number of workers (`worker.js`) sharing a Postgres job list (Supabase) and video storage (Cloudflare R2); transcribes with Deepgram, finds the cuts, renders exports with ffmpeg. Runs on Railway. API listed at the top of `src/server.js`. |
 | `tests/`, `app/tests/` | Server and app tests. |
+| `supabase/migrations/` | The database tables (run once in Supabase). |
+| `.env.example` | Every server setting. |
 | `legal/` | Privacy policy and terms, served by the server at `/privacy` and `/terms`. |
 | `fonts/` | Caption fonts the server renders with (the app has its own copy in `app/assets/fonts/`). All SIL Open Font License. |
 | `design/Logo/` | The logo in every format (`Final/`), plus the versions that weren't picked (`Other versions/`). |
@@ -41,7 +43,7 @@ cd app && npx tsc --noEmit && npx expo lint && npm test && npx expo-doctor   # a
 
 ## How the cutting works
 
-1. **Transcribe** with word timings (Whisper, on the server; no API keys).
+1. **Transcribe** with word timings (Deepgram; Whisper on the worker as a backup).
 2. **Fillers and stutters**: "um", "uh", repeated words.
 3. **Retakes**: when a phrase is said again soon after, the earlier try is dropped (last take wins).
 4. **Dead air**: pauses longer than the chosen limit become cuts, snapped to the real audio so words aren't clipped.

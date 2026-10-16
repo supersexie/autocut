@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { effectivePlan } from './billing.js';
 
 // Requests carry the app user's Supabase access token. Without SUPABASE_URL (local development)
 // every request runs as one local user; in production the server refuses to start that way.
@@ -26,16 +27,38 @@ export async function accountFrom(req) {
 }
 
 /**
- * The user's plan, read from the account itself (`user_metadata.plan`). Not from the token: its copy
- * is as old as the token (up to an hour), so a plan just changed wouldn't count yet. Until App Store
- * subscriptions are connected the app sets it, so it isn't proof of payment: see HANDOVER.md.
+ * The user's plan. Paid plans come from `app_metadata.plans`, which only the server writes (from
+ * the Whop and RevenueCat webhooks, see billing.js). Until PAYMENTS_REQUIRED=1, an account that
+ * hasn't paid uses the plan the app picked (`user_metadata.plan`, the free beta); after, it has
+ * none and can't start edits. Read from the account, not the token, whose copy can be an hour old.
  */
 export async function planOf(id) {
   // Local development: Ultimate, or the plan in DEV_PLAN (starter, pro) to try the limits.
   if (!supabase || id === LOCAL_USER) return process.env.DEV_PLAN || 'ultimate';
   const { data, error } = await supabase.auth.admin.getUserById(id);
   if (error) throw error;
-  return data.user?.user_metadata?.plan;
+  const paid = effectivePlan(data.user?.app_metadata?.plans);
+  if (paid) return paid;
+  return process.env.PAYMENTS_REQUIRED === '1' ? null : data.user?.user_metadata?.plan;
+}
+
+/** What the account has paid for, per source: { whop: {...}, apple: {...} } (for GET /me). */
+export async function plansOf(id) {
+  if (!supabase || id === LOCAL_USER) return {};
+  const { data, error } = await supabase.auth.admin.getUserById(id);
+  if (error) throw error;
+  return data.user?.app_metadata?.plans ?? {};
+}
+
+/** Records a change from one payment source (whop | apple) on the account. */
+export async function setPlanFrom(source, { userId, plan, billing, active, until, ref }) {
+  if (!supabase) return;
+  const { data, error } = await supabase.auth.admin.getUserById(userId);
+  if (error || !data.user) throw error ?? new Error(`no user ${userId}`);
+  const meta = data.user.app_metadata ?? {};
+  const plans = { ...(meta.plans ?? {}), [source]: { plan, billing, active, until, ref, at: Date.now() } };
+  const { error: e2 } = await supabase.auth.admin.updateUserById(userId, { app_metadata: { ...meta, plans } });
+  if (e2) throw e2;
 }
 
 /** The signed-in user's id, or null. */

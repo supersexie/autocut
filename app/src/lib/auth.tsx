@@ -28,6 +28,10 @@ export type Profile = {
   plan?: PlanId;
   billing?: Billing;
   onboarded?: boolean;
+  /** The version of the terms and privacy policy agreed to (see lib/consent.ts). */
+  termsVersion?: string;
+  /** Whether their videos may be used to improve Autocut and its AI. */
+  aiConsent?: boolean;
 };
 
 /** `fullName` is the name a sign-in provider (Google, Apple) shared, if any. */
@@ -40,7 +44,7 @@ type AuthContextValue = {
   configured: boolean;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   /** Resolves 'check-email' when the project requires email confirmation first. */
-  signUpWithEmail: (email: string, password: string) => Promise<'signed-in' | 'check-email'>;
+  signUpWithEmail: (email: string, password: string, agreed?: Profile) => Promise<'signed-in' | 'check-email'>;
   signInWithApple: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
@@ -59,6 +63,7 @@ export const NOT_CONFIGURED = "Accounts aren't connected yet. Add your Supabase 
 const KEYS: Record<keyof Profile, string> = {
   firstName: 'first_name', lastName: 'last_name', language: 'language', handle: 'handle',
   tour: 'tour', editorTour: 'editor_tour', who: 'who', goal: 'goal', editorCost: 'editor_cost', perWeek: 'per_week', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
+  termsVersion: 'terms_version', aiConsent: 'ai_consent',
 };
 const toMetadata = (p: Profile) =>
   Object.fromEntries(Object.entries(p).map(([k, v]) => [KEYS[k as keyof Profile], v]));
@@ -118,12 +123,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         check(error);
       },
 
-      async signUpWithEmail(email, password) {
+      async signUpWithEmail(email, password, agreed = {}) {
         // The confirmation email links back into the app (route: auth-callback), not to a website.
+        // What they agreed to goes on the account at once (the server copy follows on sign-in).
         const { data, error } = await client().auth.signUp({
           email: email.trim(),
           password,
-          options: { emailRedirectTo: Linking.createURL('auth-callback') },
+          options: { emailRedirectTo: Linking.createURL('auth-callback'), data: toMetadata(agreed) },
         });
         check(error);
         return data.session ? 'signed-in' : 'check-email';

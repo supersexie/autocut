@@ -5,7 +5,9 @@
 //   LEGAL_COUNTRY   e.g. "India" (governing law and contact line)
 import { readFile } from 'node:fs/promises';
 
-const UPDATED = '15 October 2026';
+const UPDATED = '16 October 2026';
+// Bumped whenever the terms or privacy policy change in a way users must agree to again.
+export const TERMS_VERSION = '2026-10-16';
 const DIR = new URL('../legal/', import.meta.url);
 
 const escape = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -16,7 +18,6 @@ export async function legalPage(name) {
     OPERATOR: process.env.LEGAL_OPERATOR || '[operator name]',
     EMAIL: process.env.LEGAL_EMAIL || '[contact email]',
     COUNTRY: process.env.LEGAL_COUNTRY || '[country]',
-    RETENTION_DAYS: process.env.RETENTION_DAYS || '7',
     UPDATED,
   };
   const body = (await readFile(new URL(`${name}.html`, DIR), 'utf8')).replace(/\{\{(\w+)\}\}/g, (_, k) => escape(values[k] ?? ''));

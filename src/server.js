@@ -1,501 +1,273 @@
 #!/usr/bin/env node
-// HTTP API the mobile app talks to.
-//   POST /uploads                      body: raw video bytes              -> { id }
+// HTTP API the mobile app talks to. Runs as ROLE=api (just this), ROLE=worker (just the heavy
+// work, see worker.js) or ROLE=all (both, the default: local development and small deployments).
+// Any number of either can run at once: they share the database (db.js) and storage (storage.js).
+//
+//   POST /uploads/sign                 { type, size }                     -> { id, url, method, headers }  (the phone PUTs the file to url: straight to storage)
+//   POST /uploads                      body: raw bytes (older apps)       -> { id }
 //   POST /cuts?uploads=a,b&flips=1,0&blend=1&maxGap=0.3&fillers=1&retakes=1&lang=en -> { id }   (joins takes, un-mirrors selfies, finds cuts)
-//   POST /cuts?...                     body: raw video bytes (one take)    -> { id }
 //        &at=<ms since 1970>          scheduled: kept as stage "scheduled" and cut at that time (up to 30 days ahead)
 //   GET  /cuts/:id                                                        -> stage, progress, words, segments, cuts, render
 //   POST /cuts/:id/stop                                                   -> stops a cut that hasn't finished
-//   GET  /cuts/:id/source                                                 -> the joined raw video the editor previews
-//   POST /cuts/:id/render              { clips: [{start,end,speed,volume}], captions: {style, box?, outline?, color?, x?, y?, scale?, lines}, texts, music: {upload, volume}, keyframes: [{t,scale,x,y}], overlapAudio?,
-//                                        overlays: [{upload, kind, start, end, from, x, y, width, rotation, volume}], height, fps, bitrate } -> { renderId }
-//                                        (music.upload is an id from POST /uploads with the song's bytes)
-//   GET  /cuts/:id/video                                                  -> the latest finished render
+//   GET  /cuts/:id/source[?link=1]                                        -> the video the editor plays (link=1: { url } to fetch it from storage)
+//   POST /cuts/:id/render              { clips, captions, texts, music: {upload, volume}, keyframes, overlapAudio?, overlays: [{upload, …}], height, fps, bitrate } -> { renderId }
+//   GET  /cuts/:id/video[?link=1]                                         -> the latest finished export
 //   POST /cuts/:id/preview             { clips }                          -> { key, stage }  (a small stitched preview of the edit)
-//   GET  /cuts/:id/preview?key=K[&status=1]                               -> the preview video, or { stage } while it renders
+//   GET  /cuts/:id/preview?key=K[&status=1|&link=1]                       -> the preview, or { stage } while it renders
 //   GET  /cuts/:id/waveform                                               -> { rate, peaks }: loudness 0–100, `rate` points a second
-//   DELETE /account                                                       -> deletes the user, their takes and cuts
-// Every route but /health, /privacy and /terms needs `Authorization: Bearer <Supabase access token>` (see auth.js).
+//   GET  /me                                                              -> { plan, plans, consent, termsVersion }
+//   POST /consent                      { termsVersion?, ai? }             -> records what the user agreed to
+//   POST /billing/whop                 { plan, billing }                  -> { url }  (Whop checkout for this account)
+//   DELETE /account                                                       -> deletes the user, their videos and cuts
+//   POST /webhooks/whop, /webhooks/revenuecat                             (payments, signed by Whop / RevenueCat)
+//   GET  /health, /privacy, /terms                                        (public)
+// Every other route needs `Authorization: Bearer <Supabase access token>` (see auth.js).
 import http from 'node:http';
-import { createReadStream, createWriteStream } from 'node:fs';
-import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile, stat } from 'node:fs/promises';
-import { pipeline as streamTo } from 'node:stream/promises';
-import { createHash, randomUUID } from 'node:crypto';
+import { createReadStream } from 'node:fs';
+import { mkdir, readFile, rm, stat } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import os from 'node:os';
 import path from 'node:path';
-import { accountFrom, authEnabled, deleteAuthUser, LOCAL_USER, planOf } from './auth.js';
-import { rulesFor, usageStore } from './plans.js';
-import { legalPage } from './legal.js';
-import { joinTakes, render } from './media.js';
-import { analyze, renderEdit, WAVEFORM_RATE, waveformOfFile } from './pipeline.js';
+import { accountFrom, authEnabled, deleteAuthUser, LOCAL_USER, planOf, plansOf, setPlanFrom } from './auth.js';
+import { effectivePlan, revenueCatChange, verifyWhop, whopChange, whopCheckout } from './billing.js';
+import { openDb } from './db.js';
+import { parseClips, parseRender, PREVIEW_KEY, previewKey } from './edits.js';
+import { legalPage, TERMS_VERSION } from './legal.js';
+import { rulesFor } from './plans.js';
+import { WAVEFORM_RATE } from './pipeline.js';
+import { openStorage } from './storage.js';
+import { cutKey, previewName, startWorker, sweep } from './worker.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
+const ROLE = process.env.ROLE ?? 'all';
 const DATA = path.resolve(process.env.AUTOCUT_DATA ?? new URL('../data', import.meta.url).pathname);
-const UPLOADS = path.join(DATA, 'uploads');
-const usage = usageStore(path.join(DATA, 'usage'));
 const MAX_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024;
-// Whisper and ffmpeg each use every core, so run few jobs at once and queue the rest.
+// Jobs at once per worker process: Whisper/ffmpeg each use every core, so keep it low and add workers.
 const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY ?? 1));
-const RETENTION_DAYS = Number(process.env.RETENTION_DAYS ?? 7);
+const MAX_AHEAD = 30 * 864e5; // how far ahead an edit can be scheduled
 const ID = /^[0-9a-f-]{36}$/;
 const USER = /^([0-9a-f-]{36}|local)$/;
+const UPLOAD = /^[0-9a-f-]{36}\.(mov|mp4|jpg|png|mp3|m4a|wav|aac)$/;
 
-const jobs = new Map();
-let running = 0;
-const waiting = [];
-function enqueue(fn) {
-  waiting.push(fn);
-  drain();
-}
-function drain() {
-  while (running < CONCURRENCY && waiting.length) {
-    const fn = waiting.shift();
-    running++;
-    Promise.resolve()
-      .then(fn)
-      .catch((err) => console.error(err))
-      .finally(() => {
-        running--;
-        drain();
-      });
-  }
-}
+if (!process.env.DATABASE_URL) console.warn('No DATABASE_URL: using a local database in', path.join(DATA, 'db'), '(one server only).');
+const db = await openDb({ dir: path.join(DATA, 'db') });
+const storage = await openStorage({ dir: path.join(DATA, 'blobs') });
+if (storage.kind === 'local') console.warn('No R2_* settings: videos are kept on this machine in', storage.root);
 
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
   res.end(JSON.stringify(body));
 };
 
-function publicJob(job) {
-  // The waveform is fetched once, from its own route, not with every progress check.
-  const { dir, source, userId, waveform, run, ...rest } = job;
-  return { ...rest, render: job.render && { ...job.render, output: undefined } };
-}
+// The address the phone used to reach us, for signed links when videos are kept on this machine.
+const baseOf = (req) => `${req.headers['x-forwarded-proto'] ?? 'http'}://${req.headers['x-forwarded-host'] ?? req.headers.host}`;
 
-const saveJob = (job) => writeFile(path.join(job.dir, 'job.json'), JSON.stringify(job, null, 2));
-
-/** A job, only if it belongs to `userId`. */
-async function loadJob(id, userId) {
-  const job = await readJob(id);
-  return job && (job.userId ?? LOCAL_USER) === userId ? job : null;
-}
-
-async function readJob(id) {
-  if (jobs.has(id)) return jobs.get(id);
-  if (!ID.test(id)) return null;
-  try {
-    const job = JSON.parse(await readFile(path.join(DATA, id, 'job.json'), 'utf8'));
-    // A scheduled edit that came due but hadn't started yet when the server restarted: run it now.
-    if (job.stage === 'queued' && job.run) job.stage = 'scheduled';
-    // A server restart interrupts anything that was running.
-    if (!['ready', 'failed', 'stopped', 'scheduled'].includes(job.stage)) {
-      Object.assign(job, { stage: 'failed', error: 'The server restarted. Send the take again.' });
-      await usage.refund(job.userId ?? LOCAL_USER);
-      await saveJob(job); // so it's refunded once, not on every restart
-    }
-    if (job.render && !['ready', 'failed'].includes(job.render.stage)) Object.assign(job.render, { stage: 'failed', error: 'The server restarted. Export again.' });
-    jobs.set(id, job);
-    return job;
-  } catch {
-    return null;
-  }
-}
-
-async function readBody(req, file) {
-  let bytes = 0;
-  req.on('data', (c) => {
-    bytes += c.length;
-    if (bytes > MAX_BYTES) req.destroy(new Error('too large'));
-  });
-  await streamTo(req, createWriteStream(file));
-  return bytes;
-}
-
-// Saved under a fitting extension so ffmpeg reads photos and songs as what they are.
-const EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/wav': 'wav', 'audio/aac': 'aac' };
-const extFor = (type = '') => EXTENSIONS[type.split(';')[0].trim()] ?? (type.includes('mp4') ? 'mp4' : 'mov');
-
-const uploadsFor = async (userId) => {
-  const dir = path.join(UPLOADS, userId);
-  await mkdir(dir, { recursive: true });
-  return dir;
-};
-
-async function createUpload(req, res, userId) {
-  const id = randomUUID();
-  const file = path.join(await uploadsFor(userId), `${id}.${extFor(req.headers['content-type'])}`);
-  try {
-    if (!(await readBody(req, file))) return send(res, 400, { error: 'No video in the request body.' });
-  } catch {
-    return send(res, 413, { error: 'That take is too large (1 GB max).' });
-  }
-  send(res, 201, { id });
-}
-
-async function findUpload(id, userId) {
-  if (!ID.test(id)) return null;
-  for (const ext of ['mov', 'mp4', ...new Set(Object.values(EXTENSIONS))]) {
-    const file = path.join(UPLOADS, userId, `${id}.${ext}`);
-    try {
-      await stat(file);
-      return file;
-    } catch {}
-  }
-  return null;
-}
-
-async function createCut(req, res, url, userId) {
-  const rules = rulesFor(await planOf(userId));
-  const q = url.searchParams;
-  // What the plan includes: scheduling edits for later, and a number of edits a month.
-  if (Number(q.get('at')) > Date.now() + 30e3 && !rules.schedule) {
-    return send(res, 403, { error: `Scheduled batch edits are on Pro and Ultimate. You're on ${rules.name}.`, code: 'plan' });
-  }
-  if ((await usage.used(userId)) >= rules.edits) {
-    return send(res, 402, { error: `You've used all ${rules.edits} edits on ${rules.name} this month. Upgrade for more.`, code: 'limit' });
-  }
-  let takes;
-  if (q.get('uploads')) {
-    takes = await Promise.all(q.get('uploads').split(',').slice(0, 50).map((u) => findUpload(u, userId)));
-    if (!takes.length || takes.some((t) => !t)) return send(res, 400, { error: 'One of the takes is missing. Record it again.' });
-  } else {
-    const file = path.join(await uploadsFor(userId), `${randomUUID()}.${extFor(req.headers['content-type'])}`);
-    try {
-      if (!(await readBody(req, file))) return send(res, 400, { error: 'No video in the request body.' });
-    } catch {
-      return send(res, 413, { error: 'That take is too large (1 GB max).' });
-    }
-    takes = [file];
-  }
-
-  const id = randomUUID();
-  const dir = path.join(DATA, id);
-  await mkdir(dir, { recursive: true });
-  const options = {
-    language: q.get('lang') === 'es' ? 'spanish' : 'english',
-    plan: {
-      ...(q.has('maxGap') && { maxGap: Math.min(1.5, Math.max(0.1, Number(q.get('maxGap')) || 0.3)) }),
-      removeFillers: q.get('fillers') !== '0',
-      removeRetakes: q.get('retakes') !== '0',
-    },
+/** A cut as the app sees it (the waveform has its own route; storage keys stay private). */
+function publicCut(c) {
+  const result = c.result ?? {};
+  const { waveform, ...found } = result;
+  // A scheduled cut whose time has come is waiting for a free worker.
+  const stage = c.stage === 'scheduled' && c.at && new Date(c.at) <= new Date() ? 'queued' : c.stage;
+  return {
+    id: c.id,
+    stage,
+    progress: c.progress,
+    error: c.error ?? undefined,
+    takes: c.takes,
+    at: c.at ? new Date(c.at).getTime() : undefined,
+    createdAt: new Date(c.created_at).toISOString(),
+    ...found,
+    render: c.render ? { id: c.render.id, stage: c.render.stage, progress: c.render.progress, error: c.render.error, size: c.render.size } : undefined,
   };
-  const run = { flips: (q.get('flips') ?? '').split(',').map((f) => f === '1'), blend: q.get('blend') === '1', options };
-  const at = Number(q.get('at'));
-  const scheduled = Number.isFinite(at) && at > Date.now() + 30e3;
-  if (scheduled && at > Date.now() + MAX_AHEAD) return send(res, 400, { error: 'You can schedule an edit up to 30 days ahead.' });
-  const job = { id, dir, userId, takes: takes.length, stage: scheduled ? 'scheduled' : 'queued', progress: 0, createdAt: new Date().toISOString() };
-  if (scheduled) {
-    // Kept with the job (uploads are cleared after a day) along with how to cut them, so it can
-    // run days later and survive a server restart.
-    job.at = at;
-    job.run = { ...run, takes: [] };
-    for (const [i, t] of takes.entries()) {
-      const kept = path.join(dir, `take-${i}${path.extname(t)}`);
-      await rename(t, kept).catch(() => copyFile(t, kept));
-      job.run.takes.push(kept);
-    }
-  }
-  jobs.set(id, job);
-  await saveJob(job);
-  await usage.add(userId); // counted now, so edits started together can't slip past the limit
-  send(res, 201, { id });
-  if (!scheduled) enqueue(() => runCut(job, takes, run));
 }
 
-// How far ahead an edit can be scheduled, and how often the server looks for ones that are due.
-const MAX_AHEAD = 30 * 864e5;
-const SCHEDULE_CHECK = 15e3;
-
-/** Starts scheduled edits whose time has come. */
-async function startDue() {
-  for (const job of jobs.values()) {
-    if (job.stage !== 'scheduled' || job.at > Date.now()) continue;
-    job.stage = 'queued';
-    await saveJob(job);
-    console.log(`[${job.id.slice(0, 8)}] scheduled time reached`);
-    enqueue(() => runCut(job, job.run.takes, job.run));
-  }
+/** A cut, only if it belongs to `userId` (cuts from before the shared database are brought over). */
+async function loadCut(id, userId) {
+  if (!ID.test(id)) return null;
+  const cut = (await db.getCut(id)) ?? (await importLegacy(id));
+  return cut && cut.user_id === userId ? cut : null;
 }
 
-/** Cuts a job's takes: joins them if needed, transcribes, finds the cuts. */
-async function runCut(job, takes, { flips, blend, options }) {
-  const { id, dir, userId } = job;
-  if (job.stage === 'stopped') return;
-  const log = (stage) => job.stage !== stage && console.log(`[${id.slice(0, 8)}] ${stage}`);
-  try {
-    const joined = takes.length > 1 || flips[0];
-    if (joined) {
-      log('joining');
-      job.stage = 'joining';
-      job.source = path.join(dir, 'source.mp4');
-      await joinTakes(takes, job.source, { flips, blend, onProgress: (f) => (job.progress = 0.15 * f) });
-      await Promise.all(takes.map((t) => rm(t, { force: true }))); // joined: the separate takes aren't needed
-    } else {
-      // Move rather than copy: a long take is hundreds of MB, and the upload isn't used again.
-      job.source = path.join(dir, `source${path.extname(takes[0])}`);
-      await rename(takes[0], job.source).catch(() => copyFile(takes[0], job.source));
-    }
-    const base = joined ? 0.15 : 0;
-    const result = await analyze(job.source, {
-      ...options,
-      onProgress: (stage, f) => {
-        if (job.stage === 'stopped') return;
-        log(stage);
-        job.stage = stage;
-        job.progress = base + (1 - base) * f;
-      },
-    });
-    if (job.stage === 'stopped') return;
-    Object.assign(job, result, { progress: 1, stage: result.segments.length ? 'ready' : 'failed' });
-    if (!result.segments.length) job.error = "We couldn't hear any speech in this video.";
-    // Have the editor's first preview waiting by the time the app opens it.
-    else queuePreview(job, parseClips(result.segments, job));
-  } catch (err) {
-    console.error(err);
-    Object.assign(job, { stage: 'failed', error: 'Something went wrong while cutting this take.' });
-  }
-  log(job.stage);
-  if (job.stage === 'failed') await usage.refund(userId); // (a stopped one was refunded when stopped)
-  delete job.run;
-  await saveJob(job);
-}
-
-async function stopCut(res, job) {
-  if (!['ready', 'failed'].includes(job.stage)) {
-    await usage.refund(job.userId ?? LOCAL_USER); // a stopped cut doesn't use up an edit
-    Object.assign(job, { stage: 'stopped', error: 'You stopped this cut.' });
-    // A scheduled one's clips were kept for later; they aren't needed now.
-    if (job.run) {
-      await Promise.all(job.run.takes.map((t) => rm(t, { force: true })));
-      delete job.run;
-    }
-    await saveJob(job);
-  }
-  send(res, 200, publicJob(job));
-}
-
-async function jsonBody(req) {
+async function readText(req, limit = 1e6) {
   let text = '';
   for await (const c of req) {
     text += c;
-    if (text.length > 1e6) throw new Error('too large');
+    if (text.length > limit) throw new Error('too large');
   }
-  return JSON.parse(text || '{}');
+  return text;
+}
+const jsonBody = async (req) => JSON.parse((await readText(req)) || '{}');
+
+// ---- Uploads: straight from the phone to storage, kept until the account is deleted.
+const EXTENSIONS = { 'image/jpeg': 'jpg', 'image/png': 'png', 'audio/mpeg': 'mp3', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a', 'audio/wav': 'wav', 'audio/aac': 'aac' };
+const extFor = (type = '') => EXTENSIONS[type.split(';')[0].trim()] ?? (type.includes('mp4') ? 'mp4' : 'mov');
+const uploadKey = (userId, id) => `users/${userId}/uploads/${id}`;
+
+async function signUpload(req, res, userId) {
+  let body;
+  try {
+    body = await jsonBody(req);
+  } catch {
+    return send(res, 400, { error: 'Bad upload request.' });
+  }
+  const type = String(body.type || 'video/quicktime');
+  if (Number(body.size) > MAX_BYTES) return send(res, 413, { error: 'That take is too large (1 GB max).' });
+  const id = `${randomUUID()}.${extFor(type)}`;
+  const url = await storage.signPut(uploadKey(userId, id), type, baseOf(req));
+  send(res, 201, { id, url, method: 'PUT', headers: { 'content-type': type } });
 }
 
-async function createRender(req, res, job, userId) {
-  const rules = rulesFor(await planOf(userId));
-  if (job.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready to export yet.' });
-  if (job.render && ['queued', 'rendering'].includes(job.render.stage)) return send(res, 409, { error: 'Already exporting this cut.' });
+/** Older apps send the bytes to us; they're passed on to storage. */
+async function legacyUpload(req, res, userId) {
+  const id = `${randomUUID()}.${extFor(req.headers['content-type'])}`;
+  const tmp = path.join(DATA, 'tmp', id);
+  await mkdir(path.dirname(tmp), { recursive: true });
+  try {
+    let bytes = 0;
+    req.on('data', (c) => {
+      bytes += c.length;
+      if (bytes > MAX_BYTES) req.destroy(new Error('too large'));
+    });
+    const { createWriteStream } = await import('node:fs');
+    const { pipeline } = await import('node:stream/promises');
+    await pipeline(req, createWriteStream(tmp));
+    if (!bytes) return send(res, 400, { error: 'No video in the request body.' });
+    await storage.put(tmp, uploadKey(userId, id), req.headers['content-type']);
+    send(res, 201, { id });
+  } catch {
+    send(res, 413, { error: 'That take is too large (1 GB max).' });
+  } finally {
+    await rm(tmp, { force: true });
+  }
+}
+
+/** Storage keys for upload ids the app names, or null if any is missing. */
+async function uploadKeys(ids, userId) {
+  if (!ids.length || ids.some((u) => !UPLOAD.test(u))) return null;
+  const keys = ids.map((u) => uploadKey(userId, u));
+  const sizes = await Promise.all(keys.map((k) => storage.size(k)));
+  return sizes.every((s) => s && s <= MAX_BYTES) ? keys : null;
+}
+
+// ---- Cuts
+async function createCut(req, res, url, userId) {
+  const plan = await planOf(userId);
+  if (!plan && process.env.PAYMENTS_REQUIRED === '1') return send(res, 402, { error: 'Choose a plan to start editing.', code: 'plan' });
+  const rules = rulesFor(plan);
+  const q = url.searchParams;
+  const at = Number(q.get('at'));
+  const scheduled = Number.isFinite(at) && at > Date.now() + 30e3;
+  // What the plan includes: scheduling edits for later, and a number of edits a month.
+  if (scheduled && !rules.schedule) return send(res, 403, { error: `Scheduled batch edits are on Pro and Ultimate. You're on ${rules.name}.`, code: 'plan' });
+  if (scheduled && at > Date.now() + MAX_AHEAD) return send(res, 400, { error: 'You can schedule an edit up to 30 days ahead.' });
+  if ((await db.used(userId)) >= rules.edits) return send(res, 402, { error: `You've used all ${rules.edits} edits on ${rules.name} this month. Upgrade for more.`, code: 'limit' });
+
+  let keys;
+  if (q.get('uploads')) keys = await uploadKeys(q.get('uploads').split(',').slice(0, 50), userId);
+  else return send(res, 400, { error: 'No takes to cut. Update the app and try again.' });
+  if (!keys) return send(res, 400, { error: 'One of the takes is missing. Record it again.' });
+
+  const id = randomUUID();
+  const run = {
+    uploads: keys,
+    flips: (q.get('flips') ?? '').split(',').map((f) => f === '1'),
+    blend: q.get('blend') === '1',
+    options: {
+      language: q.get('lang') === 'es' ? 'spanish' : 'english',
+      plan: {
+        ...(q.has('maxGap') && { maxGap: Math.min(1.5, Math.max(0.1, Number(q.get('maxGap')) || 0.3)) }),
+        removeFillers: q.get('fillers') !== '0',
+        removeRetakes: q.get('retakes') !== '0',
+      },
+    },
+  };
+  await db.createCut({ id, userId, stage: scheduled ? 'scheduled' : 'queued', takes: keys.length, at: scheduled ? at : null, run });
+  await db.addUse(userId, 1); // counted now, so edits started together can't slip past the limit
+  await db.addTask({ cutId: id, kind: 'cut', runAt: scheduled ? at : undefined });
+  send(res, 201, { id });
+}
+
+async function stopCut(res, cut) {
+  if (!['ready', 'failed', 'stopped'].includes(cut.stage)) {
+    await db.updateCut(cut.id, { stage: 'stopped', error: 'You stopped this cut.', run: null });
+    await db.stopTasks(cut.id, 'cut');
+    await db.addUse(cut.user_id, -1); // a stopped cut doesn't use up an edit
+    cut = await db.getCut(cut.id);
+  }
+  send(res, 200, publicCut(cut));
+}
+
+async function createRender(req, res, cut, userId) {
+  if (cut.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready to export yet.' });
+  if (cut.render && ['queued', 'rendering'].includes(cut.render.stage)) return send(res, 409, { error: 'Already exporting this cut.' });
   let body;
   try {
     body = await jsonBody(req);
   } catch {
     return send(res, 400, { error: 'Bad export request.' });
   }
-  // `clips` (speed/volume per clip) from the editor, or plain `segments` [[start, end]].
-  const raw = Array.isArray(body.clips) ? body.clips : Array.isArray(body.segments) ? body.segments.map(([start, end]) => ({ start, end })) : [];
-  const clips = parseClips(raw, job);
-  if (!clips.length) return send(res, 400, { error: 'There is nothing left in this cut to export.' });
-  const height = [480, 720, 1080, 1440, 2160].includes(Number(body.height)) ? Number(body.height) : undefined;
-  const fps = [24, 25, 30, 60].includes(Number(body.fps)) ? Number(body.fps) : undefined;
-  const bitrate = [4, 8, 12, 20, 30, 60].includes(Number(body.bitrate)) ? Number(body.bitrate) : undefined;
-  const words = (list) =>
-    (Array.isArray(list) ? list : []).slice(0, 2000).map((w) => ({ text: String(w.text ?? '').slice(0, 80), start: Number(w.start) || 0, end: Number(w.end) || 0 }));
-  let captions;
-  if (body.captions && Array.isArray(body.captions.lines)) {
-    captions = {
-      style: String(body.captions.style ?? 'classic'),
-      box: typeof body.captions.box === 'boolean' ? body.captions.box : undefined,
-      outline: typeof body.captions.outline === 'boolean' ? body.captions.outline : undefined,
-      color: /^#[0-9a-f]{6}$/i.test(body.captions.color ?? '') ? body.captions.color : undefined,
-      // Where the user moved captions to (x: middle, y: bottom edge, 0–1 of the frame) and their size.
-      x: Number.isFinite(Number(body.captions.x)) && body.captions.x !== null ? Math.min(1, Math.max(0, Number(body.captions.x))) : undefined,
-      y: Number.isFinite(Number(body.captions.y)) && body.captions.y !== null ? Math.min(1, Math.max(0, Number(body.captions.y))) : undefined,
-      scale: Number(body.captions.scale) > 0 ? Math.min(4, Math.max(0.3, Number(body.captions.scale))) : undefined,
-      lines: body.captions.lines.slice(0, 2000).map((l) => ({ start: Number(l.start) || 0, end: Number(l.end) || 0, words: words(l.words) })),
-    };
-  } else if (body.captions === true) {
-    // Older clients: default captions from the transcript.
-    captions = { style: 'classic', lines: defaultLines(job.words ?? [], clips) };
-  }
-  const texts = (Array.isArray(body.texts) ? body.texts : []).slice(0, 50).map((t) => ({
-    text: String(t.text ?? '').slice(0, 200),
-    style: String(t.style ?? 'classic'),
-    start: Number(t.start) || 0,
-    end: Number(t.end) || 0,
-    x: Math.min(1, Math.max(0, Number(t.x ?? 0.5))),
-    y: Math.min(1, Math.max(0, Number(t.y ?? 0.5))),
-    scale: Math.min(3, Math.max(0.3, Number(t.scale) || 1)),
-    font: typeof t.font === 'string' ? t.font.slice(0, 60) : undefined,
-    color: /^#[0-9a-f]{6}$/i.test(t.color ?? '') ? t.color : undefined,
-    box: typeof t.box === 'boolean' ? t.box : undefined,
-    outline: typeof t.outline === 'boolean' ? t.outline : undefined,
-    align: ['left', 'center', 'right'].includes(t.align) ? t.align : undefined,
-  }));
-
-  // Zoom and pan over time, on the output timeline: the picture's scale and how far it's moved.
-  const keyframes = (Array.isArray(body.keyframes) ? body.keyframes : [])
-    .slice(0, 200)
-    .map((k) => ({
-      t: Math.max(0, Number(k.t) || 0),
-      scale: Math.min(4, Math.max(1, Number(k.scale) || 1)),
-      x: Math.min(1.5, Math.max(-1.5, Number(k.x) || 0)),
-      y: Math.min(1.5, Math.max(-1.5, Number(k.y) || 0)),
-    }))
-    .sort((a, b) => a.t - b.t);
-
-  // A song to lay under the video: uploaded first through /uploads, like a take.
-  // Fade each cut's sound across the next one's (on unless the app says otherwise).
-  const overlapAudio = body.overlapAudio !== false && rules.overlap; // a Pro and Ultimate feature
+  const rules = rulesFor(await planOf(userId));
+  const parsed = parseRender(body, { duration: cut.result.duration, words: cut.result.words, overlapAllowed: rules.overlap });
+  if (parsed.error) return send(res, 400, { error: parsed.error });
+  // A song, photos and clips laid into the export, each uploaded first like a take.
   let music;
-  if (body.music?.upload) {
-    const file = await findUpload(String(body.music.upload), job.userId ?? LOCAL_USER);
-    if (!file) return send(res, 400, { error: 'The song didn’t upload. Try exporting again.' });
-    music = { file, volume: Math.min(1, Math.max(0, Number(body.music.volume) || 0.5)) };
+  if (parsed.music) {
+    const [key] = (await uploadKeys([parsed.music.upload], userId)) ?? [];
+    if (!key) return send(res, 400, { error: 'The song didn’t upload. Try exporting again.' });
+    music = { key, volume: parsed.music.volume };
   }
-
-  // Photos and videos laid over the picture, each uploaded first like the song.
   const overlays = [];
-  for (const o of (Array.isArray(body.overlays) ? body.overlays : []).slice(0, 20)) {
-    const file = await findUpload(String(o.upload ?? ''), job.userId ?? LOCAL_USER);
-    if (!file) return send(res, 400, { error: 'An overlay didn’t upload. Try exporting again.' });
-    const start = Math.max(0, Number(o.start) || 0);
-    const end = Math.max(start + 0.05, Number(o.end) || start + 3);
-    overlays.push({
-      file,
-      kind: o.kind === 'video' ? 'video' : 'image',
-      start,
-      end,
-      from: Math.max(0, Number(o.from) || 0),
-      x: Math.min(2, Math.max(-1, Number.isFinite(Number(o.x)) ? Number(o.x) : 0.5)),
-      y: Math.min(2, Math.max(-1, Number.isFinite(Number(o.y)) ? Number(o.y) : 0.5)),
-      width: Math.min(4, Math.max(0.02, Number(o.width) || 0.5)),
-      rotation: Math.max(-360, Math.min(360, Number(o.rotation) || 0)),
-      volume: Math.min(2, Math.max(0, o.volume === undefined ? 1 : Number(o.volume))),
-    });
+  for (const o of parsed.overlays) {
+    const [key] = (await uploadKeys([o.upload], userId)) ?? [];
+    if (!key) return send(res, 400, { error: 'An overlay didn’t upload. Try exporting again.' });
+    const { upload, ...rest } = o;
+    overlays.push({ ...rest, key });
   }
-
   const renderId = randomUUID();
-  job.render = { id: renderId, stage: 'queued', progress: 0, output: path.join(job.dir, `render-${renderId}.mp4`) };
-  await saveJob(job);
+  await db.updateCut(cut.id, { render: { id: renderId, stage: 'queued', progress: 0 } });
+  await db.addTask({ cutId: cut.id, kind: 'render', payload: { renderId, edit: parsed.edit, music, overlays }, priority: 2 });
   send(res, 201, { renderId });
-
-  enqueue(async () => {
-    const r = job.render;
-    r.stage = 'rendering';
-    console.log(`[${job.id.slice(0, 8)}] exporting`);
-    try {
-      await renderEdit(job.source, r.output, { clips, captions, texts, music, keyframes, overlays, overlapAudio, height, fps, bitrate }, { onProgress: (f) => (r.progress = f) });
-      Object.assign(r, { stage: 'ready', progress: 1, size: (await stat(r.output)).size });
-    } catch (err) {
-      console.error(err);
-      Object.assign(r, { stage: 'failed', error: 'The export failed. Try again.' });
-    }
-    await saveJob(job);
-  });
-}
-
-/** Clips from a request (or the cut's own segments), checked and clamped to the source. */
-function parseClips(raw, job) {
-  return (Array.isArray(raw) ? raw : [])
-    .slice(0, 500)
-    .map((c) => ({
-      start: Math.max(0, Number(c.start)),
-      end: Math.min(job.duration, Number(c.end)),
-      speed: Math.min(10, Math.max(0.25, Number(c.speed) || 1)),
-      volume: Math.min(2, Math.max(0, c.volume === undefined ? 1 : Number(c.volume))),
-    }))
-    .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end - c.start >= 0.05);
 }
 
 // ---- Previews: the edit stitched into one small video, so the editor can play straight through
-// the cuts (the phone can't stitch clips itself in Expo Go). Named by a hash of the clips, so an
-// edit that's been previewed before (an undo, reopening the editor) is ready at once. One renders
-// at a time across the server; a newer edit of a cut replaces one of its previews still waiting.
-const previewQueue = [];
-const previewing = new Set(); // `${jobId}:${key}`, waiting or rendering
-let previewBusy = false;
-const PREVIEW_KEY = /^[0-9a-f]{16}$/;
-const previewKey = (clips) =>
-  createHash('sha1')
-    .update(JSON.stringify(clips.map((c) => [c.start, c.end, c.speed, c.volume].map((n) => Math.round(n * 1000)))))
-    .digest('hex')
-    .slice(0, 16);
-const previewFile = (job, key) => path.join(job.dir, `preview-${key}.mp4`);
-
-function queuePreview(job, clips) {
-  const key = previewKey(clips);
-  if (previewing.has(`${job.id}:${key}`)) return key;
-  const stale = previewQueue.findIndex((p) => p.job.id === job.id);
-  if (stale >= 0) previewing.delete(`${job.id}:${previewQueue.splice(stale, 1)[0].key}`);
-  previewing.add(`${job.id}:${key}`);
-  previewQueue.push({ job, key, clips });
-  pumpPreviews();
-  return key;
+// the cuts (the phone can't stitch clips itself in Expo Go). A newer edit of a cut replaces one of
+// its previews still waiting.
+async function previewStage(cut, key) {
+  if ((await storage.size(cutKey(cut.user_id, cut.id, previewName(key)))) !== null) return 'ready';
+  const task = await db.taskFor(cut.id, 'preview', key);
+  return task && ['queued', 'running'].includes(task.status) ? 'rendering' : 'failed';
 }
 
-async function pumpPreviews() {
-  if (previewBusy || !previewQueue.length) return;
-  previewBusy = true;
-  const { job, key, clips } = previewQueue.shift();
-  const file = previewFile(job, key);
-  const part = file.replace(/\.mp4$/, '.part.mp4');
-  try {
-    await render(job.source, part, clips, { height: 540, fast: true });
-    await rename(part, file);
-    // Keep the newest few previews of a cut.
-    const names = (await readdir(job.dir)).filter((f) => /^preview-[0-9a-f]{16}\.mp4$/.test(f));
-    const dated = await Promise.all(names.map(async (f) => ({ f, t: (await stat(path.join(job.dir, f))).mtimeMs })));
-    for (const { f } of dated.sort((a, b) => b.t - a.t).slice(4)) await rm(path.join(job.dir, f), { force: true });
-  } catch (err) {
-    console.error(err);
-    await rm(part, { force: true });
-  } finally {
-    previewing.delete(`${job.id}:${key}`);
-    previewBusy = false;
-    pumpPreviews();
-  }
-}
-
-async function previewStage(job, key) {
-  if (await stat(previewFile(job, key)).catch(() => null)) return 'ready';
-  return previewing.has(`${job.id}:${key}`) ? 'rendering' : 'failed';
-}
-
-async function createPreview(req, res, job) {
-  if (job.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready yet.' });
+async function createPreview(req, res, cut) {
+  if (cut.stage !== 'ready') return send(res, 409, { error: 'This cut is not ready yet.' });
   let body;
   try {
     body = await jsonBody(req);
   } catch {
     return send(res, 400, { error: 'Bad preview request.' });
   }
-  const clips = parseClips(body.clips, job);
+  const clips = parseClips(body.clips, cut.result.duration);
   if (!clips.length) return send(res, 400, { error: 'There is nothing in this edit to preview.' });
   const key = previewKey(clips);
-  if ((await previewStage(job, key)) === 'ready') return send(res, 200, { key, stage: 'ready' });
-  queuePreview(job, clips);
+  const stage = await previewStage(cut, key);
+  if (stage === 'ready') return send(res, 200, { key, stage });
+  if (stage === 'failed') {
+    await db.dropWaitingPreviews(cut.id);
+    await db.addTask({ cutId: cut.id, kind: 'preview', payload: { key, clips }, priority: 10 });
+  }
   send(res, 202, { key, stage: 'rendering' });
 }
 
-// Caption lines (4 words max) on the output timeline, for clients that don't send their own.
-function defaultLines(words, clips) {
-  const lines = [];
-  let offset = 0;
-  for (const c of clips) {
-    const inClip = words.filter((w) => w.start >= c.start - 0.05 && w.end <= c.end + 0.05);
-    for (let i = 0; i < inClip.length; i += 4) {
-      const group = inClip.slice(i, i + 4).map((w) => ({
-        text: w.text,
-        start: offset + (Math.max(w.start, c.start) - c.start) / c.speed,
-        end: offset + (Math.min(w.end, c.end) - c.start) / c.speed,
-      }));
-      lines.push({ start: group[0].start, end: group.at(-1).end + 0.2, words: group });
-    }
-    offset += (c.end - c.start) / c.speed;
-  }
-  return lines;
+// ---- Downloads: a signed link straight to storage (link=1), or streamed through us for older apps.
+async function sendStored(req, res, url, key, type, filename) {
+  if (url.searchParams.has('link')) return send(res, 200, { url: await storage.signGet(key, { filename, base: baseOf(req) }) });
+  if (storage.kind === 'local') return sendFile(req, res, storage.fileOf(key), type);
+  const range = /bytes=\d*-\d*/.exec(req.headers.range ?? '')?.[0];
+  const obj = await storage.read(key, range);
+  const headers = { 'content-type': type, 'accept-ranges': 'bytes', 'access-control-allow-origin': '*', 'content-length': obj.length };
+  if (range && obj.range) res.writeHead(206, { ...headers, 'content-range': obj.range });
+  else res.writeHead(200, headers);
+  obj.body.pipe(res);
 }
 
 async function sendFile(req, res, file, type) {
@@ -512,89 +284,158 @@ async function sendFile(req, res, file, type) {
   createReadStream(file).pipe(res);
 }
 
-async function deleteAccount(res, userId) {
-  for (const id of await readdir(DATA).catch(() => [])) {
-    if (!ID.test(id)) continue;
-    const job = await readJob(id);
-    if (job && (job.userId ?? LOCAL_USER) === userId) {
-      job.stage = 'stopped';
-      jobs.delete(id);
-      await rm(job.dir, { recursive: true, force: true });
-    }
+/** Signed links for videos kept on this machine (development): the stand-in for R2. */
+async function blob(req, res, token) {
+  const claims = storage.kind === 'local' && storage.verify(token);
+  if (!claims || claims.m !== req.method) return send(res, 403, { error: 'Link expired.' });
+  if (req.method === 'PUT') {
+    await storage.write(req, claims.k);
+    res.writeHead(200, { 'access-control-allow-origin': '*' });
+    return res.end();
   }
-  await rm(path.join(UPLOADS, userId), { recursive: true, force: true });
-  await usage.forget(userId);
+  const file = storage.fileOf(claims.k);
+  if (!(await stat(file).catch(() => null))) return send(res, 404, { error: 'Not found' });
+  if (claims.f) res.setHeader('content-disposition', `attachment; filename="${claims.f}"`);
+  return sendFile(req, res, file, file.endsWith('.mp4') ? 'video/mp4' : 'application/octet-stream');
+}
+
+// ---- Account
+async function me(res, userId) {
+  const plans = await plansOf(userId);
+  send(res, 200, { plan: (await planOf(userId)) ?? null, paid: effectivePlan(plans), plans, consent: await db.consentOf(userId), termsVersion: TERMS_VERSION });
+}
+
+async function consent(req, res, userId) {
+  let body;
+  try {
+    body = await jsonBody(req);
+  } catch {
+    return send(res, 400, { error: 'Bad request.' });
+  }
+  const termsVersion = typeof body.termsVersion === 'string' ? body.termsVersion.slice(0, 40) : undefined;
+  await db.setConsent(userId, { termsVersion, ai: typeof body.ai === 'boolean' ? body.ai : undefined });
+  send(res, 200, { consent: await db.consentOf(userId) });
+}
+
+async function deleteAccount(res, userId) {
+  await db.deleteCutsOf(userId); // their jobs go with them
+  await storage.removePrefix(`users/${userId}/`);
+  await db.forgetUsage(userId);
+  await db.forgetConsent(userId);
   await deleteAuthUser(userId);
   console.log(`[account] deleted ${userId.slice(0, 8)}`);
   send(res, 200, { ok: true });
 }
 
-// Delete cuts older than RETENTION_DAYS and takes that were uploaded but never cut.
-async function cleanUp() {
-  const now = Date.now();
-  for (const id of await readdir(DATA).catch(() => [])) {
-    if (!ID.test(id)) continue;
-    const job = await readJob(id);
-    if (!job || now - (job.at ?? Date.parse(job.createdAt)) < RETENTION_DAYS * 864e5) continue;
-    if (['scheduled', 'queued', 'joining', 'reading', 'listening', 'cutting'].includes(job.stage) || job.render?.stage === 'rendering') continue;
-    jobs.delete(id);
-    await rm(path.join(DATA, id), { recursive: true, force: true });
+// ---- Payments
+async function whopWebhook(req, res) {
+  const raw = await readText(req);
+  if (!verifyWhop(req.headers, raw, process.env.WHOP_WEBHOOK_SECRET)) return send(res, 401, { error: 'bad signature' });
+  const change = whopChange(JSON.parse(raw));
+  if (change) {
+    await setPlanFrom('whop', change);
+    console.log(`[billing] whop ${change.active ? 'on' : 'off'} ${change.plan} for ${change.userId.slice(0, 8)}`);
   }
-  for (const user of await readdir(UPLOADS).catch(() => [])) {
-    for (const f of await readdir(path.join(UPLOADS, user)).catch(() => [])) {
-      const file = path.join(UPLOADS, user, f);
-      const info = await stat(file).catch(() => null);
-      if (info && now - info.mtimeMs > 864e5) await rm(file, { force: true });
+  send(res, 200, { ok: true });
+}
+
+async function revenueCatWebhook(req, res) {
+  const expected = process.env.REVENUECAT_WEBHOOK_AUTH;
+  if (!expected || req.headers.authorization !== expected) return send(res, 401, { error: 'unauthorized' });
+  const change = revenueCatChange(JSON.parse(await readText(req)));
+  if (change && ID.test(change.userId)) {
+    await setPlanFrom('apple', change);
+    console.log(`[billing] apple ${change.active ? 'on' : 'off'} ${change.plan} for ${change.userId.slice(0, 8)}`);
+  }
+  send(res, 200, { ok: true });
+}
+
+// ---- Cuts made before the shared database (kept in folders under DATA) come over the first
+// time they're asked for: their video moves to storage and the cut gets a row.
+async function importLegacy(id) {
+  const dir = path.join(DATA, id);
+  let job;
+  try {
+    job = JSON.parse(await readFile(path.join(dir, 'job.json'), 'utf8'));
+  } catch {
+    return null;
+  }
+  const userId = job.userId ?? LOCAL_USER;
+  let source = null;
+  if (job.stage === 'ready' && job.source) {
+    const file = path.join(dir, path.basename(job.source));
+    if (await stat(file).catch(() => null)) {
+      source = cutKey(userId, id, `source${path.extname(file)}`);
+      const { copyFile } = await import('node:fs/promises');
+      const tmp = path.join(DATA, 'tmp', `${id}${path.extname(file)}`);
+      await mkdir(path.dirname(tmp), { recursive: true });
+      await copyFile(file, tmp);
+      await storage.put(tmp, source, 'video/mp4');
     }
   }
+  const ready = job.stage === 'ready' && source;
+  const { duration, keptDuration, segments, cuts, words, waveform } = job;
+  await db.createCut({ id, userId, stage: ready ? 'ready' : 'failed', takes: job.takes ?? 1, source, createdAt: job.createdAt });
+  await db.updateCut(id, ready ? { progress: 1, result: { duration, keptDuration, segments, cuts, words, waveform } } : { error: 'This cut is from an older version. Send the take again.' });
+  return db.getCut(id);
 }
 
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://local');
     const [root, id, action] = url.pathname.split('/').filter(Boolean);
-    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, queued: waiting.length, running });
+    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, role: ROLE, ...(await db.queueStats()) });
+    if (ROLE === 'worker') return send(res, 404, { error: 'Not found' });
     if (req.method === 'GET' && (root === 'privacy' || root === 'terms') && !id) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' });
       return res.end(await legalPage(root));
     }
+    if (root === 'blobs' && id && (req.method === 'PUT' || req.method === 'GET')) return await blob(req, res, id);
+    if (req.method === 'POST' && root === 'webhooks' && id === 'whop') return await whopWebhook(req, res);
+    if (req.method === 'POST' && root === 'webhooks' && id === 'revenuecat') return await revenueCatWebhook(req, res);
 
     const account = await accountFrom(req);
     const userId = account?.id;
     if (!userId || !USER.test(userId)) return send(res, 401, { error: 'Your session ended. Sign in again.' });
 
-    if (req.method === 'POST' && root === 'uploads' && !id) return await createUpload(req, res, userId);
+    if (req.method === 'POST' && root === 'uploads' && id === 'sign') return await signUpload(req, res, userId);
+    if (req.method === 'POST' && root === 'uploads' && !id) return await legacyUpload(req, res, userId);
     if (req.method === 'POST' && root === 'cuts' && !id) return await createCut(req, res, url, userId);
+    if (req.method === 'GET' && root === 'me' && !id) return await me(res, userId);
+    if (req.method === 'POST' && root === 'consent' && !id) return await consent(req, res, userId);
+    if (req.method === 'POST' && root === 'billing' && id === 'whop') {
+      try {
+        return send(res, 200, { url: await whopCheckout(userId, await jsonBody(req)) });
+      } catch (e) {
+        return send(res, e.status ?? 500, { error: e.message });
+      }
+    }
     if (req.method === 'DELETE' && root === 'account' && !id) return await deleteAccount(res, userId);
     if (root === 'cuts' && id) {
-      const job = await loadJob(id, userId);
-      if (!job) return send(res, 404, { error: 'No cut with that id.' });
-      if (req.method === 'GET' && !action) return send(res, 200, publicJob(job));
-      if (req.method === 'POST' && action === 'stop') return await stopCut(res, job);
-      if (req.method === 'POST' && action === 'render') return await createRender(req, res, job, userId);
+      const cut = await loadCut(id, userId);
+      if (!cut) return send(res, 404, { error: 'No cut with that id.' });
+      if (req.method === 'GET' && !action) return send(res, 200, publicCut(cut));
+      if (req.method === 'POST' && action === 'stop') return await stopCut(res, cut);
+      if (req.method === 'POST' && action === 'render') return await createRender(req, res, cut, userId);
+      if (req.method === 'POST' && action === 'preview') return await createPreview(req, res, cut);
       if (req.method === 'GET' && action === 'source') {
-        if (!job.source) return send(res, 409, { error: 'Not ready yet.' });
-        return await sendFile(req, res, job.source, job.source.endsWith('.mp4') ? 'video/mp4' : 'video/quicktime');
+        if (!cut.source || cut.stage !== 'ready') return send(res, 409, { error: 'Not ready yet.' });
+        return await sendStored(req, res, url, cut.source, cut.source.endsWith('.mp4') ? 'video/mp4' : 'video/quicktime');
       }
-      if (req.method === 'POST' && action === 'preview') return await createPreview(req, res, job);
       if (req.method === 'GET' && action === 'waveform') {
-        if (job.stage !== 'ready') return send(res, 409, { error: 'Not ready yet.' });
-        if (!job.waveform) {
-          job.waveform = await waveformOfFile(job.source);
-          await saveJob(job);
-        }
-        return send(res, 200, { rate: WAVEFORM_RATE, peaks: job.waveform });
+        if (cut.stage !== 'ready') return send(res, 409, { error: 'Not ready yet.' });
+        return send(res, 200, { rate: WAVEFORM_RATE, peaks: cut.result?.waveform ?? [] });
       }
       if (req.method === 'GET' && action === 'preview') {
         const key = url.searchParams.get('key') ?? '';
         if (!PREVIEW_KEY.test(key)) return send(res, 400, { error: 'Bad preview key.' });
-        const stage = await previewStage(job, key);
+        const stage = await previewStage(cut, key);
         if (url.searchParams.has('status') || stage !== 'ready') return send(res, stage === 'ready' ? 200 : 202, { stage });
-        return await sendFile(req, res, previewFile(job, key), 'video/mp4');
+        return await sendStored(req, res, url, cutKey(cut.user_id, cut.id, previewName(key)), 'video/mp4');
       }
       if (req.method === 'GET' && action === 'video') {
-        if (job.render?.stage !== 'ready') return send(res, 409, { error: 'Not exported yet.' });
-        return await sendFile(req, res, job.render.output, 'video/mp4');
+        if (cut.render?.stage !== 'ready') return send(res, 409, { error: 'Not exported yet.' });
+        return await sendStored(req, res, url, cut.render.key, 'video/mp4', 'Autocut.mp4');
       }
     }
     send(res, 404, { error: 'Not found' });
@@ -604,15 +445,14 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-await mkdir(UPLOADS, { recursive: true });
-setInterval(() => cleanUp().catch((err) => console.error(err)), 3600e3).unref();
-cleanUp().catch((err) => console.error(err));
-// Scheduled edits waiting from before a restart, then a check for due ones every few seconds.
-for (const id of await readdir(DATA).catch(() => [])) if (ID.test(id)) await readJob(id);
-setInterval(() => startDue().catch((err) => console.error(err)), SCHEDULE_CHECK).unref();
-startDue().catch((err) => console.error(err));
+if (ROLE === 'worker' || ROLE === 'all') {
+  const w = startWorker({ db, storage, concurrency: CONCURRENCY, workDir: path.join(DATA, 'work') });
+  console.log(`Worker ${w.name} taking jobs (${CONCURRENCY} at a time)`);
+}
+// Every server keeps an eye out for jobs whose worker died, and puts them back on the list.
+setInterval(() => sweep(db).catch((err) => console.error('sweep', err.message)), 30_000).unref();
 if (!authEnabled) console.warn('Auth is off (no SUPABASE_URL): every request runs as one local user. Fine for development only.');
 server.listen(PORT, '0.0.0.0', () => {
   const lan = Object.values(os.networkInterfaces()).flat().find((i) => i?.family === 'IPv4' && !i.internal)?.address;
-  console.log(`Autocut server on http://localhost:${PORT}${lan ? `  (phone: http://${lan}:${PORT})` : ''}`);
+  console.log(`Autocut ${ROLE} on http://localhost:${PORT}${lan ? `  (phone: http://${lan}:${PORT})` : ''}`);
 });

@@ -1,8 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { agreed, ConsentChecks, type Agreement } from '../components/ConsentChecks';
 import { AppleLogo, Backdrop, Button, ErrorText, Field, GoogleLogo, StepHeader, Title } from '../components/ui';
 import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
+import { holdAgreement, TERMS_VERSION } from '../lib/consent';
 import { theme } from '../lib/theme';
 
 type Mode = 'sign-in' | 'sign-up';
@@ -18,7 +20,11 @@ export default function SignIn() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [providers, setProviders] = useState({ apple: false, google: false });
+  const [agreement, setAgreement] = useState<Agreement>({ terms: false, ai: false });
   const signingUp = mode === 'sign-up';
+  // Creating an account needs the terms agreed first (signing in to an existing one doesn't).
+  const blocked = signingUp && !agreed(agreement);
+  const terms = { termsVersion: TERMS_VERSION, aiConsent: agreement.ai };
 
   useEffect(() => {
     socialOptions().then(setProviders);
@@ -40,7 +46,7 @@ export default function SignIn() {
   const submit = () =>
     run('email', async () => {
       if (!signingUp) return auth.signInWithEmail(email, password);
-      const result = await auth.signUpWithEmail(email, password);
+      const result = await auth.signUpWithEmail(email, password, terms);
       if (result === 'check-email') {
         setNotice(`We sent a link to ${email.trim()}. Open it on this device to finish, or confirm it and sign in here.`);
         setMode('sign-in');
@@ -54,7 +60,12 @@ export default function SignIn() {
       setNotice(`Password reset link sent to ${email.trim()}.`);
     });
 
-  const canSubmit = email.includes('@') && password.length >= 6;
+  const canSubmit = email.includes('@') && password.length >= 6 && !blocked;
+  const social_ = (kind: 'apple' | 'google', action: () => Promise<void>) =>
+    run(kind, async () => {
+      holdAgreement(signingUp ? terms : null);
+      await action();
+    });
   const social = providers.apple || providers.google;
 
   return (
@@ -67,10 +78,10 @@ export default function SignIn() {
       {social && (
         <View style={{ gap: 12, marginBottom: 18 }}>
           {providers.apple && (
-            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} onPress={() => run('apple', auth.signInWithApple)} />
+            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} disabled={blocked} onPress={() => social_('apple', auth.signInWithApple)} />
           )}
           {providers.google && (
-            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} onPress={() => run('google', auth.signInWithGoogle)} />
+            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} disabled={blocked} onPress={() => social_('google', auth.signInWithGoogle)} />
           )}
           <View style={styles.divider}>
             <View style={styles.rule} />
@@ -107,6 +118,7 @@ export default function SignIn() {
             <Text style={styles.link}>Forgot password?</Text>
           </Pressable>
         )}
+        {signingUp && <ConsentChecks value={agreement} onChange={setAgreement} />}
         <ErrorText>{error}</ErrorText>
         {notice && <Text style={styles.notice}>{notice}</Text>}
         <Button title={signingUp ? 'Create account' : 'Sign in'} onPress={submit} disabled={!canSubmit} loading={busy === 'email'} style={{ marginTop: 6 }} />

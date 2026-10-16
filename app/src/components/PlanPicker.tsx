@@ -1,13 +1,14 @@
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HIGHLIGHT, OnbScreen } from './Onboarding';
 import { Button, ErrorText, Logo, PressableScale, Segmented, Wash } from './ui';
 import { openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
+import { buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type Ways } from '../lib/billing';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
 import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
 import { BRAND_FONT } from '../lib/fonts';
@@ -35,29 +36,38 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
   const chosen = planFor(plan);
   const monthly = pricePerMonth(chosen.monthly, billing);
 
-  async function start() {
+  // How this account can pay here (when payments are on): Apple everywhere, Whop on the US store.
+  const [ways, setWays] = useState<Ways | null>(null);
+  const paying = PAYMENTS_ON && mode !== 'setup';
+  useEffect(() => {
+    if (paying && account) waysToPay(account.id).then(setWays, () => setWays({ apple: false, web: false }));
+  }, [paying, account]);
+
+  async function start(how: 'apple' | 'web' = 'apple') {
     // Kept with the setup answers; they're saved with the rest when setup finishes.
-    if (mode === 'setup' || (mode === 'onboarding' && onDone)) {
+    if (mode === 'setup') {
       updateDraft({ plan, billing });
       onDone?.();
       return;
     }
+    if (changing && plan === current && billing === (account?.profile.billing ?? 'monthly')) return router.back();
     setSaving(true);
     setError(null);
-    if (changing) {
-      try {
+    try {
+      if (paying && account) {
+        const paid = how === 'web' ? await buyOnWeb(plan, billing) : await buyWithApple(account.id, plan, billing);
+        if (!paid) return setSaving(false); // closed without paying
+      }
+      if (mode === 'onboarding' && onDone) {
+        updateDraft({ plan, billing });
+        onDone();
+      } else if (changing) {
         await updateProfile({ plan, billing });
         router.back();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-        setSaving(false);
+      } else {
+        await updateProfile({ ...profileFromDraft(), plan, billing, onboarded: true });
+        clearDraft();
       }
-      return;
-    }
-    try {
-      // Payments are not connected yet: save the choice and open the app.
-      await updateProfile({ ...profileFromDraft(), plan, billing, onboarded: true });
-      clearDraft();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setSaving(false);
@@ -137,14 +147,26 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
   const footer = (
     <>
       <ErrorText>{error}</ErrorText>
-      <Button
-        title={changing ? (plan === current && billing === (account?.profile.billing ?? 'monthly') ? `Keep ${chosen.name}` : `Switch to ${chosen.name}`) : `Continue with ${chosen.name}  →`}
-        onPress={start}
-        loading={saving}
-      />
+      {paying && ways && !ways.apple && !ways.web ? (
+        <ErrorText>Buying a plan works in the Autocut app from the App Store.</ErrorText>
+      ) : paying && !(changing && plan === current && billing === (account?.profile.billing ?? 'monthly')) ? (
+        <>
+          {(!ways || ways.apple) && <Button title={`Subscribe to ${chosen.name}`} onPress={() => start('apple')} loading={saving || !ways} />}
+          {ways?.web && <Button kind={ways.apple ? 'outline' : 'primary'} title="Pay on the web with Whop" onPress={() => start('web')} disabled={saving} />}
+        </>
+      ) : (
+        <Button
+          title={changing ? (plan === current && billing === (account?.profile.billing ?? 'monthly') ? `Keep ${chosen.name}` : `Switch to ${chosen.name}`) : `Continue with ${chosen.name}  →`}
+          onPress={() => start()}
+          loading={saving}
+        />
+      )}
       <Text style={styles.terms}>
         {money(monthly)} a month{billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}. Renews automatically. Cancel anytime.
-        {'\n'}Free during the beta: you won’t be charged.
+        {'\n'}
+        {PAYMENTS_ON
+          ? 'Charged to your Apple ID (or card, on the web) when you confirm. Renews unless cancelled at least 24 hours before the period ends; manage it in your account settings.'
+          : 'Free during the beta: you won’t be charged.'}
       </Text>
       <View style={styles.links}>
         <Text style={styles.link} onPress={() => openLegal('terms')}>
