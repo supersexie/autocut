@@ -30,7 +30,7 @@
   a { color: inherit; text-decoration: none; }
   button { font: inherit; color: inherit; cursor: pointer; }
   .wrap { width: 100%; max-width: var(--max); margin: 0 auto; padding: 0 var(--gutter); }
-  .h { font-family: "Inter Tight", Inter, sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; margin: 0; }
+  .h { text-wrap: balance; font-family: "Inter Tight", Inter, sans-serif; font-weight: 800; letter-spacing: -0.035em; line-height: 1.02; margin: 0; }
   .eyebrow { font: 600 12px/1 Inter, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
   .muted { color: var(--muted); }
   section { padding: 96px 0; }
@@ -58,7 +58,7 @@
   @media (max-width: 760px) { .links a:not(.btn) { display: none; } }
 
   /* ---------- Hero ---------- */
-  .hero { background: var(--wash); padding: 56px 0 0; position: relative; overflow: hidden; }
+  .hero { background: var(--wash); padding: 48px 0 64px; position: relative; overflow: hidden; }
   .hero::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
   .hero .wrap { position: relative; display: grid; grid-template-columns: 1.05fr .95fr; gap: 40px; align-items: center; }
   .pill { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: #fff; box-shadow: 0 1px 0 rgba(17,17,20,.04), inset 0 0 0 1px var(--line); font-weight: 600; font-size: 14px; }
@@ -72,24 +72,39 @@
   .note { margin-top: 16px; font-size: 14px; color: var(--muted); display: flex; gap: 18px; flex-wrap: wrap; }
   .note span::before { content: "✓"; margin-right: 6px; color: var(--ink); font-weight: 700; }
 
-  /* Phone */
-  .phone { position: relative; width: min(340px, 78vw); aspect-ratio: 9 / 19.2; margin: 0 auto; border-radius: 52px; background: #0B0B0D; padding: 11px; box-shadow: 0 50px 100px rgba(17,17,20,.22), 0 0 0 2px #2A2A2E inset; }
-  .phone .screen { position: relative; width: 100%; height: 100%; border-radius: 42px; overflow: hidden; background: #000; }
-  .phone .screen video, .phone .screen img { width: 100%; height: 100%; object-fit: cover; }
-  .phone .island { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 96px; height: 28px; border-radius: 20px; background: #000; z-index: 2; }
-  .hero-phone { padding-bottom: 0; align-self: end; transform: translateY(40px); }
-  .hero-phone .phone { width: min(320px, 76vw, calc((100svh - 150px) * 9 / 19.2)); min-width: 250px; }
+  /* iPhone (16 Pro proportions): titanium edge, black bezel, Dynamic Island, side buttons. Size with --w. */
+  .iphone { --w: 300px; position: relative; width: var(--w); flex: none; margin: 0 auto; padding: calc(var(--w) * .022);
+    border-radius: calc(var(--w) * .175);
+    background: linear-gradient(140deg, #8a8a8f 0%, #3c3c40 18%, #1d1d20 45%, #2e2e32 72%, #7c7c81 100%);
+    box-shadow: 0 0 0 1px rgba(0,0,0,.55), 0 calc(var(--w) * .12) calc(var(--w) * .22) rgba(17,17,20,.24), 0 calc(var(--w) * .03) calc(var(--w) * .06) rgba(17,17,20,.14); }
+  .iphone .bezel { background: #050506; border-radius: calc(var(--w) * .155); padding: calc(var(--w) * .03); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); }
+  .iphone .screen { position: relative; aspect-ratio: 1206 / 2622; border-radius: calc(var(--w) * .125); overflow: hidden; background: #000; isolation: isolate; }
+  .iphone .screen > img, .iphone .screen > video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .iphone .island { position: absolute; z-index: 4; top: calc(var(--w) * .032); left: 50%; transform: translateX(-50%); width: calc(var(--w) * .3); height: calc(var(--w) * .088); border-radius: 999px; background: #000; }
+  .iphone .sb { position: absolute; z-index: 3; top: 0; left: 0; right: 0; height: calc(var(--w) * .15); display: flex; align-items: center; justify-content: space-between; padding: calc(var(--w) * .005) calc(var(--w) * .085) 0; color: #fff; font: 600 calc(var(--w) * .05)/1 -apple-system, Inter, sans-serif; letter-spacing: -.01em; background: linear-gradient(rgba(0,0,0,.28), transparent); }
+  .iphone .sb svg { height: calc(var(--w) * .04); width: auto; }
+  .iphone .b { position: absolute; width: calc(var(--w) * .012); border-radius: 2px; background: linear-gradient(90deg, #2a2a2d, #7a7a7f 60%, #3a3a3e); }
+  .iphone .b1 { left: calc(var(--w) * -.01); top: 17%; height: 5%; }
+  .iphone .b2 { left: calc(var(--w) * -.01); top: 26%; height: 9%; }
+  .iphone .b3 { left: calc(var(--w) * -.01); top: 37%; height: 9%; }
+  .iphone .b4 { right: calc(var(--w) * -.01); top: 28%; height: 13%; }
+  .hero-phone { align-self: center; }
   .tag { position: absolute; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 12px 18px 12px 12px; border-radius: 999px; background: #fff; font-weight: 600; font-size: 15px; white-space: nowrap; box-shadow: 0 16px 40px rgba(17,17,20,.14); animation: float 6s ease-in-out infinite; }
   .tag i { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
-  .tag:nth-of-type(2) { animation-delay: -2s; }
-  .tag:nth-of-type(3) { animation-delay: -4s; }
+  .tag.t2 { animation-delay: -2s; }
+  .tag.t3 { animation-delay: -4s; }
   @keyframes float { 50% { transform: translateY(-8px); } }
 
   @media (max-width: 900px) {
     .hero .wrap { grid-template-columns: 1fr; text-align: center; }
     .cta-row, .note { justify-content: center; }
-    .hero-phone { transform: translateY(30px); margin-top: 20px; }
-    .tag { font-size: 13px; padding: 10px 14px 10px 10px; }
+    .hero-phone { margin-top: 24px; }
+    .tag { font-size: 12px; padding: 7px 11px 7px 7px; gap: 7px; }
+    .tag i { width: 20px; height: 20px; }
+    .tag i svg { width: 11px; height: 11px; }
+    .tag.t1 { left: 0 !important; top: 14% !important; }
+    .tag.t2 { right: 0 !important; top: 46% !important; }
+    .tag.t3 { left: 0 !important; top: 78% !important; }
   }
 
   /* ---------- Strip ---------- */
@@ -107,13 +122,20 @@
   /* ---------- Before / after ---------- */
   .ba { display: grid; grid-template-columns: 1fr auto 1fr; gap: 28px; align-items: center; justify-items: center; }
   .ba figure { margin: 0; text-align: center; }
-  .ba .phone { width: min(300px, 70vw); }
   .ba figcaption { margin-top: 18px; font-weight: 600; }
   .ba figcaption small { display: block; font-weight: 500; color: var(--muted); font-size: 14px; margin-top: 2px; }
-  .badge { position: absolute; top: 46px; left: 16px; z-index: 3; padding: 6px 10px; border-radius: 8px; background: rgba(0,0,0,.55); color: #fff; font: 600 11px/1 Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; backdrop-filter: blur(6px); }
+  .badge { position: absolute; top: calc(var(--w) * .17); left: calc(var(--w) * .06); z-index: 3; padding: 6px 10px; border-radius: 8px; background: rgba(0,0,0,.55); color: #fff; font: 600 11px/1 Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; backdrop-filter: blur(6px); }
   .sound { position: absolute; bottom: 16px; right: 16px; z-index: 3; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
   .arrow { width: 64px; height: 64px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; box-shadow: 0 12px 30px rgba(17,17,20,.25); }
-  @media (max-width: 760px) { .ba { grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); } }
+  @media (max-width: 760px) {
+    .ba { grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+    .ba .arrow { display: none; }
+    .ba .iphone { --w: calc((100vw - 2 * var(--gutter) - 14px) / 2) !important; }
+    .ba figcaption { font-size: 14px; margin-top: 12px; }
+    .ba figcaption small { font-size: 12.5px; }
+    .badge { font-size: 9px; padding: 5px 7px; }
+    .sound { width: 34px; height: 34px; bottom: 10px; right: 10px; }
+  }
 
   /* ---------- Steps ---------- */
   .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
@@ -129,10 +151,20 @@
   .feat.wide { grid-column: span 6; }
   .feat h3 { font-family: "Inter Tight", sans-serif; font-size: 23px; letter-spacing: -.02em; margin: 0 0 6px; }
   .feat p { margin: 0 0 22px; color: var(--muted); font-size: 15.5px; }
-  .feat .shot { margin-top: auto; align-self: center; width: 78%; border-radius: 26px 26px 0 0; overflow: hidden; box-shadow: 0 -2px 0 8px #0B0B0D, 0 20px 50px rgba(17,17,20,.18); border: 0; }
-  .feat .shot img { width: 100%; aspect-ratio: 1206 / 1500; object-fit: cover; object-position: top; }
+  .feat { padding-bottom: 34px; min-height: 0; }
+  .feat .iphone { margin-top: auto; }
   @media (max-width: 960px) { .feat, .feat.wide { grid-column: span 6; } }
-  @media (max-width: 640px) { .feat, .feat.wide { grid-column: span 12; } }
+  @media (max-width: 640px) {
+    /* Phones: a swipeable row of cards, like the App Store. */
+    .features { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)); padding: 4px var(--gutter) 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .features::-webkit-scrollbar { display: none; }
+    .feat, .feat.wide { flex: 0 0 80%; scroll-snap-align: center; padding: 24px 22px 28px; opacity: 1 !important; transform: none !important; }
+    .feat h3 { font-size: 21px; }
+    .feat p { font-size: 15px; margin-bottom: 18px; }
+    .feat .iphone { --w: min(200px, 54vw) !important; }
+    .swipe-hint { display: block; }
+  }
+  .swipe-hint { display: none; text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
 
   /* ---------- Calculator ---------- */
   .calc { background: var(--ink); color: #fff; border-radius: 36px; padding: 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
@@ -249,15 +281,10 @@
       <div class="note"><span>Dead air, ums and retakes cut</span><span>Every word captioned</span></div>
     </div>
     <div class="hero-phone" style="position:relative">
-      <div class="phone">
-        <div class="screen">
-          <div class="island"></div>
-          <video src="media/edited.mp4" poster="media/edited-poster.jpg" autoplay muted loop playsinline></video>
-        </div>
-      </div>
-      <div class="tag" style="left:-14px; top:22%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Retakes cut</div>
-      <div class="tag" style="right:-10px; top:42%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Ums removed</div>
-      <div class="tag" style="left:0; top:62%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Captions on every word</div>
+      <div class="iphone" style="--w:min(320px, 70vw, calc((100svh - 150px) * .45))"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><video src="media/edited.mp4" poster="media/edited-poster.jpg" autoplay muted loop playsinline></video><div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
+      <div class="tag t1" style="left:-14px; top:22%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Retakes cut</div>
+      <div class="tag t2" style="right:-10px; top:42%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Ums removed</div>
+      <div class="tag t3" style="left:0; top:62%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Captions on every word</div>
     </div>
   </div>
 </header>
@@ -277,18 +304,18 @@
     </div>
     <div class="ba reveal">
       <figure>
-        <div class="phone"><div class="screen"><div class="island"></div><span class="badge">Raw take</span>
+        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="badge">Raw take</span>
           <video src="media/raw.mp4" poster="media/raw-poster.jpg" muted loop playsinline preload="none" data-auto></video>
           <button class="sound" aria-label="Play the raw take with sound"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6M17 9l6 6"/></svg></button>
-        </div></div>
+        <div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
         <figcaption>What you filmed<small>Pauses, ums, a flubbed line</small></figcaption>
       </figure>
       <div class="arrow" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
       <figure>
-        <div class="phone"><div class="screen"><div class="island"></div><span class="badge">Autocut</span>
+        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="badge">Autocut</span>
           <video src="media/edited.mp4" poster="media/edited-poster.jpg" muted loop playsinline preload="none" data-auto></video>
           <button class="sound" aria-label="Play the Autocut version with sound"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6M17 9l6 6"/></svg></button>
-        </div></div>
+        <div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
         <figcaption>What you post<small>Tight, captioned, ready</small></figcaption>
       </figure>
     </div>
@@ -318,12 +345,13 @@
       <p>Built for creators who talk to camera: UGC, explainers, reviews, daily posts.</p>
     </div>
     <div class="features">
-      <div class="feat wide reveal"><h3>Captions on every word</h3><p>Timed to the word. Pick a look, a colour and capitals; drag and resize them on the video.</p><div class="shot"><img style="object-position:bottom" src="media/style.jpg" alt="The caption style picker in Autocut" loading="lazy"></div></div>
-      <div class="feat wide reveal"><h3>Keep filming while it cuts</h3><p>Send a take and record the next one. Your cuts wait for you, ready to post.</p><div class="shot"><img src="media/cutting.jpg" alt="Autocut cutting a take" loading="lazy"></div></div>
-      <div class="feat reveal"><h3>Edit 10 videos at once</h3><p>Line up a week of content and tap Edit all.</p><div class="shot"><img src="media/batch.jpg" alt="Batch editing in Autocut" loading="lazy"></div></div>
-      <div class="feat reveal"><h3>Text, music and B-roll</h3><p>Add titles in creator styles, songs, photos and clips.</p><div class="shot"><img src="media/overlay.jpg" alt="A photo overlay in the Autocut editor" loading="lazy"></div></div>
-      <div class="feat reveal"><h3>Schedule your edits</h3><p>Pick a time and it's cut then, even with your phone off.</p><div class="shot"><img style="object-position:bottom" src="media/schedule.jpg" alt="Scheduling an edit in Autocut" loading="lazy"></div></div>
+      <div class="feat wide reveal"><h3>Captions on every word</h3><p>Timed to the word. Pick a look, a colour and capitals; drag and resize them on the video.</p><div class="iphone" style="--w:min(260px, 66vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/editor.jpg" alt="Captions on every word in the Autocut editor" loading="lazy"><div class="island"></div></div></div></div></div>
+      <div class="feat wide reveal"><h3>Keep filming while it cuts</h3><p>Send a take and record the next one. Your cuts wait for you, ready to post.</p><div class="iphone" style="--w:min(260px, 66vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/cutting.jpg" alt="Autocut cutting a take" loading="lazy"><div class="island"></div></div></div></div></div>
+      <div class="feat reveal"><h3>Edit 10 videos at once</h3><p>Line up a week of content and tap Edit all.</p><div class="iphone" style="--w:min(220px, 62vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/batch.jpg" alt="Batch editing in Autocut" loading="lazy"><div class="island"></div></div></div></div></div>
+      <div class="feat reveal"><h3>Text, music and B-roll</h3><p>Add titles in creator styles, songs, photos and clips.</p><div class="iphone" style="--w:min(220px, 62vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/text-edit.jpg" alt="Adding a bold title in Autocut" loading="lazy"><div class="island"></div></div></div></div></div>
+      <div class="feat reveal"><h3>Schedule your edits</h3><p>Pick a time and it's cut then, even with your phone off.</p><div class="iphone" style="--w:min(220px, 62vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/schedule.jpg" alt="Scheduling an edit in Autocut" loading="lazy"><div class="island"></div></div></div></div></div>
     </div>
+    <p class="swipe-hint">Swipe to see more →</p>
   </div>
 </section>
 
@@ -522,8 +550,13 @@
 
   // Phones: a sticky App Store button once the hero's button scrolls away.
   const sticky = document.getElementById('sticky');
-  const heroBtn = document.querySelector('.hero .store');
-  new IntersectionObserver(([e]) => sticky.classList.toggle('show', !e.isIntersecting)).observe(heroBtn);
+  // Hidden while the hero's or the final App Store button is on screen (no point showing two).
+  const seen = new Map();
+  const so = new IntersectionObserver((es) => {
+    es.forEach((e) => seen.set(e.target, e.isIntersecting));
+    sticky.classList.toggle('show', ![...seen.values()].some(Boolean));
+  });
+  document.querySelectorAll('.hero .store, .final .store').forEach((b) => so.observe(b));
 </script>
 </body>
 </html>
