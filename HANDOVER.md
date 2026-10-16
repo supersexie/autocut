@@ -402,9 +402,16 @@ Live progress: the app now holds one WebSocket (`/live`) and gets each stage the
 instead of asking every 1.5 s. If the connection drops it falls back to asking, so it works on
 Railway too (Railway mode pushes changes within the same server).
 
+### Fair share per account
+
+Like CapCut, one account can't take over the servers. Each account runs at most 3 cuts and 2 exports at
+once (`PER_USER_CUTS`, `PER_USER_EXPORTS`). Its other jobs show "Waiting in line" while other people's go
+ahead. A 10-video batch runs 3 at a time. An account can have at most 20 edits waiting or running
+(`MAX_ACTIVE_CUTS`). Previews in the editor aren't limited.
+
 ### Before a big launch
 
-- One active cut per account, and an estimated wait in the app when the list is long.
+- An estimated wait in the app when the list is long.
 - Load-test a staging copy (separate Railway environment and R2 bucket) with hundreds of simulated users.
 - Alerts on `/health` (`queued` staying high) and on worker errors.
 

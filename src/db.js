@@ -58,21 +58,35 @@ export function makeDb(query, close = async () => {}) {
       const sets = cols.map((k, i) => `${k} = $${i + 2}`).join(', ');
       return one(query(`update cuts set ${sets}, updated_at = now() where id = $1${unlessStopped ? ` and stage <> 'stopped'` : ''} returning id`, [id, ...cols.map((k) => fields[k])]));
     },
+    /** Cuts this account has waiting or running now (not scheduled ones). */
+    activeCuts: async (userId) =>
+      (await one(query(`select count(*)::int as n from cuts where user_id = $1 and stage in ('queued', 'joining', 'reading', 'listening', 'cutting')`, [userId]))).n,
     cutsOf: (userId) => query(`select id, source, run, render from cuts where user_id = $1`, [userId]).then((r) => r.rows),
     deleteCutsOf: (userId) => query(`delete from cuts where user_id = $1`, [userId]),
 
     // ---- The job list
     addTask: ({ cutId, kind, payload = {}, priority = 0, runAt }) =>
       one(query(`insert into tasks (cut_id, kind, payload, priority, run_at) values ($1, $2, $3, $4, coalesce($5, now())) returning id`, [cutId, kind, payload, priority, runAt ? new Date(runAt) : null])),
-    /** The next job that's due, now this worker's, or null. Two workers never get the same one. */
-    claimTask: (kinds, worker = workerName) =>
+    /**
+     * The next job that's due, now this worker's, or null. Two workers never get the same one.
+     * `perUser` ({ cut: 3, render: 2 }): an account already running that many of a kind waits, and
+     * the next account's job goes instead, so one person's batch can't hold everyone else up.
+     * (Two workers claiming at the same instant can let an account go one over; that's fine.)
+     */
+    claimTask: (kinds, worker = workerName, perUser = {}) =>
       one(
         query(
           `update tasks t set status = 'running', locked_by = $2, heartbeat = now(), attempts = t.attempts + 1
-             where t.id = (select id from tasks where status = 'queued' and run_at <= now() and kind = any($1)
-                           order by priority desc, run_at, id for update skip locked limit 1)
+             where t.id = (
+               select q.id from tasks q left join cuts c on c.id = q.cut_id
+                where q.status = 'queued' and q.run_at <= now() and q.kind = any($1)
+                  and (($3::jsonb ->> q.kind) is null or c.user_id is null or
+                       (select count(*) from tasks r join cuts rc on rc.id = r.cut_id
+                         where r.status = 'running' and r.kind = q.kind and rc.user_id = c.user_id) < ($3::jsonb ->> q.kind)::int)
+                order by q.priority desc, q.run_at, q.id
+                for update of q skip locked limit 1)
            returning t.*`,
-          [kinds, worker]
+          [kinds, worker, JSON.stringify(perUser)]
         )
       ),
     heartbeat: (taskId) => query(`update tasks set heartbeat = now() where id = $1 and status = 'running'`, [taskId]),

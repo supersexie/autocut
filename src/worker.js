@@ -133,7 +133,7 @@ export function startWorker({ db, queue = postgresQueue(db), storage, workDir = 
     else {
       const { parseClips, previewKey } = await import('./edits.js');
       const clips = parseClips(result.segments, result.duration);
-      await queue.addTask({ cutId: cut.id, kind: 'preview', payload: { key: previewKey(clips), clips }, priority: 5 });
+      await queue.addTask({ cutId: cut.id, userId: cut.user_id, kind: 'preview', payload: { key: previewKey(clips), clips }, priority: 5 });
     }
   }
 

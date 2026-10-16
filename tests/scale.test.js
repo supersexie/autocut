@@ -320,7 +320,8 @@ test('workers run many cuts at once when Deepgram does the listening', { timeout
       await promisify(execFile)('cp', [take, copy]);
       await storage.put(copy, key);
       const id = randomUUID();
-      await db.createCut({ id, userId: 'u7', stage: 'queued', run: { uploads: [key], flips: [false], options: {} } });
+      // Many people at once (one account's cuts would wait for each other: the per-account limit).
+      await db.createCut({ id, userId: `u7-${i}`, stage: 'queued', run: { uploads: [key], flips: [false], options: {} } });
       await db.addTask({ cutId: id, kind: 'cut' });
       ids.push(id);
     }

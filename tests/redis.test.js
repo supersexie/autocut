@@ -11,7 +11,7 @@ import ffmpeg from 'ffmpeg-static';
 import { RedisMemoryServer } from 'redis-memory-server';
 import WebSocket from 'ws';
 import { openDb } from '../src/db.js';
-import { openQueue } from '../src/queue.js';
+import { openQueue, postgresQueue } from '../src/queue.js';
 import { attachLive } from '../src/live.js';
 import { openStorage } from '../src/storage.js';
 import { startWorker, sweep } from '../src/worker.js';
@@ -57,6 +57,41 @@ test('redis: 20 workers claiming 100 jobs at once never get the same one', async
   assert.deepEqual(await queue.load(['cut']), { queued: 0, running: 100 });
   await close();
 });
+
+for (const kind of ['postgres', 'redis']) {
+  test(`${kind}: one account's batch can't hold everyone else up (per-account limit)`, async () => {
+    const db = await openDb();
+    const queue = kind === 'redis' ? await openQueue({ db, url, perUser: { cut: 3, render: 2 } }) : postgresQueue(db, { cut: 3, render: 2 });
+    if (kind === 'redis') await queue.redis.flushall();
+    const add = async (userId, k = 'cut') => {
+      const id = await newCut(db, userId);
+      await queue.addTask({ cutId: id, userId, kind: k });
+      return id;
+    };
+    const batch = [];
+    for (let i = 0; i < 6; i++) batch.push(await add('alice'));
+    const bob = await add('bob');
+    const owner = async (t) => t && (await db.getCut(t.cut_id)).user_id;
+    const got = [];
+    for (let i = 0; i < 5; i++) got.push(await queue.claimTask(['cut'], 'w'));
+    // Alice's first three run; then Bob's, though it came later; then nothing (Alice is at her limit).
+    assert.deepEqual(await Promise.all(got.map(owner)), ['alice', 'alice', 'alice', 'bob', null]);
+    // One of Alice's finishes: her next one starts.
+    await queue.finishTask(got[0].id);
+    const next = await queue.claimTask(['cut'], 'w');
+    assert.equal(next.cut_id, batch[3]);
+    // Limits are per kind: her exports and previews still go.
+    await add('alice', 'render');
+    await add('alice', 'preview');
+    assert.deepEqual((await Promise.all([queue.claimTask(['render'], 'w'), queue.claimTask(['preview'], 'w')])).map((t) => t?.kind), ['render', 'preview']);
+    // A job handed back or stopped frees its place too.
+    await queue.releaseTasks('w');
+    assert.equal(await owner(await queue.claimTask(['cut'], 'w2')), 'alice');
+    assert.ok(bob);
+    await queue.close?.();
+    await db.close();
+  });
+}
 
 test('redis: previews go first, scheduled jobs wait for their time', async () => {
   const { db, queue, close } = await fresh();

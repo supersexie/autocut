@@ -47,6 +47,7 @@ const DATA = path.resolve(process.env.AUTOCUT_DATA ?? new URL('../data', import.
 const MAX_BYTES = Number(process.env.MAX_UPLOAD_MB ?? 1024) * 1024 * 1024;
 // Jobs at once per worker process: Whisper/ffmpeg each use every core, so keep it low and add workers.
 const CONCURRENCY = Math.max(1, Number(process.env.CONCURRENCY ?? 1));
+const MAX_ACTIVE_CUTS = Math.max(1, Number(process.env.MAX_ACTIVE_CUTS ?? 20));
 const MAX_AHEAD = 30 * 864e5; // how far ahead an edit can be scheduled
 const ID = /^[0-9a-f-]{36}$/;
 const USER = /^([0-9a-f-]{36}|local)$/;
@@ -202,6 +203,9 @@ async function createCut(req, res, url, userId) {
   if (scheduled && !rules.schedule) return send(res, 403, { error: `Scheduled batch edits are on Pro and Ultimate. You're on ${rules.name}.`, code: 'plan' });
   if (scheduled && at > Date.now() + MAX_AHEAD) return send(res, 400, { error: 'You can schedule an edit up to 30 days ahead.' });
   if ((await db.used(userId)) >= rules.edits) return send(res, 402, { error: `You've used all ${rules.edits} edits on ${rules.name} this month. Upgrade for more.`, code: 'limit' });
+  // At most MAX_ACTIVE_CUTS (default 20: two full batches) waiting or running per account.
+  if (!scheduled && (await db.activeCuts(userId)) >= MAX_ACTIVE_CUTS)
+    return send(res, 429, { error: `You have ${MAX_ACTIVE_CUTS} edits in progress. Start more when some have finished.`, code: 'busy' });
 
   let keys;
   if (q.get('uploads')) keys = await uploadKeys(q.get('uploads').split(',').slice(0, 50), userId);
@@ -224,7 +228,7 @@ async function createCut(req, res, url, userId) {
   };
   await db.createCut({ id, userId, stage: scheduled ? 'scheduled' : 'queued', takes: keys.length, at: scheduled ? at : null, run });
   await db.addUse(userId, 1); // counted now, so edits started together can't slip past the limit
-  await queue.addTask({ cutId: id, kind: 'cut', runAt: scheduled ? at : undefined });
+  await queue.addTask({ cutId: id, userId, kind: 'cut', runAt: scheduled ? at : undefined });
   send(res, 201, { id });
 }
 
@@ -268,7 +272,7 @@ async function createRender(req, res, cut, userId) {
   }
   const renderId = randomUUID();
   await db.updateCut(cut.id, { render: { id: renderId, stage: 'queued', progress: 0 } });
-  await queue.addTask({ cutId: cut.id, kind: 'render', payload: { renderId, edit: parsed.edit, music, overlays }, priority: 2 });
+  await queue.addTask({ cutId: cut.id, userId: cut.user_id, kind: 'render', payload: { renderId, edit: parsed.edit, music, overlays }, priority: 2 });
   queue.publish(cut.id, { render: { id: renderId, stage: 'queued', progress: 0 } });
   send(res, 201, { renderId });
 }
@@ -297,7 +301,7 @@ async function createPreview(req, res, cut) {
   if (stage === 'ready') return send(res, 200, { key, stage });
   if (stage === 'failed') {
     await queue.dropWaitingPreviews(cut.id);
-    await queue.addTask({ cutId: cut.id, kind: 'preview', payload: { key, clips }, priority: 10 });
+    await queue.addTask({ cutId: cut.id, userId: cut.user_id, kind: 'preview', payload: { key, clips }, priority: 10 });
   }
   send(res, 202, { key, stage: 'rendering' });
 }

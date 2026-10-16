@@ -12,17 +12,25 @@ import { STALE_MS, workerName } from './db.js';
 const MAX_ATTEMPTS = 3;
 const KINDS = ['preview', 'cut', 'render'];
 
-export async function openQueue({ db, url = process.env.REDIS_URL } = {}) {
-  return url ? redisQueue(db, url) : postgresQueue(db);
+// How many cuts and exports one account runs at once; its other jobs wait their turn while other
+// people's go ahead (CapCut-style fairness: a 10-video batch doesn't hold everyone else up).
+// Previews aren't limited: they're small and the person is waiting on them in the editor.
+export const perUserLimits = (env = process.env) => ({
+  cut: Math.max(1, Number(env.PER_USER_CUTS ?? 3)),
+  render: Math.max(1, Number(env.PER_USER_EXPORTS ?? 2)),
+});
+
+export async function openQueue({ db, url = process.env.REDIS_URL, perUser = perUserLimits() } = {}) {
+  return url ? redisQueue(db, url, perUser) : postgresQueue(db, perUser);
 }
 
 // ---------------- Postgres: what db.js already does, plus in-process change events ----------------
-export function postgresQueue(db) {
+export function postgresQueue(db, perUser = perUserLimits()) {
   const events = new EventEmitter().setMaxListeners(0);
   return {
     kind: 'postgres',
     addTask: (t) => db.addTask(t),
-    claimTask: (kinds, worker) => db.claimTask(kinds, worker),
+    claimTask: (kinds, worker) => db.claimTask(kinds, worker, perUser),
     heartbeat: (id) => db.heartbeat(id),
     finishTask: (id, status, error) => db.finishTask(id, status, error),
     requeueStale: (ms) => db.requeueStale(ms),
@@ -62,6 +70,7 @@ const K = {
   running: (kind) => `{ac}:running:${kind}`, // score = last heartbeat ms
   ofCut: (cutId) => `{ac}:cuttasks:${cutId}`,
   ofWorker: (w) => `{ac}:worker:${w}`,
+  userRunning: (kind, user) => `{ac}:userrun:${kind}:${user}`, // that account's running jobs of a kind
   live: (cutId) => `{ac}:live:${cutId}`,
   events: (cutId) => `{ac}:ev:${cutId}`, // pub/sub channel per cut
   allEvents: '{ac}:ev:*',
@@ -70,22 +79,44 @@ const LIVE_TTL = 3 * 86400; // live progress is only needed while a cut is in fl
 const DONE_TTL = 7 * 86400;
 
 // Moves due scheduled jobs into their ready set, then takes the best job across the given kinds
-// (highest priority, then oldest) and marks it running. ARGV: now, worker, kinds…
+// (highest priority, then oldest) and marks it running. A kind with a per-account limit skips
+// jobs of accounts already running that many (looking a few hundred deep), so the next account's
+// job goes instead. ARGV: now, worker, then kind and limit (0 = none) pairs.
 const CLAIM = `
 local now = tonumber(ARGV[1])
 local worker = ARGV[2]
+-- An account's running set, with jobs that have since finished or gone back dropped.
+local function running(kind, user)
+  local set = '{ac}:userrun:' .. kind .. ':' .. user
+  for _, id in ipairs(redis.call('SMEMBERS', set)) do
+    if redis.call('HGET', '{ac}:task:' .. id, 'status') ~= 'running' then redis.call('SREM', set, id) end
+  end
+  return redis.call('SCARD', set)
+end
 local best, bestKind, bestScore = nil, nil, nil
-for i = 3, #ARGV do
-  local kind = ARGV[i]
+for i = 3, #ARGV, 2 do
+  local kind, limit = ARGV[i], tonumber(ARGV[i + 1])
   local due = redis.call('ZRANGEBYSCORE', '{ac}:later:' .. kind, '-inf', now, 'LIMIT', 0, 500)
   for _, id in ipairs(due) do
     redis.call('ZREM', '{ac}:later:' .. kind, id)
     local pr = tonumber(redis.call('HGET', '{ac}:task:' .. id, 'priority') or '0')
     redis.call('ZADD', '{ac}:ready:' .. kind, -pr * 1e13 + now, id)
   end
-  local head = redis.call('ZRANGE', '{ac}:ready:' .. kind, 0, 0, 'WITHSCORES')
-  if head[1] and (bestScore == nil or tonumber(head[2]) < bestScore) then
-    best, bestKind, bestScore = head[1], kind, tonumber(head[2])
+  local list = redis.call('ZRANGE', '{ac}:ready:' .. kind, 0, limit > 0 and 299 or 0, 'WITHSCORES')
+  local full = {}
+  for j = 1, #list, 2 do
+    local id, score = list[j], tonumber(list[j + 1])
+    if bestScore ~= nil and score >= bestScore then break end
+    local user = limit > 0 and redis.call('HGET', '{ac}:task:' .. id, 'user') or false
+    local ok = true
+    if user and user ~= '' then
+      if full[user] == nil then full[user] = running(kind, user) >= limit end
+      ok = not full[user]
+    end
+    if ok then
+      best, bestKind, bestScore = id, kind, score
+      break
+    end
   end
 end
 if not best then return nil end
@@ -95,6 +126,8 @@ redis.call('HSET', key, 'status', 'running', 'locked_by', worker, 'heartbeat', n
 redis.call('HINCRBY', key, 'attempts', 1)
 redis.call('ZADD', '{ac}:running:' .. bestKind, now, best)
 redis.call('SADD', '{ac}:worker:' .. worker, best)
+local user = redis.call('HGET', key, 'user')
+if user and user ~= '' then redis.call('SADD', '{ac}:userrun:' .. bestKind .. ':' .. user, best) end
 return redis.call('HGETALL', key)
 `;
 
@@ -134,7 +167,7 @@ redis.call('PUBLISH', ARGV[2], ARGV[4])
 return 0
 `;
 
-async function redisQueue(db, url) {
+async function redisQueue(db, url, perUser = perUserLimits()) {
   const { default: Redis } = await import('ioredis');
   const r = new Redis(url, { maxRetriesPerRequest: 3, enableAutoPipelining: true });
   const sub = new Redis(url, { maxRetriesPerRequest: null });
@@ -150,7 +183,7 @@ async function redisQueue(db, url) {
   };
   const toTask = (o) =>
     o && o.id
-      ? { id: Number(o.id), cut_id: o.cut_id, kind: o.kind, payload: JSON.parse(o.payload || '{}'), priority: Number(o.priority || 0), status: o.status, attempts: Number(o.attempts || 0), locked_by: o.locked_by || null, error: o.error || null }
+      ? { id: Number(o.id), cut_id: o.cut_id, user: o.user || null, kind: o.kind, payload: JSON.parse(o.payload || '{}'), priority: Number(o.priority || 0), status: o.status, attempts: Number(o.attempts || 0), locked_by: o.locked_by || null, error: o.error || null }
       : null;
   const get = async (id) => toTask(await r.hgetall(K.task(id)));
   const tasksOf = async (cutId) => (await Promise.all((await r.smembers(K.ofCut(cutId))).map(get))).filter(Boolean).sort((a, b) => a.id - b.id);
@@ -172,17 +205,17 @@ async function redisQueue(db, url) {
   const q = {
     kind: 'redis',
     redis: r,
-    async addTask({ cutId, kind, payload = {}, priority = 0, runAt }) {
+    async addTask({ cutId, userId = '', kind, payload = {}, priority = 0, runAt }) {
       const id = await r.incr(K.seq);
       const now = Date.now();
       const at = runAt ? new Date(runAt).getTime() : now;
-      const m = r.multi().hset(K.task(id), { id, cut_id: cutId, kind, payload: JSON.stringify(payload), priority, status: 'queued', attempts: 0, run_at: at, created_at: now }).sadd(K.ofCut(cutId), id);
+      const m = r.multi().hset(K.task(id), { id, cut_id: cutId, user: userId ?? '', kind, payload: JSON.stringify(payload), priority, status: 'queued', attempts: 0, run_at: at, created_at: now }).sadd(K.ofCut(cutId), id);
       if (at > now) m.zadd(K.later(kind), at, id);
       else m.zadd(K.ready(kind), -priority * 1e13 + now, id);
       await m.exec();
       return { id };
     },
-    claimTask: async (kinds, worker = workerName) => parse(await r.claimTask(Date.now(), worker, ...kinds)),
+    claimTask: async (kinds, worker = workerName) => parse(await r.claimTask(Date.now(), worker, ...kinds.flatMap((k) => [k, perUser[k] ?? 0]))),
     async heartbeat(id) {
       const t = await get(id);
       if (t?.status === 'running') await r.multi().hset(K.task(id), 'heartbeat', Date.now()).zadd(K.running(t.kind), 'XX', Date.now(), id).exec();
@@ -190,7 +223,9 @@ async function redisQueue(db, url) {
     async finishTask(id, status = 'done', error = null) {
       const t = await get(id);
       if (!t) return;
-      await r.multi().hset(K.task(id), { status, error: error ?? '' }).zrem(K.running(t.kind), id).srem(K.ofWorker(t.locked_by ?? ''), id).expire(K.task(id), DONE_TTL).exec();
+      const m = r.multi().hset(K.task(id), { status, error: error ?? '' }).zrem(K.running(t.kind), id).srem(K.ofWorker(t.locked_by ?? ''), id).expire(K.task(id), DONE_TTL);
+      if (t.user) m.srem(K.userRunning(t.kind, t.user), id);
+      await m.exec();
     },
     async requeueStale(staleMs = STALE_MS) {
       const ids = await r.sweepTasks(Date.now() - staleMs, Date.now(), MAX_ATTEMPTS, ...KINDS);
