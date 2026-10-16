@@ -231,8 +231,10 @@ docs don't list every field, so it reads the user id from `data.metadata.user_id
 
 ### Consent in the app
 
-- Sign-up shows two boxes: the terms and privacy policy (required), and AI use (optional, unless
-  `AI_CONSENT_REQUIRED` is set to true in `app/src/lib/consent.ts`; the lawyer decides).
+- Sign-up shows one line under Create account: a tick box and "I agree to the Terms of Service and Privacy
+  Policy" (required to continue). AI use is off by default and turned on in Settings; if
+  `AI_CONSENT_REQUIRED` is set to true in `app/src/lib/consent.ts` (the lawyer decides), that same line
+  includes agreeing to AI use.
 - Accounts from before these terms are asked once, and can't continue until they agree or sign out.
 - Settings › Help improve Autocut's AI turns it on or off at any time.
 - The server records the version agreed, when, and the AI choice (`consents` table; `POST /consent`).
@@ -282,7 +284,7 @@ your own clips before release.** To swap:
 
 ## 8. Test before you submit (on TestFlight)
 
-- Create an account (the two consent boxes; Create account stays off until the terms box is ticked), sign
+- Create an account (the tick box under Create account; it stays off until ticked), sign
   out, sign in, reset password, delete the account (its videos disappear from R2).
 - Settings › Help improve Autocut's AI on and off.
 - New-user intro → onboarding → plan screen → account → Who runs this studio? → @handle → studio ready →

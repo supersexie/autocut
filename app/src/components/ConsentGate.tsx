@@ -49,9 +49,9 @@ export function ConsentGate() {
           <Text style={styles.body}>
             Autocut now keeps your videos until you delete your account, so they’re there whenever you want to edit again. Please review and agree to keep going.
           </Text>
-          <ConsentChecks value={agreement} onChange={setAgreement} />
           <ErrorText>{error}</ErrorText>
           <Button title="Agree and continue" onPress={agree} disabled={!agreed(agreement)} loading={saving} />
+          <ConsentChecks value={agreement} onChange={setAgreement} />
           <Button kind="text" title="Sign out" onPress={signOut} />
         </View>
       </View>

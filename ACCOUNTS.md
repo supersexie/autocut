@@ -248,8 +248,8 @@ company is sold, Whop payments, cancelling and refunds). They're served by the A
 2. **A lawyer approves the final wording.** Points for them: the licence to use videos for AI, what happens
    to model improvements after an account is deleted, deleting consent records with the account, Whop
    refunds, and which law applies.
-3. **The lawyer decides whether agreeing to AI use is required or optional.** Today it's optional (a second,
-   unticked box at sign-up, and a switch in Settings). To make it required: `app/src/lib/consent.ts` →
+3. **The lawyer decides whether agreeing to AI use is required or optional.** Today it's optional: off by default,
+   turned on in Settings. To make it required: `app/src/lib/consent.ts` →
    `AI_CONSENT_REQUIRED = true`, then a new build. The server records each person's choice in the `consents`
    table; **only use videos from accounts with `ai = true` for AI work.**
 4. **Changing the terms later:** bump `TERMS_VERSION` in both `src/legal.js` and `app/src/lib/consent.ts`;
@@ -264,7 +264,7 @@ company is sold, Whop payments, cancelling and refunds). They're served by the A
 ## 6. Done? Quick end-to-end check
 
 1. `/health` looks like section 3's check.
-2. In the app (TestFlight, or Expo Go pointed at your server): create an account (two consent boxes) →
+2. In the app (TestFlight, or Expo Go pointed at your server): create an account (tick the terms box) →
    record or import a short take → Send → it cuts → opens in the editor → Export saves to Photos.
 3. In Cloudflare R2 → `autocut-videos` → a `users/<id>/` folder now holds the take, preview and export.
 4. In Supabase → Table Editor → `cuts` has a row; `consents` has your agreement.

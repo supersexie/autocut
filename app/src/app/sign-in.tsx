@@ -118,10 +118,10 @@ export default function SignIn() {
             <Text style={styles.link}>Forgot password?</Text>
           </Pressable>
         )}
-        {signingUp && <ConsentChecks value={agreement} onChange={setAgreement} />}
         <ErrorText>{error}</ErrorText>
         {notice && <Text style={styles.notice}>{notice}</Text>}
         <Button title={signingUp ? 'Create account' : 'Sign in'} onPress={submit} disabled={!canSubmit} loading={busy === 'email'} style={{ marginTop: 6 }} />
+        {signingUp && <ConsentChecks value={agreement} onChange={setAgreement} />}
       </View>
 
       <View style={styles.footer}>
