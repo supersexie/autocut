@@ -108,6 +108,15 @@ They can't run in Expo Go, so they've never run on a real device:
    then uses the tested fallback).
 2. **Apple in-app purchase** (RevenueCat), once §6 is set up: buy with a Sandbox account, then Restore.
 3. **Instant updates**: publish a tiny update to the build's channel and check it arrives on the next launch.
+4. **Export on the phone** (`app/modules/autocut-export`): export an edit with captions, text, music and
+   an overlay, and compare it with the editor. If it fails, the app quietly falls back to the server export.
+   The Xcode log then shows `Phone export failed, using the server`.
+5. **iOS 27 launch fix** (`app/plugins/withSceneLifecycle.js`): apps built with Xcode 27 are stopped at
+   launch on iOS 27 unless they use Apple's scene life cycle. Expo SDK 57 has the code for it, but its
+   project template doesn't switch it on yet, so this plugin does. If a build fails with
+   `withSceneLifecycle: AppDelegate.swift is not the expected Expo template`, Expo has changed its
+   template (perhaps fixing this itself). Check whether the plugin is still needed, and remove it from
+   `app.json` if not.
 
 ---
 
@@ -429,10 +438,24 @@ needs a time for every word, the ums kept with their times, accuracy on fast tal
 Before launch, run Deepgram on the same fast-talker takes Whisper small was chosen on (fast talkers are
 where transcription went wrong before). It costs cents.
 
-**At millions of users: do the work on the phone.** This is how CapCut and Edits stay affordable. Every
-recent iPhone can run Whisper itself (WhisperKit), with the same per-word times, and render exports with
-Apple's own video tools. Server cost per cut then drops to almost nothing. It needs native code, so test it
-on TestFlight builds.
+**Exports run on the phone (like CapCut).** In development, TestFlight and App Store builds, the export
+is rendered on the iPhone itself (`app/modules/autocut-export`, Apple's AVFoundation and the hardware
+encoder). There's no upload or download, and the server does no work for it. It renders the same edit the
+server does: clips, speed, sound fades and overlap, music, zoom keyframes, overlays, captions and text,
+drawn like the editor's preview. Expo Go doesn't include native code, so there, or if a phone export
+fails, the app uses the server export as before (`ExportFlow.tsx`). The server still does the cutting
+(speech-to-text and finding the cuts), which is light.
+
+- To try it: a development build (`npx expo run:ios`, needs Xcode and CocoaPods) or TestFlight.
+- The export code can also be tested on a Mac without a phone. The Swift files in
+  `app/modules/autocut-export/ios` (all but `AutocutExportModule.swift`) compile with `swiftc` into a
+  command-line tool that takes the same JSON job.
+- Caption size: the server's subtitle renderer (libass) used to draw text 6–34% smaller than the editor
+  showed, depending on the font, because it treats the font size as the font's full line height. It's now
+  corrected per font (`lineRatio` in `src/ass.js`), so both exports match the editor.
+
+Later, speech-to-text could also move onto the phone (WhisperKit), but Deepgram keeps the ums more
+reliably, so it stays on the server for now.
 
 ---
 

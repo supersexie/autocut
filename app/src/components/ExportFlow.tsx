@@ -9,7 +9,12 @@ import { useEffect, useRef, useState } from 'react';
 import { ActionSheetIOS, Alert, Image, Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { Easing, FadeIn, FadeInDown, SlideInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Asset } from 'expo-asset';
+import { cancelPhoneExport, exportOnPhone, hasPhoneExport } from '../../modules/autocut-export';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
+import { CAPTION_FONTS } from '../lib/fonts';
+import { exportSpec } from '../lib/localExport';
+import { CAPTION_STYLES, TEXT_STYLES } from './editor/StyledText';
 import { nextChange } from '../lib/live';
 import { coverSource, exportBody, totalDuration, type Edit } from '../lib/edit';
 import { cutFile, getCut, getCuts, getSettings, updateCut, updateSettings, type CutRecord } from '../lib/store';
@@ -46,6 +51,23 @@ function ratioLabel(aspect: number) {
   return ratios.reduce((best, r) => (Math.abs(r[1] - aspect) < Math.abs(best[1] - aspect) ? r : best))[0];
 }
 
+/** The caption fonts as files on this phone, for the phone export (loaded once). */
+let fontFiles: Promise<Record<string, string>> | null = null;
+function loadFontFiles() {
+  fontFiles ??= Promise.all(
+    Object.entries(CAPTION_FONTS).map(async ([family, mod]) => {
+      const [asset] = await Asset.loadAsync(mod);
+      return [family, asset.localUri ?? asset.uri] as const;
+    })
+  )
+    .then(Object.fromEntries)
+    .catch((e) => {
+      fontFiles = null;
+      throw e;
+    });
+  return fontFiles;
+}
+
 /**
  * Runs `request`, and if the phone can't reach the server, tries again for about half a minute
  * (calling `onRetry` meanwhile) before giving up. Other errors come straight back.
@@ -74,6 +96,8 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
   const length = totalDuration(edit.clips);
   const sizeMb = Math.max(1, (length * bitrate) / 8);
   const preview = cut.source ? cutFile(cut.source).uri : undefined;
+  // Leaving the screen stops a phone export that's still running.
+  useEffect(() => () => cancelPhoneExport(), []);
   const firstSeconds = coverSource(edit);
 
   async function run() {
@@ -83,8 +107,27 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
       setPhase({ kind: 'exporting', progress: p, note });
     };
     const reconnecting = () => show(progress, 'Connection lost. Reconnecting…');
+    const chosen = overlapAllowed ? edit : { ...edit, overlapAudio: false };
     show(0);
-    try {
+
+    // On the phone, like CapCut: no upload or download, and nothing waits on the server. Builds
+    // without it (Expo Go), or a phone export that fails, use the server instead.
+    async function onPhone() {
+      const name = `${cut.id}-export.mp4`;
+      const overlays = chosen.overlays ?? [];
+      const body = exportBody(chosen, cut.words, { height, fps, bitrate }, chosen.music ? 'music' : undefined, Object.fromEntries(overlays.map((o) => [o.id, o.id])));
+      const spec = exportSpec(body, { captions: CAPTION_STYLES, texts: TEXT_STYLES }, {
+        source: cutFile(cut.source!).uri,
+        output: cutFile(name).uri,
+        music: chosen.music ? cutFile(chosen.music.file).uri : undefined,
+        overlays: Object.fromEntries(overlays.map((o) => [o.id, cutFile(o.file).uri])),
+        fonts: await loadFontFiles(),
+      });
+      await exportOnPhone(spec, (p) => show(p));
+      return name;
+    }
+
+    async function onServer() {
       const id = cut.serverId;
       if (!id) throw new Error('This cut was made on another server.');
       const job = () => patiently(() => getJob(id), reconnecting);
@@ -112,7 +155,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
           show(0, overlays.length > 1 ? `Adding your overlays (${i + 1} of ${overlays.length})…` : 'Adding your overlay…');
           overlayUploads[o.id] = await patiently(() => uploadTake(cutFile(o.file).uri, o.mime, () => {}), reconnecting);
         }
-        renderId.current = await patiently(() => startRender(id, exportBody(overlapAllowed ? edit : { ...edit, overlapAudio: false }, cut.words, { height, fps, bitrate }, musicUpload, overlayUploads)), reconnecting);
+        renderId.current = await patiently(() => startRender(id, exportBody(chosen, cut.words, { height, fps, bitrate }, musicUpload, overlayUploads)), reconnecting);
       }
       while (true) {
         const r = (await job()).render;
@@ -126,10 +169,23 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
         // Pushed export progress moves the bar without asking the server; done or failed is fetched.
         for (let e; (e = await nextChange(id, 800)) && e.render?.id === renderId.current && e.render.stage === 'rendering'; ) show(0.88 * (e.render.progress ?? 0));
       }
-      const file = await patiently(
+      return await patiently(
         () => download(`/cuts/${id}/video`, `${cut.id}-export.mp4`, (f) => show(0.88 + 0.12 * f)),
         reconnecting
       );
+    }
+
+    try {
+      let file: string | undefined;
+      if (hasPhoneExport && cut.source && cutFile(cut.source).exists) {
+        try {
+          file = await onPhone();
+        } catch (e) {
+          console.warn('Phone export failed, using the server:', e);
+          show(0, 'Finishing on our servers…');
+        }
+      }
+      file ??= await onServer();
       const permission = await MediaLibrary.requestPermissionsAsync(true);
       let saved = false;
       let assetId: string | undefined;

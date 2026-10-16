@@ -8,6 +8,39 @@ export const FONTS_DIR = new URL('../fonts', import.meta.url).pathname;
 const BASE_WIDTH = 1080; // PlayResX; libass scales everything to the real video size
 const FONT_SCALE = 0.085; // font size as a share of the width, for size 1
 
+// The app (and the phone export) size text by its em, but libass makes Fontsize the font's whole
+// line height (ascender to descender), which is 1.06–1.5 em depending on the font. Each font's
+// ratio, read from its file, scales Fontsize so the export matches what the editor shows.
+const FONT_FILES = {
+  'TikTok Sans Bold': 'TikTokSans-Bold.ttf',
+  Inter: 'Inter-Bold.ttf',
+  'Inter ExtraBold': 'Inter-ExtraBold.ttf',
+  'Inter Black': 'Inter-Black.ttf',
+  'Montserrat ExtraBold': 'Montserrat-ExtraBold.ttf',
+  'Montserrat Black': 'Montserrat-Black.ttf',
+  Anton: 'Anton-Regular.ttf',
+  Bangers: 'Bangers-Regular.ttf',
+  'Lilita One': 'LilitaOne-Regular.ttf',
+  Shrikhand: 'Shrikhand-Regular.ttf',
+  'Playfair Display': 'PlayfairDisplay-BoldItalic.ttf',
+  Poppins: 'Poppins-Bold.ttf',
+};
+const lineRatios = new Map();
+/** (ascender − descender) / units per em, from the font's head and hhea tables. */
+export function lineRatio(font) {
+  if (lineRatios.has(font)) return lineRatios.get(font);
+  let ratio = 1;
+  try {
+    const d = readFileSync(new URL(`../fonts/${FONT_FILES[font]}`, import.meta.url));
+    const tables = {};
+    for (let i = 0; i < d.readUInt16BE(4); i++) tables[d.toString('latin1', 12 + 16 * i, 16 + 16 * i)] = d.readUInt32BE(20 + 16 * i);
+    const upem = d.readUInt16BE(tables.head + 18);
+    ratio = (d.readInt16BE(tables.hhea + 4) - d.readInt16BE(tables.hhea + 6)) / upem;
+  } catch {}
+  lineRatios.set(font, ratio);
+  return ratio;
+}
+
 /** '#RRGGBB' → ASS '&HAABBGGRR' (alpha 00 = opaque). */
 function assColor(hex = '#FFFFFF', alpha = 0) {
   const h = hex.replace('#', '');
@@ -33,7 +66,7 @@ const time = (t) => {
 const clean = (text) => String(text).replace(/[{}\\]/g, '').replace(/\n/g, '\\N');
 
 function styleLine(name, s, playResY, alignment, marginV) {
-  const size = Math.round(BASE_WIDTH * FONT_SCALE * (s.size ?? 1));
+  const size = Math.round(BASE_WIDTH * FONT_SCALE * (s.size ?? 1) * lineRatio(s.font));
   const boxed = !!s.box;
   // In BorderStyle 3 (opaque box) libass fills the box with the outline colour.
   return [
