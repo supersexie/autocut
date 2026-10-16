@@ -29,6 +29,10 @@ async function r2Storage(env) {
     region: 'auto',
     endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId: env.R2_ACCESS_KEY_ID, secretAccessKey: env.R2_SECRET_ACCESS_KEY },
+    // Newer AWS SDKs put a checksum in every signed link; for an upload link it's the checksum of an
+    // empty body, so R2 rejects the real file. Only add checksums where an operation requires them.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
   });
   const Bucket = env.R2_BUCKET;
   return {
