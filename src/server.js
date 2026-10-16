@@ -53,6 +53,23 @@ if (!process.env.DATABASE_URL) console.warn('No DATABASE_URL: using a local data
 const db = await openDb({ dir: path.join(DATA, 'db') });
 const storage = await openStorage({ dir: path.join(DATA, 'blobs') });
 if (storage.kind === 'local') console.warn('No R2_* settings: videos are kept on this machine in', storage.root);
+// Checked once at start, and shown on /health, so a wrong key shows up right away (not on the first upload).
+const checks = { storage: storage.kind };
+if (storage.check) {
+  storage.check().then((problem) => {
+    checks.storageOk = !problem;
+    if (problem) checks.storageError = problem;
+    console.log(problem ? `Storage check FAILED: ${problem}` : 'Storage check: R2 works (signed upload, read, delete).');
+  });
+}
+if (process.env.DEEPGRAM_API_KEY) {
+  fetch('https://api.deepgram.com/v1/projects', { headers: { Authorization: `Token ${process.env.DEEPGRAM_API_KEY}` } })
+    .then((r) => {
+      checks.deepgramOk = r.ok;
+      console.log(r.ok ? 'Deepgram check: key works.' : `Deepgram check FAILED: HTTP ${r.status}`);
+    })
+    .catch((e) => console.log(`Deepgram check FAILED: ${e.message}`));
+}
 
 const send = (res, status, body) => {
   res.writeHead(status, { 'content-type': 'application/json', 'access-control-allow-origin': '*' });
@@ -384,7 +401,7 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://local');
     const [root, id, action] = url.pathname.split('/').filter(Boolean);
-    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, role: ROLE, ...(await db.queueStats()) });
+    if (req.method === 'GET' && root === 'health') return send(res, 200, { ok: true, role: ROLE, ...checks, ...(await db.queueStats()) });
     if (ROLE === 'worker') return send(res, 404, { error: 'Not found' });
     if (req.method === 'GET' && (root === 'privacy' || root === 'terms') && !id) {
       res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'public, max-age=300' });

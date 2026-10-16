@@ -62,6 +62,23 @@ async function r2Storage(env) {
       const out = await client.send(new s3.GetObjectCommand({ Bucket, Key: key }));
       await streamTo(out.Body, createWriteStream(file));
     },
+    /**
+     * Checks the bucket works end to end: an upload through a signed link (the way phones send
+     * videos), reading it back, and deleting it. Returns null when it all works, else what failed.
+     */
+    async check() {
+      const key = `health/${Date.now()}.txt`;
+      try {
+        const url = await getSignedUrl(client, new s3.PutObjectCommand({ Bucket, Key: key, ContentType: 'text/plain' }), { expiresIn: 60 });
+        const put = await fetch(url, { method: 'PUT', headers: { 'content-type': 'text/plain' }, body: 'ok' });
+        if (!put.ok) return `signed upload: HTTP ${put.status} ${(await put.text()).slice(0, 300)}`;
+        await client.send(new s3.HeadObjectCommand({ Bucket, Key: key }));
+        await client.send(new s3.DeleteObjectCommand({ Bucket, Key: key }));
+        return null;
+      } catch (e) {
+        return `${e.name ?? 'Error'}: ${String(e.message ?? e).slice(0, 300)} (host ${env.R2_ACCOUNT_ID.length} chars, bucket "${Bucket}")`;
+      }
+    },
     async removePrefix(prefix) {
       let token;
       do {

@@ -42,12 +42,12 @@ async function authHeaders(): Promise<Record<string, string>> {
 }
 
 export class ServerUnreachable extends Error {
-  constructor(base: string) {
+  constructor(base: string, detail?: string) {
     // The Mac hint only makes sense when the app is pointed at a server on the Mac running Expo.
     super(
       __DEV__ && base === autoServerUrl().replace(/\/+$/, '')
         ? `Can't reach the Autocut server at ${base}. Start it on your Mac with "npm run server", and keep your phone on the same Wi-Fi.`
-        : "Couldn't reach Autocut. Check your internet connection and try again."
+        : "Couldn't reach Autocut. Check your internet connection and try again." + (detail ? ` (${detail})` : '')
     );
   }
 }
@@ -57,8 +57,8 @@ async function call(path: string, init?: RequestInit) {
   let res: Response;
   try {
     res = await fetch(base + path, { ...init, headers: { ...(init?.headers as Record<string, string>), ...(await authHeaders()) } });
-  } catch {
-    throw new ServerUnreachable(base);
+  } catch (e) {
+    throw new ServerUnreachable(base, __DEV__ && e instanceof Error ? `${path.split('?')[0]}: ${e.message}` : undefined);
   }
   const body = await res.json().catch(() => null);
   if (res.status >= 502 && res.status <= 504) throw new ServerUnreachable(base); // restarting or swamped: try again
@@ -94,8 +94,10 @@ export async function uploadTake(uri: string, mime: string, onProgress: (fractio
           headers: { 'content-type': mime, ...(await authHeaders()) },
           onProgress: ({ bytesSent, totalBytes }) => onProgress(totalBytes ? bytesSent / totalBytes : 0),
         });
-  } catch {
-    throw new ServerUnreachable(base);
+  } catch (e) {
+    // While testing, say what actually went wrong sending the file (to storage or to us).
+    if (__DEV__) console.warn('Upload failed:', signed ? new URL(signed.url).host : base, e);
+    throw new ServerUnreachable(base, __DEV__ && e instanceof Error ? e.message : undefined);
   }
   // 502–504: restarting (a new version going live) or swamped. Worth another go.
   if (result.status >= 502 && result.status <= 504) throw new ServerUnreachable(base);
