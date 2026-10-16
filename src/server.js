@@ -474,7 +474,14 @@ if (ROLE === 'worker' || ROLE === 'all') {
 if (ROLE === 'api' || ROLE === 'all') {
   const scaler = startScaler({ db });
   if (scaler) checks.scaler = scaler.status;
+  else if (process.env.RAILWAY_API_TOKEN || process.env.SCALE_POOLS) {
+    // Half set up: say what's missing (names only, never values).
+    const missing = ['RAILWAY_API_TOKEN', 'SCALE_POOLS', 'RAILWAY_ENVIRONMENT_ID'].filter((k) => !process.env[k]);
+    checks.scaler = { off: missing.length ? `missing ${missing.join(', ')}` : 'SCALE_POOLS has no valid pools (format: cut=<serviceId>:16:1:3,render=<serviceId>:4:1:3)' };
+  }
 }
+// Which commit is running (Railway sets this), so a deploy can be confirmed from /health.
+if (process.env.RAILWAY_GIT_COMMIT_SHA) checks.version = process.env.RAILWAY_GIT_COMMIT_SHA.slice(0, 7);
 // Railway stops a copy with SIGTERM (a deploy, or the scaler removing it): finish or hand back its jobs.
 process.once('SIGTERM', async () => {
   console.log('Shutting down');
