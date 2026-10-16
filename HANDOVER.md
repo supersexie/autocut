@@ -370,6 +370,18 @@ ever taking another's, and Railway can add and remove copies automatically.
    if offered, so the server verifies tokens itself instead of asking Supabase on every request.
 5. **The app** checks a cut's progress every 1.5 s (not faster), and downloads videos straight from R2.
 
+### What it runs today (October 2026)
+
+| Pool | Jobs per copy | Copies now | Autoscaler max | Railway Hobby cap |
+|---|---|---|---|---|
+| worker-cut (cuts) | 16 | 1 | 3 | 5 copies of 8 vCPU |
+| worker-render (exports, previews) | 4 | 1 | 3 | 5 copies of 8 vCPU |
+
+So 20 jobs at once at rest (16 cuts + 4 exports), up to 60 when the autoscaler adds copies (48 + 12),
+and up to 100 if `SCALE_POOLS` maxes are raised to 5 (Hobby's limit). Anything beyond waits in the list
+and starts as a slot frees. Railway Pro (24 vCPU, 42 copies per service) goes much further; then
+Deepgram's per-account limit (~50–100 transcriptions at once) is the ceiling for cuts.
+
 ### What 1,000 at once costs
 
 Roughly 1,000 cuts at once ≈ 63 worker-cut copies' worth of slots (but limited by Deepgram to ~80 in
