@@ -143,7 +143,9 @@ export async function track(id: string) {
         continue;
       }
       updateCut(id, { stage: job.stage, progress: job.progress ?? 0 });
-      await sleep(700);
+      // Often enough for the progress bar (it animates between readings), rare enough that thousands
+      // of phones cutting at once don't swamp the server.
+      await sleep(1500);
     }
   } catch (e) {
     updateCut(id, { status: 'failed', error: message(e) });

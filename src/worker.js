@@ -15,12 +15,17 @@ export const previewName = (key) => `preview-${key}.mp4`;
 
 class Stopped extends Error {}
 
-export function startWorker({ db, storage, workDir = path.join(os.tmpdir(), 'autocut-work'), concurrency = 1, kinds = ['preview', 'cut', 'render'], idleMs = 1000, log = console.log } = {}) {
+export const ALL_KINDS = ['preview', 'cut', 'render'];
+
+export function startWorker({ db, storage, workDir = path.join(os.tmpdir(), 'autocut-work'), concurrency = 1, kinds = ALL_KINDS, idleMs = 1000, maxIdleMs = 5000, log = console.log } = {}) {
   const cache = fileCache(storage, path.join(workDir, 'cache'));
   let running = 0;
   let stopping = false;
   let wake = () => {};
 
+  // When the list is empty, look less often (up to maxIdleMs, with jitter so hundreds of workers
+  // don't all ask at the same moment); look again at once after finding a job.
+  let idle = idleMs;
   async function loop() {
     while (!stopping) {
       if (running >= concurrency) {
@@ -34,9 +39,11 @@ export function startWorker({ db, storage, workDir = path.join(os.tmpdir(), 'aut
         console.error('claim failed', err.message);
       }
       if (!task) {
-        await new Promise((r) => setTimeout(r, idleMs).unref?.());
+        await new Promise((r) => setTimeout(r, idle * (0.75 + Math.random() * 0.5)).unref?.());
+        idle = Math.min(maxIdleMs, idle * 1.5);
         continue;
       }
+      idle = idleMs;
       running++;
       runTask(task).finally(() => {
         running--;
@@ -74,7 +81,7 @@ export function startWorker({ db, storage, workDir = path.join(os.tmpdir(), 'aut
     // Progress goes on the cut's row (what the phone polls), a couple of times a second at most;
     // the update finds nothing if the user stopped the cut, which ends the job here.
     const report = async (stage, progress, force = false) => {
-      if (!force && stage === lastStage && Date.now() - last < 500) return;
+      if (!force && stage === lastStage && Date.now() - last < 1000) return;
       last = Date.now();
       if (stage !== lastStage) log(`${tag} ${stage}`);
       lastStage = stage;
@@ -133,7 +140,7 @@ export function startWorker({ db, storage, workDir = path.join(os.tmpdir(), 'aut
     let last = 0;
     await renderEdit(source, output, { ...p.edit, music, overlays }, {
       onProgress: (f) => {
-        if (Date.now() - last < 700) return;
+        if (Date.now() - last < 1500) return;
         last = Date.now();
         db.updateCut(cut.id, { render: { ...r, stage: 'rendering', progress: f } }).catch(() => {});
       },
@@ -162,6 +169,17 @@ export function startWorker({ db, storage, workDir = path.join(os.tmpdir(), 'aut
     stop() {
       stopping = true;
       wake();
+    },
+    /**
+     * For shutting down (a deploy, or the autoscaler removing this copy): stop taking jobs, give
+     * running ones up to `graceMs` to finish, then hand the rest back to the list for another worker.
+     */
+    async drain(graceMs = 20_000) {
+      stopping = true;
+      wake();
+      const until = Date.now() + graceMs;
+      while (running > 0 && Date.now() < until) await new Promise((r) => setTimeout(r, 250));
+      if (running > 0) await db.releaseTasks(workerName);
     },
   };
 }

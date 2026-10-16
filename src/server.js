@@ -36,7 +36,8 @@ import { legalPage, TERMS_VERSION } from './legal.js';
 import { rulesFor } from './plans.js';
 import { WAVEFORM_RATE } from './pipeline.js';
 import { openStorage } from './storage.js';
-import { cutKey, previewName, startWorker, sweep } from './worker.js';
+import { startScaler } from './scaler.js';
+import { ALL_KINDS, cutKey, previewName, startWorker, sweep } from './worker.js';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const ROLE = process.env.ROLE ?? 'all';
@@ -462,10 +463,23 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+let worker;
 if (ROLE === 'worker' || ROLE === 'all') {
-  const w = startWorker({ db, storage, concurrency: CONCURRENCY, workDir: path.join(DATA, 'work') });
-  console.log(`Worker ${w.name} taking jobs (${CONCURRENCY} at a time)`);
+  // WORKER_KINDS splits workers into pools: "cut" (mostly waiting on Deepgram, so many at once) and
+  // "render,preview" (ffmpeg, about one per two CPU cores). Unset: every kind.
+  const kinds = (process.env.WORKER_KINDS ?? '').split(',').map((k) => k.trim()).filter((k) => ALL_KINDS.includes(k));
+  worker = startWorker({ db, storage, concurrency: CONCURRENCY, kinds: kinds.length ? kinds : ALL_KINDS, workDir: path.join(DATA, 'work') });
+  console.log(`Worker ${worker.name} taking ${kinds.length ? kinds.join(' and ') : 'all'} jobs (${CONCURRENCY} at a time)`);
 }
+if (ROLE === 'api' || ROLE === 'all') startScaler({ db });
+// Railway stops a copy with SIGTERM (a deploy, or the scaler removing it): finish or hand back its jobs.
+process.once('SIGTERM', async () => {
+  console.log('Shutting down');
+  server.close();
+  await worker?.drain().catch((err) => console.error('drain', err.message));
+  await db.close().catch(() => {});
+  process.exit(0);
+});
 // Every server keeps an eye out for jobs whose worker died, and puts them back on the list.
 setInterval(() => sweep(db).catch((err) => console.error('sweep', err.message)), 30_000).unref();
 if (!authEnabled) console.warn('Auth is off (no SUPABASE_URL): every request runs as one local user. Fine for development only.');

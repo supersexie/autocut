@@ -13,12 +13,49 @@ export async function transcribe(samples, { language = 'english', model } = {}) 
   const key = process.env.DEEPGRAM_API_KEY;
   if (key && !model) {
     try {
-      return await deepgram(samples, language, key);
+      return await withSlot(() => withRetries(() => deepgram(samples, language, key)));
     } catch (err) {
+      // Whisper on this machine is slow; under heavy load it would only make things worse, so it
+      // can be turned off (WHISPER_FALLBACK=0) and the cut fails instead (the edit is refunded).
+      if (process.env.WHISPER_FALLBACK === '0') throw err;
       console.error(`Deepgram failed, using Whisper instead: ${err.message}`);
     }
   }
   return whisper(samples, { language, model });
+}
+
+// Deepgram allows a limited number of requests at once per account (about 50–100). Each worker
+// sends at most DEEPGRAM_MAX at a time; the rest wait their turn here.
+const MAX_AT_ONCE = Math.max(1, Number(process.env.DEEPGRAM_MAX ?? 8));
+let inFlight = 0;
+const waiting = [];
+export async function withSlot(fn, max = MAX_AT_ONCE) {
+  if (inFlight >= max) await new Promise((r) => waiting.push(r));
+  inFlight++;
+  try {
+    return await fn();
+  } finally {
+    inFlight--;
+    waiting.shift()?.();
+  }
+}
+
+/**
+ * Tries again when Deepgram is busy (429), having trouble (5xx) or unreachable, waiting longer
+ * each time with some randomness so many workers don't retry together. Gives up after `budgetMs`.
+ */
+export async function withRetries(fn, { budgetMs = 180_000, baseMs = 1000, sleep = (ms) => new Promise((r) => setTimeout(r, ms)) } = {}) {
+  const until = Date.now() + budgetMs;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const retryable = err.status === 429 || err.status >= 500 || err.name === 'TypeError' || err.name === 'TimeoutError';
+      const wait = Math.min(30_000, baseMs * 2 ** attempt) * (0.5 + Math.random());
+      if (!retryable || Date.now() + wait > until) throw err;
+      await sleep(wait);
+    }
+  }
 }
 
 /** Mono 16 kHz float samples as 16-bit little-endian PCM. */
@@ -48,7 +85,7 @@ export async function deepgram(samples, language, key, fetchImpl = fetch) {
     body: toPcm16(samples),
     signal: AbortSignal.timeout(Math.max(60_000, (samples.length / SAMPLE_RATE) * 1000)),
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`), { status: res.status });
   return deepgramWords(await res.json(), samples.length / SAMPLE_RATE);
 }
 

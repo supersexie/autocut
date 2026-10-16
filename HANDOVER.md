@@ -313,31 +313,68 @@ your own clips before release.** To swap:
   `FFMPEG_STALL_MS` (default 90000), `MAX_UPLOAD_MB` (1024), `DB_POOL` (5), `CACHE_GB` (worker's local
   copy of recent videos, 8).
 - Workers need at least 2 vCPU / 4 GB. With Deepgram, a one-minute take is cut in a few seconds of
-  transcription plus ffmpeg time; exports are the heaviest job.
+  transcription plus ffmpeg time; exports are the heaviest job. For many jobs at once, split workers into
+  a cut pool and an export pool and turn on autoscaling (§10).
+- `/health` reports `storageOk` (a real signed upload to R2 at start) and `deepgramOk`, plus jobs
+  `queued` and `running`.
 - The API is listed at the top of `src/server.js`. Every route except `/health`, `/privacy`, `/terms`, the
   `/webhooks/*` (checked by signature) and `/blobs/*` (local development only, signed) needs the user's
   Supabase token.
 
 ---
 
-## 10. Scaling (when lots of people use it)
+## 10. Scaling to thousands of jobs at once
 
-The app itself can't be overloaded: recording, the editor and playback run on each phone. The shared
-pieces are built to grow sideways:
+The app itself can't be overloaded: recording, the editor and playback run on each phone. The server
+side is built to grow sideways: any number of worker copies share one job list, each claims jobs without
+ever taking another's, and Railway can add and remove copies automatically.
 
-- **More cuts at once:** add worker replicas in Railway. Each takes jobs from the same list. Watch
-  `/health` (`queued` jobs waiting); if it stays above zero, add workers. Railway can also add replicas
-  automatically on CPU.
-- **More app traffic:** add an api replica (they're light). Database connections: each process holds up
-  to `DB_POOL` (5); Supabase's pooler handles hundreds.
-- **Storage:** R2 has no practical limit; downloads cost nothing.
-- **Transcription:** Deepgram handles thousands of requests at once.
+### The limits that matter (checked October 2026)
 
-Still worth doing before a big launch:
-- One active cut per account (so one account can't fill the list) and an estimated wait in the app when
-  the list is long.
-- Load-test a staging copy (a separate Railway environment and R2 bucket) with hundreds of simulated users.
-- Alerts on `/health` and on worker errors.
+| Piece | Limit | What it means |
+|---|---|---|
+| Railway (Pro) | 42 copies per service, 24 vCPU each (~1,000 vCPU per service) | Add a second worker service past that |
+| Deepgram | ~50–100 requests at once per account (can't be raised on pay-as-you-go/Growth; Enterprise via sales) | Each takes a few seconds, so that's still ~1,000+ cuts a minute |
+| Supabase pooler | a few hundred client connections, by compute size | Few, big worker copies with small pools, not thousands of tiny ones |
+| CPU (ffmpeg) | an export uses ~1–2 vCPU for tens of seconds | The real cost: 1,000 exports at once ≈ 2,000 vCPU |
+
+### How it's set up for that
+
+1. **Two worker pools**, both from this repo:
+   - **worker-cut**: `ROLE=worker`, `WORKER_KINDS=cut`, `CONCURRENCY=16`, `DEEPGRAM_MAX=8`, 4 vCPU / 8 GB.
+     A cut is mostly waiting on Deepgram, so one copy runs many.
+   - **worker-render**: `ROLE=worker`, `WORKER_KINDS=render,preview`, `CONCURRENCY=6`, 12 vCPU / 12 GB.
+     Exports and previews are ffmpeg: about one per two vCPU.
+   - Both: `WHISPER_FALLBACK=0` (under load, slow local Whisper would make things worse; a cut that
+     Deepgram can't do after retrying fails and is refunded) and `RAILWAY_DEPLOYMENT_DRAINING_SECONDS=30`
+     (a copy being stopped finishes its jobs or hands them straight back).
+   - Keep `DEEPGRAM_MAX × max worker-cut copies` under your Deepgram limit (e.g. 8 × 10 = 80).
+2. **Autoscaling** (`src/scaler.js`, Railway's own approach): every 30 s the api reads the job list and
+   sets each pool's number of copies: straight up when work arrives, down one copy at a time after 5
+   quiet minutes. On the **api** service:
+   - `RAILWAY_API_TOKEN`: Railway → Project → Settings → **Tokens** → create a project token.
+   - `SCALE_POOLS=cut=<worker-cut service id>:16:1:10,render=<worker-render service id>:6:1:40`
+     (service id: the service → Settings, or the URL). Format: `jobs per copy : min copies : max copies`.
+   - The log shows `[scaler] render: 3 → 9 copies (40 waiting, 14 running)`.
+3. **Database connections**: `DB_POOL=3` per copy. With dozens of copies, switch `DATABASE_URL` to the
+   **Transaction pooler** (port 6543) and raise the Supabase compute size if it reports "max client connections".
+4. **Sign-in checks**: in Supabase → Project Settings → **JWT Keys**, move to the new asymmetric signing keys
+   if offered, so the server verifies tokens itself instead of asking Supabase on every request.
+5. **The app** checks a cut's progress every 1.5 s (not faster), and downloads videos straight from R2.
+
+### What 1,000 at once costs
+
+Roughly 1,000 cuts at once ≈ 63 worker-cut copies' worth of slots (but limited by Deepgram to ~80 in
+flight, which clears them in about a minute), and 1,000 exports at once ≈ 170 worker-render copies at 12 vCPU,
+four times Railway's 42-copy cap per service, so it needs four render services (or people wait longer). Sustained, that's
+tens of thousands of dollars a month of CPU; with autoscaling you pay for the peaks only. The biggest saving
+at that size is moving exports onto the phone (below).
+
+### Before a big launch
+
+- One active cut per account, and an estimated wait in the app when the list is long.
+- Load-test a staging copy (separate Railway environment and R2 bucket) with hundreds of simulated users.
+- Alerts on `/health` (`queued` staying high) and on worker errors.
 
 **Which transcription service** (prices checked October 2026; check again before you sign up). Autocut
 needs a time for every word, the ums kept with their times, accuracy on fast talkers, English and Spanish.
@@ -377,6 +414,7 @@ on TestFlight builds.
 | Caption/text styles (shared with the server) | `app/src/lib/styles.json` |
 | API routes | `src/server.js` |
 | Workers (cut, preview, export jobs) | `src/worker.js` |
+| Autoscaling worker copies | `src/scaler.js` |
 | Database (cuts, job list, usage, consent) | `src/db.js`, `supabase/migrations/` |
 | Video storage (R2 / local folder) | `src/storage.js` |
 | Speech to text (Deepgram, Whisper backup) | `src/transcribe.js` |

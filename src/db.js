@@ -17,7 +17,7 @@ export async function openDb({ url = process.env.DATABASE_URL, dir } = {}) {
   let query, close;
   if (url) {
     const { default: pg } = await import('pg');
-    const pool = new pg.Pool({ connectionString: url, max: Number(process.env.DB_POOL ?? 5), ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false } });
+    const pool = new pg.Pool({ connectionString: url, max: Number(process.env.DB_POOL ?? 3), ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false } });
     query = (text, params) => pool.query(text, params);
     close = () => pool.end();
   } else {
@@ -83,12 +83,18 @@ export function makeDb(query, close = async () => {}) {
       await query(`update tasks set status = 'queued', locked_by = null where status = 'running' and heartbeat < $1 and attempts < $2`, [cutoff, MAX_ATTEMPTS]);
       return (await query(`update tasks set status = 'failed', error = 'worker stopped responding' where status = 'running' and heartbeat < $1 and attempts >= $2 returning *`, [cutoff, MAX_ATTEMPTS])).rows;
     },
+    /** A worker shutting down hands its unfinished jobs straight back (not after the 2-minute wait). */
+    releaseTasks: (worker = workerName) =>
+      query(`update tasks set status = 'queued', locked_by = null, attempts = greatest(attempts - 1, 0) where status = 'running' and locked_by = $1`, [worker]),
     stopTasks: (cutId, kind) => query(`update tasks set status = 'stopped' where cut_id = $1 and kind = $2 and status in ('queued', 'running')`, [cutId, kind]),
     taskFor: (cutId, kind, key) =>
       one(query(`select * from tasks where cut_id = $1 and kind = $2 and payload->>'key' = $3 order by id desc limit 1`, [cutId, kind, key])),
     /** A preview of this cut still waiting is replaced by a newer one (the user kept editing). */
     dropWaitingPreviews: (cutId) => query(`update tasks set status = 'stopped' where cut_id = $1 and kind = 'preview' and status = 'queued'`, [cutId]),
     queueStats: () => one(query(`select count(*) filter (where status = 'queued' and run_at <= now())::int as queued, count(*) filter (where status = 'running')::int as running from tasks`)),
+    /** Waiting and running jobs of these kinds (what the autoscaler sizes a worker pool by). */
+    load: (kinds) =>
+      one(query(`select count(*) filter (where status = 'queued' and run_at <= now())::int as queued, count(*) filter (where status = 'running')::int as running from tasks where kind = any($1)`, [kinds])),
 
     // ---- Edits used this month
     used: async (userId) => (await one(query(`select used from usage where user_id = $1 and month = $2`, [userId, month()])))?.used ?? 0,
