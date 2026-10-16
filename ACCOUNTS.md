@@ -218,12 +218,33 @@ deleted, used to improve the app and its AI with consent, the outside companies 
 company is sold, Whop payments, cancelling and refunds). They're served by the API at `/privacy` and
 `/terms`; the text is in `legal/privacy.html` and `legal/terms.html`. Still to do:
 
-1. **Your details** on those pages (they show `[operator name]` until set). Railway → **autocut** → Variables:
-   - `LEGAL_OPERATOR`: who publishes the app (person or company, as on the App Store listing)
-   - `LEGAL_EMAIL`: contact for privacy requests
-   - `LEGAL_COUNTRY`: whose laws apply, e.g. `United States`
+1. **Your details** on those pages (they show `[operator name]`, `[contact email]` and `[country]` until set).
+   Railway → **autocut** → **Variables**, add these three. They appear **publicly** on the privacy policy and terms.
 
-   Check `https://<your api domain>/privacy` shows them. Apple rejects the app with placeholders.
+   - **`LEGAL_OPERATOR`**: who publishes the app. The full legal name of the person, or the company's
+     registered name if there is one. It must match the seller name on the App Store listing.
+     ```
+     LEGAL_OPERATOR=Your Full Name
+     ```
+     or
+     ```
+     LEGAL_OPERATOR=Your Company LLC
+     ```
+   - **`LEGAL_EMAIL`**: where people send privacy requests (asking for their data, or to delete it). Use an
+     address someone checks. A dedicated one (`privacy@yourdomain.com`, or a separate Gmail) is better than a
+     personal email, since it's public.
+     ```
+     LEGAL_EMAIL=privacy@yourdomain.com
+     ```
+   - **`LEGAL_COUNTRY`**: the country whose laws apply: where the publisher (or their company) is based or
+     registered. Used for "governed by the laws of…" in the terms.
+     ```
+     LEGAL_COUNTRY=United States
+     ```
+
+   Save; Railway redeploys. Then open `https://<your api domain>/privacy` and `/terms` and check the three
+   show in place of the placeholders. Apple rejects the app with placeholders. The lawyer can confirm the
+   best operator and country, especially if a company is being formed before launch.
 2. **A lawyer approves the final wording.** Points for them: the licence to use videos for AI, what happens
    to model improvements after an account is deleted, deleting consent records with the account, Whop
    refunds, and which law applies.
