@@ -471,7 +471,10 @@ if (ROLE === 'worker' || ROLE === 'all') {
   worker = startWorker({ db, storage, concurrency: CONCURRENCY, kinds: kinds.length ? kinds : ALL_KINDS, workDir: path.join(DATA, 'work') });
   console.log(`Worker ${worker.name} taking ${kinds.length ? kinds.join(' and ') : 'all'} jobs (${CONCURRENCY} at a time)`);
 }
-if (ROLE === 'api' || ROLE === 'all') startScaler({ db });
+if (ROLE === 'api' || ROLE === 'all') {
+  const scaler = startScaler({ db });
+  if (scaler) checks.scaler = scaler.status;
+}
 // Railway stops a copy with SIGTERM (a deploy, or the scaler removing it): finish or hand back its jobs.
 process.once('SIGTERM', async () => {
   console.log('Shutting down');

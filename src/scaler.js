@@ -58,6 +58,8 @@ export function startScaler({ db, env = process.env, fetchImpl = fetch, log = co
   const pools = parsePools(env.SCALE_POOLS);
   if (!token || !environmentId || !pools.length) return null;
   const lastDown = new Map();
+  // What /health shows: each pool's copies as last seen, and the last problem (if any).
+  const status = { pools: Object.fromEntries(pools.map((p) => [p.name, { min: p.min, max: p.max }])) };
 
   async function step(pool) {
     const load = await db.load(pool.kinds);
@@ -65,6 +67,7 @@ export function startScaler({ db, env = process.env, fetchImpl = fetch, log = co
     const data = await gql(token, `query ($serviceId: String!, $environmentId: String!) { serviceInstance(serviceId: $serviceId, environmentId: $environmentId) { numReplicas } }`, vars, fetchImpl);
     const current = data.serviceInstance?.numReplicas ?? 1;
     const next = nextCopies(current, desiredCopies(load, pool), lastDown.get(pool.name) ?? 0);
+    Object.assign(status.pools[pool.name], { copies: current, ...load, checkedAt: new Date().toISOString() });
     if (next === null || next === current) return;
     await gql(
       token,
@@ -73,13 +76,23 @@ export function startScaler({ db, env = process.env, fetchImpl = fetch, log = co
       fetchImpl
     );
     if (next < current) lastDown.set(pool.name, Date.now());
+    status.pools[pool.name].copies = next;
     log(`[scaler] ${pool.name}: ${current} → ${next} copies (${load.queued} waiting, ${load.running} running)`);
   }
 
-  const timer = setInterval(() => {
-    for (const pool of pools) step(pool).catch((err) => console.error(`[scaler] ${pool.name}: ${err.message}`));
-  }, POLL_MS);
+  const tick = () => {
+    for (const pool of pools)
+      step(pool).then(
+        () => delete status.error,
+        (err) => {
+          status.error = `${pool.name}: ${err.message}`;
+          console.error(`[scaler] ${status.error}`);
+        }
+      );
+  };
+  const timer = setInterval(tick, POLL_MS);
+  setTimeout(tick, 5000).unref?.(); // a first look soon after starting
   timer.unref?.();
   log(`[scaler] watching ${pools.map((p) => `${p.name} (${p.min}–${p.max} copies, ${p.per} jobs each)`).join(', ')}`);
-  return { stop: () => clearInterval(timer), step };
+  return { stop: () => clearInterval(timer), step, status };
 }
