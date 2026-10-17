@@ -139,11 +139,18 @@
   .intro video { display: block; width: 100%; height: 100%; object-fit: cover; }
   @media (max-width: 760px) { .intro { border-radius: 16px; } }
   .cuts { padding: 96px 0 72px; }
-  .cuts .wrap { max-width: 1240px; }
+  .cuts .wrap { max-width: 940px; }
   .cuts-h { font-size: clamp(36px, 5vw, 64px); font-weight: 800; text-transform: uppercase; letter-spacing: -.03em; line-height: 1; margin-bottom: 18px; }
-  .cuts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .cuts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .cuts-grid .vcard { padding: 12px; }
+  .cuts-grid .vlabel { top: 10px; left: 10px; padding: 6px 8px; font-size: 10.5px; }
+  .cuts-grid .vmute { right: 10px; bottom: 10px; width: 38px; height: 38px; }
+  .cuts-grid .vcard figcaption { padding-top: 14px; }
+  .cuts-grid .vwho { font-size: 15px; gap: 9px; }
+  .cuts-grid .vwho img { width: 28px; height: 28px; }
+  .cuts-grid .vmeta { font-size: 10.5px; margin-top: 8px; }
   .cuts-grid .vcard { width: 100%; box-shadow: none; }
-  @media (max-width: 900px) { .cuts-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; padding: 0 var(--gutter) 8px; margin: 0 calc(-1 * var(--gutter)); scrollbar-width: none; } .cuts-grid .vcard { scroll-snap-align: center; } .cuts { padding: 72px 0 48px; } }
+  @media (max-width: 900px) { .cuts-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 66%; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; padding: 0 var(--gutter) 8px; margin: 0 calc(-1 * var(--gutter)); scrollbar-width: none; } .cuts-grid .vcard { scroll-snap-align: center; } .cuts { padding: 72px 0 48px; } }
   .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 18px 40px rgba(17,17,20,.08); }
   .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
   .vbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -433,6 +440,7 @@
 
   /* ---------- Section rhythm: hairlines and alternating panels ---------- */
   main > section { border-top: 1px solid rgba(17,17,20,.07); padding: 104px 0; }
+  main > section.cuts { border-top: 0; }
   .panel { background: #F5F5F7; background-image: linear-gradient(rgba(17,17,20,.03) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.03) 1px, transparent 1px); background-size: 64px 64px; }
 
   /* ---------- Hero extras ---------- */
