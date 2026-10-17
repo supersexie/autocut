@@ -105,16 +105,15 @@
   .vstack .vcard[data-pos="center"] { position: relative; z-index: 3; transform: none; opacity: 1; }
   .vstack .vcard[data-pos="left"] { z-index: 2; transform: translateX(-62%) scale(.8); opacity: .55; }
   .vstack .vcard[data-pos="right"] { z-index: 2; transform: translateX(62%) scale(.8); opacity: .55; }
-  .vstack .vcard[data-pos="out-left"] { z-index: 1; transform: translateX(-118%) scale(.64); opacity: 0; }
-  .vstack .vcard[data-pos="out-right"] { z-index: 1; transform: translateX(118%) scale(.64); opacity: 0; }
-  .vstack .vcard.jump { transition: none; }
-  .vstack .vcard:not([data-pos="center"]) { pointer-events: none; }
+  /* The card going from one side to the other passes behind the front card. */
+  .vstack .vcard.travel { z-index: 0; }
+  .vstack .vcard:not([data-pos="center"]) { cursor: pointer; }
+  .vstack .vcard:not([data-pos="center"]) .vbox { pointer-events: none; }
+  .vstack .vcard[data-pos="left"]:hover, .vstack .vcard[data-pos="right"]:hover { opacity: .8; }
   .vstack .vcard:not([data-pos="center"]) .vmute { opacity: 0; }
   @media (max-width: 900px) {
     .vstack .vcard[data-pos="left"] { transform: translateX(-40%) scale(.8); }
     .vstack .vcard[data-pos="right"] { transform: translateX(40%) scale(.8); }
-    .vstack .vcard[data-pos="out-left"] { transform: translateX(-80%) scale(.64); }
-    .vstack .vcard[data-pos="out-right"] { transform: translateX(80%) scale(.64); }
   }
   .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 40px 90px rgba(17,17,20,.14); }
   .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
@@ -841,21 +840,27 @@
     if (!v.muted) { v.currentTime = 0; v.play().catch(() => {}); }
   }));
   playFront();
-  const turn = () => {
-    if (!front().querySelector('video').muted || document.hidden) return; // someone's listening: stay
-    const leaving = cards.find((c) => c.dataset.pos === 'left');
-    cards.find((c) => c.dataset.pos === 'center').dataset.pos = 'left';
-    cards.find((c) => c.dataset.pos === 'right').dataset.pos = 'center';
-    leaving.dataset.pos = 'out-left';
+  // Bring a side card to the front: the front card slides to the side it came from, and the card on the
+  // other side slides across (behind) to take the free side.
+  const bring = (card) => {
+    const from = card.dataset.pos;
+    if (from === 'center') return;
+    const other = from === 'right' ? 'left' : 'right';
+    const mid = front(), far = cards.find((c) => c.dataset.pos === other);
+    far.classList.add('travel');
+    setTimeout(() => far.classList.remove('travel'), 1150);
+    card.dataset.pos = 'center';
+    far.dataset.pos = from;
+    mid.dataset.pos = other;
     playFront();
-    // Off the left edge, it jumps (unseen) to just past the right edge and slides in as the next card.
-    setTimeout(() => {
-      leaving.classList.add('jump');
-      leaving.dataset.pos = 'out-right';
-      void leaving.offsetWidth;
-      leaving.classList.remove('jump');
-      leaving.dataset.pos = 'right';
-    }, 1150);
+  };
+  let lastMove = Date.now();
+  cards.forEach((c) => c.addEventListener('click', () => { if (c.dataset.pos !== 'center') { bring(c); lastMove = Date.now(); } }));
+  // On its own, every few seconds the right card comes to the front (not while someone's listening or just clicked).
+  const turn = () => {
+    if (!front().querySelector('video').muted || document.hidden || Date.now() - lastMove < 5000) return;
+    bring(cards.find((c) => c.dataset.pos === 'right'));
+    lastMove = Date.now();
   };
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(turn, 5500);
 
