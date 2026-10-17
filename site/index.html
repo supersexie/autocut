@@ -552,8 +552,6 @@
         </a>
         <a class="btn btn-red" href="#see-it"><i><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#E5383F" d="M8 5.5v13l11-6.5z"/></svg></i>See it cut</a>
       </div>
-      <div class="note"><span>Dead air, ums and retakes cut</span><span>Every word captioned</span></div>
-      <div class="stats" id="stats"><span><b>~1 min</b>per edit</span><i class="dot"></i><span><b>10</b>videos at once</span><i class="dot"></i><span><b>Every</b>word captioned</span></div>
       <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
     <div class="hero-phone">
@@ -831,7 +829,7 @@
       document.getElementById('ratingScore').textContent = rating.score ? rating.score.toFixed(1) : 'Sample';
       document.getElementById('ratingCount').textContent = rating.count ? rating.count.toLocaleString() : '0';
       document.getElementById('rating').classList.add('on');
-      document.getElementById('stats').classList.add('off');
+      document.getElementById('stats')?.classList.add('off');
     }
   })();
 
