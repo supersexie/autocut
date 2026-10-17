@@ -171,7 +171,7 @@
   .vmeta { text-align: center; margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
-    .hero-top { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 64px; }
+    .hero-top { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 64px; }
     /* The hero fills the first screen; the reviews start below it. */
     /* The hero is the whole first screen: nothing from the next section shows until you scroll. */
     .hero { min-height: 100svh; display: flex; align-items: center; padding: 84px 0 112px; }
@@ -183,7 +183,7 @@
     /* The text block is as wide as the headline; the App Store button sits centred under it. */
     .hero-copy { width: fit-content; }
     .hero-copy .cta-row { align-self: center; justify-content: center; }
-    .hero h1 { font-size: clamp(44px, 4.2vw, 64px); max-width: none; text-wrap: nowrap; }
+    .hero h1 { font-size: clamp(46px, 4.9vw, 78px); max-width: none; text-wrap: nowrap; }
     .hero h1 .ln { display: block; }
     .hero-phone { margin-top: 0; padding: 0; }
     .vstack { margin-right: clamp(0px, 5vw, 90px); }
@@ -315,7 +315,7 @@
   .time-copy > p { font-size: 18px; color: var(--muted); margin: 0; max-width: 34em; }
   .time-copy .controls { justify-content: flex-start; margin-top: 20px; }
   @media (min-width: 901px) {
-    .time-grid { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 64px; max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
+    .time-grid { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 64px; max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
   }
   @media (max-width: 900px) { .time-copy { text-align: center; } .time-copy > p { margin: 0 auto; } .time-copy .controls { justify-content: center; } }
   .tstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 28px 0 0; }
