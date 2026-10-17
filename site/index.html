@@ -515,21 +515,22 @@
   .faq-head { text-align: center; margin-bottom: 28px; }
   .faq-head .h { font-size: clamp(36px, 5vw, 60px); margin: 14px 0 14px; }
   .faq-head > p { font-size: 17px; color: var(--muted); margin: 0 auto 28px; max-width: 30em; }
-  .faq-list { display: grid; gap: 12px; }
-  details { background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 20px; padding: 0 26px; transition: border-color .2s, box-shadow .25s; }
-  details:hover { border-color: rgba(17,17,20,.16); }
-  details[open] { border-color: rgba(17,17,20,.16); box-shadow: 0 18px 40px -26px rgba(17,17,20,.3); }
-  summary { list-style: none; cursor: pointer; padding: 22px 0; font-weight: 600; font-size: 17px; letter-spacing: -.01em; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+  /* Questions as a plain numbered list with hairlines: number, question, a thin plus that turns into ×. */
+  .faq-list { counter-reset: q; border-bottom: 1px solid rgba(17,17,20,.1); }
+  details { border-top: 1px solid rgba(17,17,20,.1); }
+  details:not([hidden]) { counter-increment: q; }
+  summary { list-style: none; cursor: pointer; padding: 26px 4px; display: grid; grid-template-columns: 44px 1fr 22px; align-items: center; gap: 12px; font-weight: 600; font-size: 19px; letter-spacing: -.015em; transition: color .2s; }
   summary::-webkit-details-marker { display: none; }
-  /* A small chevron that flips when the answer opens. */
-  summary::after { content: ""; flex: none; width: 18px; height: 18px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B6B73' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; transition: transform .3s cubic-bezier(.2,.7,.2,1); }
-  details[open] summary::after { transform: rotate(180deg); }
-  details p { margin: -8px 38px 22px 0; color: var(--muted); font-size: 15.5px; line-height: 1.65; }
+  summary::before { content: counter(q, decimal-leading-zero); font: 600 12px/1 ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace; letter-spacing: .08em; color: var(--faint); }
+  summary::after { content: ""; width: 22px; height: 22px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111114' stroke-width='1.6' stroke-linecap='round'%3E%3Cpath d='M12 4v16M4 12h16'/%3E%3C/svg%3E") center / contain no-repeat; transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+  summary:hover { color: #44444B; }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { margin: -10px 38px 26px 60px; color: var(--muted); font-size: 16px; line-height: 1.7; max-width: 40em; }
   details[open] p { animation: faqIn .3s ease; }
   @keyframes faqIn { from { opacity: 0; transform: translateY(-4px); } }
   .faq-foot { text-align: center; margin-top: 22px; }
   .tabs button:focus { outline: none; } .tabs button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-  @media (max-width: 760px) { details { padding: 0 18px; border-radius: 16px; } summary { font-size: 15.5px; padding: 18px 0; } details p { margin-right: 0; font-size: 14.5px; } }
+  @media (max-width: 760px) { summary { grid-template-columns: 30px 1fr 18px; gap: 10px; font-size: 16px; padding: 20px 2px; } summary::after { width: 18px; height: 18px; } details p { margin: -8px 0 22px 42px; font-size: 14.5px; } }
 
   /* ---------- Final CTA ---------- */
 
