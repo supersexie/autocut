@@ -510,28 +510,26 @@
   }
 
   /* ---------- FAQ ---------- */
-  .faq-grid { display: grid; gap: 36px; max-width: 1200px; margin: 0 auto; }
-  .faq-side .h { font-size: clamp(36px, 4.4vw, 58px); margin: 14px 0 14px; }
-  .faq-side > p { font-size: 17px; color: var(--muted); margin: 0 0 26px; max-width: 26em; }
-  .faq-side .contact { margin-top: 22px; }
-  .faq-list { background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 28px; padding: 6px 30px; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 30px 70px -40px rgba(17,17,20,.25); }
-  details { border-bottom: 1px solid #EFEFF2; }
-  details.last { border-bottom: 0; }
-  summary { list-style: none; cursor: pointer; padding: 24px 0; font-weight: 600; font-size: 17.5px; letter-spacing: -.01em; display: flex; justify-content: space-between; align-items: center; gap: 20px; transition: color .2s; }
+  /* FAQ: heading and topics centred, then one rounded card per question. */
+  .faq-wrap { max-width: 820px; margin: 0 auto; }
+  .faq-head { text-align: center; margin-bottom: 28px; }
+  .faq-head .h { font-size: clamp(36px, 5vw, 60px); margin: 14px 0 14px; }
+  .faq-head > p { font-size: 17px; color: var(--muted); margin: 0 auto 28px; max-width: 30em; }
+  .faq-list { display: grid; gap: 12px; }
+  details { background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 20px; padding: 0 26px; transition: border-color .2s, box-shadow .25s; }
+  details:hover { border-color: rgba(17,17,20,.16); }
+  details[open] { border-color: rgba(17,17,20,.16); box-shadow: 0 18px 40px -26px rgba(17,17,20,.3); }
+  summary { list-style: none; cursor: pointer; padding: 22px 0; font-weight: 600; font-size: 17px; letter-spacing: -.01em; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
   summary::-webkit-details-marker { display: none; }
-  summary:hover { color: #3A3A40; }
-  /* A plus in a circle that turns into a minus when open. */
-  summary::after { content: ""; flex: none; width: 32px; height: 32px; border-radius: 50%; background: #F4F4F6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111114' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 6v12M6 12h12'/%3E%3C/svg%3E") center / 14px no-repeat; transition: transform .3s cubic-bezier(.2,.7,.2,1), background-color .2s; }
-  details[open] summary::after { transform: rotate(135deg); background-color: var(--ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 6v12M6 12h12'/%3E%3C/svg%3E"); }
-  details p { margin: -6px 52px 24px 0; color: var(--muted); font-size: 16px; line-height: 1.65; }
-  details[open] p { animation: faqIn .35s ease; }
-  @keyframes faqIn { from { opacity: 0; transform: translateY(-6px); } }
-  @media (min-width: 901px) {
-    .faq-grid { grid-template-columns: .8fr 1.2fr; gap: 72px; align-items: start; }
-    .faq-side { position: sticky; top: 110px; }
-  }
-  @media (max-width: 900px) { .faq-side { text-align: center; } .faq-side > p { margin-left: auto; margin-right: auto; } }
-  @media (max-width: 760px) { .faq-list { padding: 2px 20px; border-radius: 22px; } summary { font-size: 16px; padding: 20px 0; } summary::after { width: 28px; height: 28px; } details p { margin-right: 0; font-size: 15px; } }
+  /* A small chevron that flips when the answer opens. */
+  summary::after { content: ""; flex: none; width: 18px; height: 18px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236B6B73' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; transition: transform .3s cubic-bezier(.2,.7,.2,1); }
+  details[open] summary::after { transform: rotate(180deg); }
+  details p { margin: -8px 38px 22px 0; color: var(--muted); font-size: 15.5px; line-height: 1.65; }
+  details[open] p { animation: faqIn .3s ease; }
+  @keyframes faqIn { from { opacity: 0; transform: translateY(-4px); } }
+  .faq-foot { text-align: center; margin-top: 22px; }
+  .tabs button:focus { outline: none; } .tabs button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  @media (max-width: 760px) { details { padding: 0 18px; border-radius: 16px; } summary { font-size: 15.5px; padding: 18px 0; } details p { margin-right: 0; font-size: 14.5px; } }
 
   /* ---------- Final CTA ---------- */
 
@@ -939,13 +937,12 @@
 
 <section id="faq" class="panel">
   <div class="wrap">
-    <div class="faq-grid">
-      <div class="faq-side reveal">
+    <div class="faq-wrap">
+      <div class="faq-head reveal">
         <div class="eyebrow">FAQ</div>
         <h2 class="h">Questions, answered.</h2>
         <p>The cuts, the app and billing, in plain words.</p>
         <div class="tabs" role="tablist" aria-label="Question topics"><button role="tab" class="on" data-cat="cuts" aria-selected="true">The cuts</button><button role="tab" data-cat="app" aria-selected="false">The app</button><button role="tab" data-cat="billing" aria-selected="false">Billing</button></div>
-        <a class="contact" id="contact" href="#">Contact us →</a>
       </div>
       <div class="faq-list reveal">
       <details data-cat="cuts"><summary>What does Autocut cut, exactly?</summary><p>Long pauses (dead air), filler words like "um" and "uh", stutters, and retakes: when you say a line again, it keeps your last attempt and cuts the earlier one. Then it captions every word that's left.</p></details>
@@ -961,6 +958,7 @@
       <details data-cat="billing"><summary>How do I cancel or change my plan?</summary><p>In the app, under Your plan. If you subscribed through the App Store, you can also cancel in your iPhone's Settings › Apple ID › Subscriptions. You keep your plan until the end of the period you paid for.</p></details>
       <details data-cat="billing"><summary>Do you offer refunds?</summary><p>Purchases made through the App Store are refunded by Apple: request one at reportaproblem.apple.com. For anything else, contact us.</p></details>
       </div>
+      <div class="faq-foot"><a class="contact" id="contact" href="#">Contact us →</a></div>
     </div>
     <div class="sec-cta reveal"><a class="btn btn-dark get store-link" href="#">Get the app <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a></div>
   </div>
