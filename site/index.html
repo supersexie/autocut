@@ -138,6 +138,12 @@
   .intro { margin: 0; width: 100%; aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; background: #0B0B0D; box-shadow: 0 40px 100px rgba(17,17,20,.22), 0 0 0 1px rgba(17,17,20,.08); }
   .intro video { display: block; width: 100%; height: 100%; object-fit: cover; }
   @media (max-width: 760px) { .intro { border-radius: 16px; } }
+  .cuts { padding: 96px 0 72px; }
+  .cuts .wrap { max-width: 1240px; }
+  .cuts-h { font-size: clamp(36px, 5vw, 64px); font-weight: 800; text-transform: uppercase; letter-spacing: -.03em; line-height: 1; margin-bottom: 18px; }
+  .cuts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .cuts-grid .vcard { width: 100%; box-shadow: none; }
+  @media (max-width: 900px) { .cuts-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 78%; overflow-x: auto; scroll-snap-type: x mandatory; gap: 16px; padding: 0 var(--gutter) 8px; margin: 0 calc(-1 * var(--gutter)); scrollbar-width: none; } .cuts-grid .vcard { scroll-snap-align: center; } .cuts { padding: 72px 0 48px; } }
   .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 18px 40px rgba(17,17,20,.08); }
   .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
   .vbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -585,6 +591,50 @@
 </header>
 </div>
 
+<section class="cuts" id="cuts">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2 class="h cuts-h">These cuts came<br>out of Autocut.</h2>
+      <p>Finished videos, cut and captioned by Autocut. Tap one for sound.</p>
+    </div>
+    <div class="cuts-grid reveal">
+      <figure class="vcard cutcard-v">
+        <div class="vbox">
+          <video src="media/cut-hoodie.mp4" poster="media/cut-hoodie-poster.jpg" muted loop playsinline preload="metadata"></video>
+          <span class="vlabel">TAKE 1 · 0:13</span>
+          <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
+        </div>
+        <figcaption>
+          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
+          <div class="vmeta">Retakes cut · 0:26 → 0:13</div>
+        </figcaption>
+      </figure>
+      <figure class="vcard cutcard-v">
+        <div class="vbox">
+          <video src="media/edited.mp4" poster="media/edited-poster.jpg" muted loop playsinline preload="metadata"></video>
+          <span class="vlabel">TAKE 2 · 0:24</span>
+          <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
+        </div>
+        <figcaption>
+          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
+          <div class="vmeta">Ums and dead air cut</div>
+        </figcaption>
+      </figure>
+      <figure class="vcard cutcard-v">
+        <div class="vbox">
+          <video src="media/cut-tank.mp4" poster="media/cut-tank-poster.jpg" muted loop playsinline preload="metadata"></video>
+          <span class="vlabel">TAKE 3 · 0:38</span>
+          <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
+        </div>
+        <figcaption>
+          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
+          <div class="vmeta">Every word captioned</div>
+        </figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <section class="revwall" id="revwall" aria-label="Reviews">
   <div class="revwall-lane" id="revlane1"></div>
   <div class="revwall-lane r2" id="revlane2"></div>
@@ -857,6 +907,20 @@
   const vids = [...document.querySelectorAll('video[data-auto]')];
   const io = new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting && !paused ? e.target.play().catch(() => {}) : e.target.pause())), { threshold: .4 });
   vids.forEach((v) => io.observe(v));
+  // "These cuts came out of Autocut": each plays (muted) while on screen; one at a time can have sound.
+  {
+    const cv = [...document.querySelectorAll('.cutcard-v')];
+    const MUTED_IC = cv[0].querySelector('.vmute').innerHTML;
+    const SOUND_IC = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
+    const mute = (c, m) => { const v = c.querySelector('video'), b = c.querySelector('.vmute'); v.muted = m; b.innerHTML = m ? MUTED_IC : SOUND_IC; b.setAttribute('aria-pressed', String(!m)); b.setAttribute('aria-label', m ? 'Turn sound on' : 'Turn sound off'); };
+    cv.forEach((c) => c.querySelector('.vmute').addEventListener('click', () => {
+      const v = c.querySelector('video'), on = v.muted;
+      cv.forEach((o) => mute(o, true));
+      if (on) { mute(c, false); v.currentTime = 0; v.play().catch(() => {}); }
+    }));
+    const seen = new IntersectionObserver((es) => es.forEach((e) => { const v = e.target; if (e.isIntersecting) v.play().catch(() => {}); else { v.pause(); mute(v.closest('.cutcard-v'), true); } }), { threshold: .35 });
+    cv.forEach((c) => seen.observe(c.querySelector('video')));
+  }
   const ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
   const OFF = document.querySelector('.sound')?.innerHTML;
   document.querySelectorAll('.sound').forEach((b) => b.addEventListener('click', () => {
