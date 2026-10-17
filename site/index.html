@@ -262,6 +262,9 @@
   .ba figcaption { margin-top: 18px; font-weight: 600; }
   .ba figcaption small { display: block; font-weight: 500; color: var(--muted); font-size: 14px; margin-top: 2px; }
   .badge { position: absolute; top: calc(var(--w) * .17); left: calc(var(--w) * .06); z-index: 3; padding: 6px 10px; border-radius: 8px; background: rgba(0,0,0,.55); color: #fff; font: 600 11px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; backdrop-filter: blur(6px); }
+  .promo { margin: 0 auto; max-width: 1100px; border-radius: 24px; overflow: hidden; background: #0B0B0D; box-shadow: 0 40px 100px rgba(17,17,20,.22), 0 0 0 1px rgba(17,17,20,.08); aspect-ratio: 16 / 9; }
+  .promo video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 760px) { .promo { border-radius: 16px; } }
   .sound { position: absolute; bottom: 16px; right: 16px; z-index: 3; width: 42px; height: 42px; border-radius: 50%; border: 0; background: rgba(255,255,255,.92); display: grid; place-items: center; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
   .arrow { width: 64px; height: 64px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; box-shadow: 0 12px 30px rgba(17,17,20,.25); }
   @media (max-width: 760px) {
@@ -603,26 +606,12 @@
     <div class="head reveal">
       <div class="eyebrow">See it cut</div>
       <h2 class="h">Raw take in. Tight cut out.</h2>
-      <p>The same take, before and after Autocut. Tap one for sound.</p>
+      <p>From raw take to ready-to-post, in 15 seconds.</p>
     </div>
-    <div class="ba reveal">
-      <figure>
-        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="tagline">RAW TAKE · 0:25</span>
-          <video src="media/raw.mp4" poster="media/raw-poster.jpg" muted loop playsinline preload="none" data-auto></video>
-          <button class="sound" aria-label="Play the raw take with sound"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6M17 9l6 6"/></svg></button>
-        <div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
-        <figcaption>What you filmed<small>Pauses, ums, a flubbed line</small></figcaption>
-      </figure>
-      <div class="arrow" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>
-      <figure>
-        <div class="iphone" style="--w:min(290px, 72vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><span class="tagline">CUT WITH AUTOCUT</span>
-          <video src="media/edited.mp4" poster="media/edited-poster.jpg" muted loop playsinline preload="none" data-auto></video>
-          <button class="sound" aria-label="Play the Autocut version with sound"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M23 9l-6 6M17 9l6 6"/></svg></button>
-        <div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
-        <figcaption>What you post<small>Tight, captioned, ready</small></figcaption>
-      </figure>
-    </div>
-    <div class="controls reveal"><span class="mono">Same take · before and after</span><button id="pauseAll" aria-pressed="false"><svg width="10" height="12" viewBox="0 0 10 12" fill="#111114"><rect width="3" height="12" rx="1"/><rect x="7" width="3" height="12" rx="1"/></svg><span>Pause the videos</span></button></div>
+    <figure class="promo reveal">
+      <video src="media/promo.mp4" poster="media/promo-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="Autocut in 15 seconds: drop in a raw take, the ums and retakes are cut, captions on every word"></video>
+    </figure>
+    <div class="controls reveal"><span class="mono">Autocut in 15 seconds</span><button id="pauseAll" aria-pressed="false"><svg width="10" height="12" viewBox="0 0 10 12" fill="#111114"><rect width="3" height="12" rx="1"/><rect x="7" width="3" height="12" rx="1"/></svg><span>Pause the videos</span></button></div>
   </div>
 </section>
 
@@ -931,7 +920,7 @@
   const io = new IntersectionObserver((es) => es.forEach((e) => (e.isIntersecting && !paused ? e.target.play().catch(() => {}) : e.target.pause())), { threshold: .4 });
   vids.forEach((v) => io.observe(v));
   const ON = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
-  const OFF = document.querySelector('.sound').innerHTML;
+  const OFF = document.querySelector('.sound')?.innerHTML;
   document.querySelectorAll('.sound').forEach((b) => b.addEventListener('click', () => {
     const v = b.parentElement.querySelector('video');
     const turnOn = v.muted;
