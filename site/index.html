@@ -61,7 +61,8 @@
   @media (max-width: 760px) { .links a:not(.btn) { display: none; } }
 
   /* ---------- Hero ---------- */
-  .hero { background: var(--wash); padding: 56px 0 72px; position: relative; overflow: hidden; }
+  .hero-wash { background: linear-gradient(180deg, #FCFCFD 0%, #F0F0F3 32%, #ECECF0 52%, #ECECF0 100%); overflow-x: clip; }
+  .hero { background: transparent; padding: 56px 0 36px; position: relative; overflow: visible; }
   .hero::before { z-index: 0; content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
   .hero .wrap { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
   .hero-copy { display: flex; flex-direction: column; align-items: center; max-width: 980px; position: relative; }
@@ -103,8 +104,8 @@
   .vstack { position: relative; width: min(380px, 100%, calc((100svh - 180px) * .5)); }
   .vstack .vcard { width: 100%; position: absolute; inset: 0 auto auto 0; transition: transform 1.1s cubic-bezier(.45,0,.2,1), opacity 1.1s cubic-bezier(.45,0,.2,1); will-change: transform, opacity; }
   .vstack .vcard[data-pos="center"] { position: relative; z-index: 3; transform: none; opacity: 1; }
-  .vstack .vcard[data-pos="left"] { z-index: 2; transform: translateX(-62%) scale(.8); opacity: .55; }
-  .vstack .vcard[data-pos="right"] { z-index: 2; transform: translateX(62%) scale(.8); opacity: .55; }
+  .vstack .vcard[data-pos="left"] { z-index: 2; transform: translateX(-70%) scale(.8); opacity: .55; }
+  .vstack .vcard[data-pos="right"] { z-index: 2; transform: translateX(70%) scale(.8); opacity: .55; }
   /* The card going from one side to the other passes behind the front card. */
   .vstack .vcard.travel { z-index: 0; }
   .vstack .vcard:not([data-pos="center"]) { cursor: pointer; }
@@ -115,7 +116,7 @@
     .vstack .vcard[data-pos="left"] { transform: translateX(-40%) scale(.8); }
     .vstack .vcard[data-pos="right"] { transform: translateX(40%) scale(.8); }
   }
-  .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 40px 90px rgba(17,17,20,.14); }
+  .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 18px 40px rgba(17,17,20,.08); }
   .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
   .vbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .vlabel { position: absolute; top: 16px; left: 16px; padding: 8px 11px; background: rgba(255,255,255,.9); font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: var(--ink); }
@@ -129,13 +130,20 @@
   .vmeta { text-align: center; margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
-    .hero-top { display: grid; grid-template-columns: 1.12fr .88fr; align-items: center; gap: 48px; }
+    .hero-top { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 72px; }
+    /* Wider than the rest of the page, so the hero uses the screen instead of crowding the middle. */
+    .hero .wrap, nav .wrap { max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
     .hero-copy { align-items: flex-start; text-align: left; }
     .hero-copy .pills, .hero-copy .cta-row, .hero-copy .note, .hero-copy .stats { justify-content: flex-start; }
     .hero h1 { font-size: clamp(44px, 4.2vw, 64px); max-width: none; text-wrap: nowrap; }
     .hero h1 .ln { display: block; }
-    .hero-phone { margin-top: 0; padding: 0 30px; }
-    }
+    .hero-phone { margin-top: 0; padding: 0; }
+    .vstack { margin-right: clamp(0px, 5vw, 90px); }
+  }
+  @media (min-width: 901px) and (max-width: 1200px) {
+    .vstack .vcard[data-pos="left"] { transform: translateX(-50%) scale(.76); }
+    .vstack .vcard[data-pos="right"] { transform: translateX(50%) scale(.76); }
+  }
   .tag { position: absolute; z-index: 3; display: flex; align-items: center; gap: 7px; padding: 7px 12px 7px 7px; border-radius: 999px; background: #fff; font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 16px 40px rgba(17,17,20,.14); animation: float 6s ease-in-out infinite; }
   .tag i { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
   .tag i svg { width: 11px; height: 11px; }
@@ -214,6 +222,21 @@
   .revstrip .revrow { position: relative; animation-duration: 70s; padding: 4px 0 8px; }
   .revstrip .rev { background: #fff; box-shadow: 0 1px 0 rgba(17,17,20,.04), inset 0 0 0 1px var(--line), 0 12px 30px rgba(17,17,20,.06); }
   .revstrip:hover .revrow { animation-play-state: paused; }
+
+  /* Two overflowing review lanes under the hero, like CutAI. */
+  .revwall { padding: 4px 0 48px; overflow: hidden; background: transparent; border-top: 0; }
+  .revwall-lane { display: flex; gap: 16px; width: max-content; padding: 8px 0; animation: drift 70s linear infinite; animation-play-state: running; }
+  .revwall-lane.r2 { animation-direction: reverse; animation-duration: 85s; }
+  .revwall .rev { width: 352px; min-height: 196px; background: #fff; border-radius: 16px; box-shadow: none; border: 1px solid var(--line); display: flex; flex-direction: column; }
+  .revwall .rev .stars { color: #F5A623; letter-spacing: 3px; font-size: 13px; }
+  .revwall .rev h4 { margin: 10px 0 8px; font-size: 17px; }
+  .revwall .rev p { -webkit-line-clamp: 3; flex: 1; }
+  .revwall .rev small { margin-top: 14px; }
+  @media (max-width: 760px) {
+    .revwall { padding: 4px 0 36px; }
+    .revwall-lane { gap: 12px; }
+    .revwall .rev { width: 272px; padding: 18px 20px; border-radius: 14px; }
+  }
   .cutcard .cl { display: flex; align-items: center; gap: 8px; font: 600 11.5px/1 ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
   .cutcard .cl i { width: 22px; height: 22px; border-radius: 7px; background: var(--ink); color: #fff; display: grid; place-items: center; font-style: normal; font-size: 11px; }
   .cutcard p { margin-top: 12px; color: var(--ink); font-size: 15px; -webkit-line-clamp: 3; }
@@ -227,13 +250,6 @@
   @media (max-width: 760px) { .stats .dot { display: none; } .stats { gap: 8px 18px; } .stats b { font-size: 19px; } }
   .sample-note { position: fixed; z-index: 99; left: 12px; bottom: 12px; padding: 8px 12px; border-radius: 10px; background: #F2545B; color: #fff; font: 600 13px/1.2 -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Inter, sans-serif; }
   @media (max-width: 760px) { .rev { width: 290px; } }
-
-  /* ---------- Strip ---------- */
-  .strip { background: var(--ink); color: #fff; padding: 26px 0; overflow: hidden; }
-  .marquee { display: flex; gap: 48px; width: max-content; animation: scroll 32s linear infinite; font-family: inherit; font-weight: 700; font-size: 22px; letter-spacing: -.02em; }
-  .marquee span { display: flex; align-items: center; gap: 48px; opacity: .9; }
-  .marquee span::after { content: "✂"; opacity: .4; font-size: 18px; }
-  @keyframes scroll { to { transform: translateX(-50%); } }
 
   /* ---------- Section heads ---------- */
   .head { text-align: center; max-width: 720px; margin: 0 auto 56px; }
@@ -483,7 +499,7 @@
   .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
   .reveal.in { opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { .ui *, .ui *::after { animation: none !important; } .ui-card s { color: #B8B8BF; } .ui-card s::after { transform: scaleX(1); } .ui-card em, .ui-done, .ui-out { opacity: 1; transform: none; } .ui-raw { opacity: 0; } .ui-tl .cut { display: none; }
-    .reveal { opacity: 1; transform: none; } .marquee, .tag, .ghost-row, .revrow, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
+    .reveal { opacity: 1; transform: none; } .tag, .ghost-row, .revrow, .revwall-lane, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -512,6 +528,7 @@
 </div>
 <main>
 
+<div class="hero-wash">
 <header class="hero" id="top">
   <div class="wrap">
     <div class="hero-top">
@@ -575,10 +592,10 @@
   </div>
 </header>
 
-<div class="strip" aria-hidden="true">
-  <div class="marquee" id="marquee">
-    <span>Dead air gone</span><span>Ums removed</span><span>Retakes cut</span><span>Captions on every word</span><span>Edit 10 videos at once</span><span>Schedule your edits</span><span>Post to TikTok</span>
-  </div>
+<section class="revwall" id="revwall" aria-label="Reviews">
+  <div class="revwall-lane" id="revlane1"></div>
+  <div class="revwall-lane r2" id="revlane2"></div>
+</section>
 </div>
 
 <section id="see-it">
@@ -869,43 +886,37 @@
   };
   if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(turn, 5500);
 
-  // The marquee loops seamlessly: its words twice over.
-  const m = document.getElementById('marquee'); m.innerHTML += m.innerHTML;
-
-  // Reviews: drifting faded cards behind the hero and a row of cards under the buttons, like CutAI.
-  // ?sample-reviews shows clearly labelled placeholders, to check the layout before real ones exist.
+  // Reviews wall under the hero. Fill REVIEWS with real App Store quotes before launch.
+  // ?sample-reviews forces the labelled placeholders (and a corner note).
   (() => {
     let list = REVIEWS, rating = RATING;
-    if (new URLSearchParams(location.search).has('sample-reviews')) {
-      list = Array.from({ length: 8 }, (_, i) => ({ title: `Sample review ${i + 1}`, text: 'Placeholder text, to check the layout. Replace with real App Store reviews once the app is live. This line is here so the card has a realistic length.', name: 'sample', stars: 5 }));
-      rating = { score: 0, count: 0 };
-      const note = document.createElement('div'); note.className = 'sample-note'; note.textContent = 'Sample reviews (layout preview, not real)'; document.body.append(note);
+    const placeholders = [
+      { title: 'Cuts the dead air for me', text: 'I used to spend a night trimming ums and pauses. Autocut hands me a tight take in about a minute and I just add a title.', name: 'samcreates', stars: 5 },
+      { title: 'Retakes actually disappear', text: 'I redo a line four times and it keeps the last one. That alone is why I stopped opening another editor first.', name: 'leah.ugc', stars: 5 },
+      { title: 'Captions on every word', text: 'Timed to what I said, not a block of text. I pick a look, drag them, export. That is the whole edit now.', name: 'nico.films', stars: 5 },
+      { title: 'I batch a week in one sitting', text: 'Line up ten clips, tap Edit all, go film something else. They are waiting when I come back.', name: 'priya.makes', stars: 5 },
+      { title: 'Fired the weekend edit', text: 'I still open the editor for music and B-roll, but the boring cut is done. I post the same day I film.', name: 'owen.oncam', stars: 5 },
+      { title: 'Best take, no scrubbing', text: 'I talk to camera, flub a sentence, say it again. Autocut keeps the good one and captions the rest.', name: 'jade.daily', stars: 5 },
+      { title: 'Schedule and walk away', text: 'I queue a batch before bed and they are cut in the morning, phone off. That is the feature I did not know I needed.', name: 'marcus.ugc', stars: 5 },
+      { title: 'Cheaper than an editor', text: 'I was paying for revisions and waiting days. Now it is one tap and I still have a full editor if I want to tweak.', name: 'rina.talks', stars: 5 },
+    ];
+    if (!list.length || new URLSearchParams(location.search).has('sample-reviews')) {
+      list = placeholders;
+      if (new URLSearchParams(location.search).has('sample-reviews')) {
+        rating = { score: 0, count: 0 };
+        const note = document.createElement('div'); note.className = 'sample-note'; note.textContent = 'Sample reviews (layout preview, not real)'; document.body.append(note);
+      }
     }
     const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
-    const card = (r) => `<div class="rev"><div class="stars">${'★'.repeat(Math.max(1, Math.min(5, r.stars ?? 5)))}</div><h4>${esc(r.title)}</h4><p>${esc(r.text)}</p><small>${esc(r.name)} · App Store</small></div>`;
-    // Until there are real reviews, the same cards show what Autocut cuts out of a take.
-    const CUTS = [
-      { tag: 'Retake cut', line: '<s>Okay so this is, wait, let me redo that.</s> This is the comfiest hoodie I own.', from: '0:41', to: '0:23' },
-      { tag: '3 ums removed', line: 'So <s>um</s> I\'ve used this for <s>uh</s> two weeks and <s>um</s> my skin has never looked better.', from: '0:34', to: '0:26' },
-      { tag: 'Dead air cut · 2.1s', line: 'And the best part? <s>(2.1 s of silence)</s> It fits in your pocket.', from: '0:29', to: '0:22' },
-      { tag: 'Stutter cut', line: 'It\'s <s>it\'s, it\'s</s> honestly the only one I reach for now.', from: '0:18', to: '0:15' },
-      { tag: 'Retake cut', line: '<s>If you\'ve ever, no, hang on.</s> If you\'ve ever burned your toast, watch this.', from: '0:52', to: '0:31' },
-      { tag: 'Filler cut', line: 'Setting it up is <s>like, you know,</s> super easy.', from: '0:24', to: '0:19' },
-      { tag: 'Dead air cut · 1.4s', line: 'Three sizes, five colours. <s>(1.4 s of silence)</s> Link\'s below.', from: '0:21', to: '0:17' },
-      { tag: 'Best take kept', line: '<s>Take 1. Take 2.</s> Take 3: the one where you nailed it.', from: '1:12', to: '0:24' },
-    ];
-    const cutCard = (c) => `<div class="rev cutcard"><div class="cl"><i aria-hidden="true">✂</i>${c.tag}</div><p>${c.line}</p><small>Raw <b>${c.from}</b> → cut <b>${c.to}</b></small></div>`;
-    if (!list.length) {
-      const row = CUTS.map(cutCard).join('');
-      document.getElementById('revrow').innerHTML = row + row;
-      document.getElementById('revstrip').classList.add('on');
-    }
-    if (list.length) {
-      // Repeat to fill wide screens, then twice over so the drift loops seamlessly.
-      const fill = (n) => { let out = []; while (out.length < n) out = out.concat(list); return out.slice(0, n).map(card).join(''); };
-      const row = fill(Math.max(8, list.length));
-      document.getElementById('revrow').innerHTML = row + row;
-      document.getElementById('revstrip').classList.add('on');
+    const card = (r) => `<div class="rev"><div class="stars" aria-hidden="true">${'★'.repeat(Math.max(1, Math.min(5, r.stars ?? 5)))}</div><h4>${esc(r.title)}</h4><p>${esc(r.text)}</p><small>${esc(r.name)} · App Store</small></div>`;
+    const fill = (items, n) => { let out = []; while (out.length < n) out = out.concat(items); return out.slice(0, n).map(card).join(''); };
+    const lane1 = document.getElementById('revlane1');
+    const lane2 = document.getElementById('revlane2');
+    if (lane1 && lane2 && list.length) {
+      const mid = Math.ceil(list.length / 2);
+      const a = list.slice(0, mid), b = list.slice(mid).concat(list.slice(0, 2));
+      lane1.innerHTML = fill(a, Math.max(8, a.length * 2));
+      lane2.innerHTML = fill(b, Math.max(8, b.length * 2));
     }
     if (rating) {
       document.getElementById('ratingScore').textContent = rating.score ? rating.score.toFixed(1) : 'Sample';
