@@ -87,6 +87,8 @@
   /* ---------- Hero ---------- */
   .hero-wash { background: linear-gradient(180deg, #FCFCFD 0%, #F0F0F3 32%, #ECECF0 52%, #ECECF0 100%); overflow-x: clip; }
   .hero { background: transparent; padding: 112px 0 36px; position: relative; overflow: visible; min-height: 100svh; }
+  /* A soft grey glow in the lower half of the hero (like Everygen's blue one). */
+  .hero::after { z-index: 0; content: ""; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 70% 46% at 52% 60%, rgba(96,96,110,.42) 0%, rgba(120,120,134,.24) 35%, rgba(150,150,160,.08) 58%, rgba(160,160,170,0) 76%); }
   .hero::before { z-index: 0; content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
   .hero .wrap { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; }
   .hero-copy { display: flex; flex-direction: column; align-items: center; max-width: 980px; position: relative; }
