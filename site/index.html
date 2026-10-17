@@ -95,6 +95,15 @@
   .links a:hover { color: var(--ink); }
   .links .btn { display: inline-flex !important; height: 46px; padding: 0 22px; font-size: 16px; font-weight: 600; color: #fff; border-radius: 999px; box-shadow: 0 8px 22px rgba(17,17,20,.18); }
   @media (max-width: 760px) { .links a:not(.btn) { display: none; } }
+  /* Phones: a smaller logo and "Get the app" button in the bar. */
+  @media (max-width: 760px) {
+    nav:not(.scrolled) .wrap { height: 72px; }
+    nav .brand img { width: 28px; height: 28px; border-radius: 8px; }
+    nav .brand span { font-size: 18px; }
+    nav:not(.scrolled) .links .btn { height: 38px; padding: 0 16px; font-size: 14px; }
+    nav.scrolled .brand img { width: 26px; height: 26px; }
+    nav.scrolled .brand span { font-size: 17px; }
+  }
 
   /* ---------- Hero ---------- */
   .hero-wash { background: linear-gradient(180deg, #FCFCFD 0%, #F0F0F3 32%, #ECECF0 52%, #ECECF0 100%); overflow-x: clip; }
