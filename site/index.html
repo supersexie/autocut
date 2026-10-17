@@ -97,21 +97,7 @@
   .iphone .b2 { left: calc(var(--w) * -.01); top: 26%; height: 9%; }
   .iphone .b3 { left: calc(var(--w) * -.01); top: 37%; height: 9%; }
   .iphone .b4 { right: calc(var(--w) * -.01); top: 28%; height: 13%; }
-  .hero-phone { margin-top: 56px; padding: 0 40px calc(var(--w) * .1); --u: calc(var(--w) / 880); }
-  .takecard { position: absolute; z-index: 3; left: 50%; top: calc(var(--w) * 1.1); width: calc(var(--u) * 1180); transform: translateX(-50%); background: #fff; border-radius: calc(var(--u) * 64); padding: calc(var(--u) * 56); box-shadow: 0 calc(var(--u) * 50) calc(var(--u) * 120) rgba(17,17,20,.2); text-align: left; }
-  .takecard .lbl { display: flex; justify-content: space-between; align-items: baseline; font-size: calc(var(--u) * 46); font-weight: 700; letter-spacing: -.02em; line-height: 1.1; margin-bottom: calc(var(--u) * 24); }
-  .takecard .lbl span { font-weight: 500; font-size: calc(var(--u) * 40); }
-  .takecard .frames { display: flex; gap: calc(var(--u) * 14); }
-  .takecard .f { position: relative; flex: 1; aspect-ratio: 9 / 16; border-radius: calc(var(--u) * 26); overflow: hidden; background: #ddd; }
-  .takecard .f img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .takecard .f.cut { outline: calc(var(--u) * 5) solid var(--ink); outline-offset: calc(var(--u) * -5); }
-  .takecard .f.cut::after { content: ""; position: absolute; inset: 0; background: rgba(17,17,20,.62); }
-  .takecard .x { position: absolute; z-index: 2; top: 50%; left: 50%; width: calc(var(--u) * 70); height: calc(var(--u) * 70); transform: translate(-50%, -50%); border-radius: 50%; background: #fff; display: grid; place-items: center; }
-  .takecard .x svg { width: calc(var(--u) * 30); height: calc(var(--u) * 30); }
-  .takecard .tg { position: absolute; z-index: 2; left: 4%; right: 4%; bottom: calc(var(--u) * 14); text-align: center; color: #fff; font-size: calc(var(--u) * 28); font-weight: 700; }
-  .takecard .down { display: grid; place-items: center; height: calc(var(--u) * 110); }
-  .takecard .down svg { width: calc(var(--u) * 90); height: calc(var(--u) * 110); }
-  .takecard .kept { width: 49.3%; margin: 0 auto; }
+  .hero-phone { margin-top: 56px; padding: 0 40px; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
     .hero-top { display: grid; grid-template-columns: 1.12fr .88fr; align-items: center; gap: 48px; }
@@ -518,15 +504,8 @@
       <div class="stats" id="stats"><span><b>~1 min</b>per edit</span><i class="dot"></i><span><b>10</b>videos at once</span><i class="dot"></i><span><b>Every</b>word captioned</span></div>
       <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
-    <div class="hero-phone" style="--w:min(300px, 64vw, calc((100svh - 190px) * .4))">
-      <div class="iphone"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/ready.jpg" alt="Autocut: your cut is ready"><div class="island"></div></div></div>
-        <div class="takecard" role="img" aria-label="Your raw take, 30 seconds with three retakes, becomes your cut, 26 seconds">
-          <div class="lbl">Your raw take <span>0:30</span></div>
-          <div class="frames"><div class="f cut"><img src="media/f1.jpg" alt="" loading="lazy"><div class="x"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="3.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div><div class="tg">Retake</div></div><div class="f cut"><img src="media/f2.jpg" alt="" loading="lazy"><div class="x"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="3.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div><div class="tg">Retake</div></div><div class="f cut"><img src="media/f3.jpg" alt="" loading="lazy"><div class="x"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="3.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></div><div class="tg">Retake</div></div><div class="f"><img src="media/f4.jpg" alt="" loading="lazy"></div><div class="f"><img src="media/f5.jpg" alt="" loading="lazy"></div><div class="f"><img src="media/f6.jpg" alt="" loading="lazy"></div></div>
-          <div class="down"><svg viewBox="0 0 24 30" fill="none" stroke="#111114" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v23M4 18l8 8 8-8"/></svg></div>
-          <div class="lbl">Your cut <span>0:26</span></div>
-          <div class="frames kept"><div class="f"><img src="media/f4.jpg" alt="" loading="lazy"></div><div class="f"><img src="media/f5.jpg" alt="" loading="lazy"></div><div class="f"><img src="media/f6.jpg" alt="" loading="lazy"></div></div>
-        </div>
+    <div class="hero-phone" style="--w:min(310px, 70vw, calc((100svh - 150px) * .45))">
+      <div class="iphone"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/hero-editor.jpg" alt="The Autocut editor: the cut video with captions on every word, and its timeline"><div class="island"></div></div></div>
       </div>
     </div>
     </div>
