@@ -27,3 +27,7 @@ your domain.
 `media/cut-strips.mp4`), the app screens under "How it works" and "What does Autocut include?"
 (`media/how-*`, `media/inc-*`, built from two creators' videos) and the motion videos show other creators. Get their permission or swap
 in your own (same file names). Add App Store ratings or reviews only once they're real.
+
+**Hero pills:** the "saved 43,251 hours of editing time" pill under the hero video uses a placeholder
+number; put the real total there (in `index.html`) before launch. The three faces next to it
+(`media/face-*-crop.jpg`) need those people's permission too.
