@@ -98,19 +98,18 @@
   .iphone .b3 { left: calc(var(--w) * -.01); top: 37%; height: 9%; }
   .iphone .b4 { right: calc(var(--w) * -.01); top: 28%; height: 13%; }
   .hero-phone { margin-top: 56px; padding: 0 20px; width: 100%; display: flex; justify-content: center; }
-  .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 170px) * .5)); padding: 14px 14px 18px; background: #E8EAF0; border: 1px solid rgba(17,17,20,.06); border-radius: 6px; box-shadow: 0 40px 90px rgba(17,17,20,.14); }
-  .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; }
+  .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 40px 90px rgba(17,17,20,.14); }
+  .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
   .vbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .vlabel { position: absolute; top: 14px; left: 14px; padding: 8px 12px; background: rgba(255,255,255,.88); font: 600 12.5px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: var(--ink); }
-  .vmute { position: absolute; right: 14px; bottom: 14px; width: 48px; height: 48px; border: 1px solid rgba(17,17,20,.12); background: rgba(255,255,255,.88); display: grid; place-items: center; cursor: pointer; }
+  .vlabel { position: absolute; top: 16px; left: 16px; padding: 8px 11px; background: rgba(255,255,255,.9); font: 600 12px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: var(--ink); }
+  .vmute { position: absolute; right: 16px; bottom: 16px; width: 46px; height: 46px; border: 1px solid rgba(17,17,20,.1); background: rgba(255,255,255,.9); display: grid; place-items: center; cursor: pointer; }
   .vmute:hover { background: #fff; }
-  .vcard figcaption { padding: 16px 6px 0; }
-  .vrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .vwho { display: inline-flex; align-items: center; gap: 10px; font-weight: 600; font-size: 17px; letter-spacing: -.01em; white-space: nowrap; }
-  .vwho img { width: 34px; height: 34px; }
-  .vstat { font-weight: 500; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
-  .vmeta { margin-top: 10px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
-  @media (max-width: 420px) { .vstat { display: none; } }
+  .vcard figcaption { padding: 18px 2px 2px; }
+  .vrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .vwho { display: inline-flex; align-items: center; gap: 12px; min-width: 0; font-weight: 600; font-size: 18px; letter-spacing: -.015em; white-space: nowrap; }
+  .vwho img { width: 36px; height: 36px; flex: none; }
+  .vstat { flex: none; font-weight: 600; font-size: 18px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .vmeta { margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
     .hero-top { display: grid; grid-template-columns: 1.12fr .88fr; align-items: center; gap: 48px; }
@@ -521,12 +520,12 @@
       <figure class="vcard">
         <div class="vbox">
           <video id="heroVid" src="media/edited.mp4" poster="media/edited-poster.jpg" autoplay muted loop playsinline></video>
-          <span class="vlabel">CUT BY AUTOCUT · 0:24</span>
+          <span class="vlabel">AUTOCUT · CUT</span>
           <button class="vmute" id="heroMute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
         </div>
         <figcaption>
-          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span><span class="vstat">✂ Retakes, ums, dead air</span></div>
-          <div class="vmeta">Raw take in · ready-to-post video out · captioned</div>
+          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span><span class="vstat">0:24</span></div>
+          <div class="vmeta">Retakes, ums and dead air cut</div>
         </figcaption>
       </figure>
     </div>
