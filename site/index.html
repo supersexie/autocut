@@ -830,9 +830,11 @@
     b.setAttribute('aria-label', muted ? 'Turn sound on' : 'Turn sound off');
   };
   const front = () => cards.find((c) => c.dataset.pos === 'center');
+  // All three play (muted); only the front card can have sound.
   const playFront = () => cards.forEach((c) => {
     const v = c.querySelector('video');
-    if (c.dataset.pos === 'center') v.play().catch(() => {}); else { v.pause(); setMuted(c, true); }
+    if (c.dataset.pos !== 'center') setMuted(c, true);
+    v.play().catch(() => {});
   });
   cards.forEach((c) => c.querySelector('.vmute').addEventListener('click', () => {
     const v = c.querySelector('video');
@@ -840,6 +842,9 @@
     if (!v.muted) { v.currentTime = 0; v.play().catch(() => {}); }
   }));
   playFront();
+  // Start them again if the browser held off (a background tab, or before the videos had loaded).
+  cards.forEach((c) => c.querySelector('video').addEventListener('loadeddata', playFront, { once: true }));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) playFront(); });
   // Bring a side card to the front: the front card slides to the side it came from, and the card on the
   // other side slides across (behind) to take the free side.
   const bring = (card) => {
