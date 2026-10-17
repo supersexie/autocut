@@ -98,6 +98,16 @@
   .iphone .b3 { left: calc(var(--w) * -.01); top: 37%; height: 9%; }
   .iphone .b4 { right: calc(var(--w) * -.01); top: 28%; height: 13%; }
   .hero-phone { margin-top: 56px; padding: 0 40px; }
+  .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  @media (min-width: 901px) {
+    .hero-top { display: grid; grid-template-columns: 1.12fr .88fr; align-items: center; gap: 48px; }
+    .hero-copy { align-items: flex-start; text-align: left; }
+    .hero-copy .pills, .hero-copy .cta-row, .hero-copy .note, .hero-copy .stats { justify-content: flex-start; }
+    .hero h1 { font-size: clamp(44px, 4.2vw, 64px); max-width: none; text-wrap: nowrap; }
+    .hero h1 .ln { display: block; }
+    .hero-phone { margin-top: 0; padding: 0 30px; }
+    .revbg { mask-image: radial-gradient(ellipse 48% 60% at 30% 42%, transparent 0%, transparent 45%, #000 80%); -webkit-mask-image: radial-gradient(ellipse 48% 60% at 30% 42%, transparent 0%, transparent 45%, #000 80%); }
+  }
   .tag { position: absolute; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 12px 18px 12px 12px; border-radius: 999px; background: #fff; font-weight: 600; font-size: 15px; white-space: nowrap; box-shadow: 0 16px 40px rgba(17,17,20,.14); animation: float 6s ease-in-out infinite; }
   .tag i { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
   .tag.t2 { animation-delay: -2s; }
@@ -437,12 +447,13 @@
 <header class="hero" id="top">
   <div class="revbg" id="revbg" aria-hidden="true"></div>
   <div class="wrap">
+    <div class="hero-top">
     <div class="hero-copy">
       <div class="pills">
         <span class="pill proof"><span class="stack" aria-hidden="true"><i><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 7.6 20 17M8.6 16.4 20 7"/></svg></i><i><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 11h4M7 15h7M14 11h3"/></svg></i><i><svg width="13" height="13" viewBox="0 0 24 24" fill="#fff"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></i></span>Cut and captioned in about a minute</span>
         <span class="pill small"><svg width="11" height="13" viewBox="0 0 814 1000" aria-hidden="true"><path fill="currentColor" d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-165-40c-77 0-104 41-167 41s-106-57-156-128C42 787-5 657-5 534c0-198 129-303 256-303 67 0 124 44 166 44 40 0 103-47 180-47 29 0 133 3 201 113zM555 158c31-37 53-88 53-139 0-7-1-14-2-20-50 2-110 33-146 75-28 32-55 83-55 135 0 8 1 15 2 18 3 1 9 2 14 2 45 0 102-30 134-71z"/></svg> iPhone and iPad</span>
       </div>
-      <h1 class="h">Turn Raw Takes Into Ready-to-Post Videos <span class="hl">In a Minute</span></h1>
+      <h1 class="h"><span class="ln">Turn Raw Takes </span><span class="ln">Into Ready‑to‑Post </span><span class="ln">Videos <span class="hl">In a Minute</span></span></h1>
       <p class="typer" aria-live="polite">For creators who <b id="typed"></b><span class="caret" aria-hidden="true"></span></p>
       <div class="cta-row">
         <a class="btn btn-dark btn-glow store store-link" href="#" aria-label="Download Autocut on the App Store">
@@ -455,13 +466,14 @@
       <div class="stats" id="stats"><span><b>~1 min</b>per edit</span><i class="dot"></i><span><b>10</b>videos at once</span><i class="dot"></i><span><b>Every</b>word captioned</span></div>
       <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
-    <div class="revstrip" id="revstrip"><div class="revrow" id="revrow"></div></div>
     <div class="hero-phone" style="position:relative">
       <div class="iphone" style="--w:min(320px, 70vw, calc((100svh - 150px) * .45))"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><video src="media/edited.mp4" poster="media/edited-poster.jpg" autoplay muted loop playsinline></video><div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
       <div class="tag t1" style="left:-14px; top:22%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Retakes cut</div>
       <div class="tag t2" style="right:-10px; top:42%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Ums removed</div>
       <div class="tag t3" style="left:0; top:62%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Captions on every word</div>
     </div>
+    </div>
+    <div class="revstrip" id="revstrip"><div class="revrow" id="revrow"></div></div>
   </div>
 </header>
 
