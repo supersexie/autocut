@@ -457,13 +457,11 @@
   .fine { text-align: center; font-size: 13.5px; color: var(--faint); margin-top: 32px; }
   @media (max-width: 920px) { .plans { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; } .plan.pick { margin: 0; } }
   @media (max-width: 760px) {
-    .plans { display: flex; max-width: none; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)); padding: 6px var(--gutter) 6px; scrollbar-width: none; }
-    .plans::-webkit-scrollbar { display: none; }
-    .plan { flex: 0 0 84%; scroll-snap-align: center; opacity: 1 !important; transform: none !important; translate: none !important; }
+    .plans { gap: 14px; }
+    .plan.pick { order: -1; }
     .plan { padding: 28px 24px 26px; }
     .price { font-size: 44px; white-space: nowrap; }
     .plan li { font-size: 14.5px; }
-    .dots { display: flex; }
   }
 
   /* ---------- FAQ ---------- */
@@ -565,15 +563,23 @@
   .compare td.us { font-weight: 600; }
   .compare td.us::before { content: ""; display: inline-block; vertical-align: -4px; width: 18px; height: 18px; margin-right: 10px; border-radius: 50%; background: #E5383F url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") center / 11px no-repeat; box-shadow: 0 0 12px rgba(229,56,63,.55); }
   @media (max-width: 700px) {
-    .compare { border-radius: 22px; padding: 6px; }
-    .compare th, .compare td { padding: 14px 9px; font-size: 13px; }
-    .compare thead th { padding: 16px 9px 14px; }
-    .opt { gap: 8px; } .opt i { width: 30px; height: 30px; border-radius: 9px; } .opt i svg { width: 16px; height: 16px; }
-    .opt b { font-size: 14px; } .opt small { display: none; }
-    .compare tbody th { font-size: 9px; letter-spacing: .05em; padding-top: 16px; }
-    .compare colgroup col:first-child { width: 21%; }
-    .compare td.us::before { display: block; width: 15px; height: 15px; margin: 0 0 6px; background-size: 9px; }
-    .compare thead .us { border-radius: 14px 14px 0 0; } .compare tbody tr:last-child .us { border-radius: 0 0 14px 14px; }
+    /* Phones: one card per question. Autocut's answer sits on top in a dark box; doing it yourself and
+       hiring an editor sit side by side under it. */
+    .compare { background: none; border: 0; box-shadow: none; padding: 0; border-radius: 0; }
+    .compare table, .compare tbody { display: block; }
+    .compare thead, .compare colgroup { display: none; }
+    .compare tbody { display: grid; gap: 12px; }
+    .compare tbody tr { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; padding: 16px; background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 20px; box-shadow: 0 16px 40px -28px rgba(17,17,20,.3); }
+    .compare tbody tr:hover th, .compare tbody tr:hover td:not(.us) { background: none; }
+    .compare th, .compare td { display: block; padding: 0; border: 0; font-size: 14px; }
+    .compare tbody th { grid-column: 1 / -1; grid-row: 1; padding: 2px 2px 0; font-size: 10.5px; letter-spacing: .1em; color: var(--muted); }
+    .compare td.us { grid-column: 1 / -1; grid-row: 2; display: flex; align-items: center; gap: 10px; padding: 13px 14px; border-radius: 14px !important; font-size: 16px; line-height: 1.3; background: radial-gradient(120% 140% at 100% 0%, rgba(229,56,63,.28), transparent 60%), #0E0E11; }
+    .compare td.us::before { flex: none; margin: 0; }
+    .compare td.us::after { content: "Autocut"; margin-left: auto; font: 600 10px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: #A1A1A8; }
+    .compare td:not(.us) { grid-row: 3; padding: 0 2px; color: var(--muted); line-height: 1.4; }
+    .compare td:not(.us)::before { display: block; margin-bottom: 4px; font: 600 9.5px/1.2 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); }
+    .compare td:nth-of-type(1)::before { content: "Do it yourself"; }
+    .compare td:nth-of-type(2)::before { content: "Hire an editor"; }
   }
 
   /* ---------- Pricing extras ---------- */
@@ -584,11 +590,6 @@
   .plan.pick .wasline { color: #6B6B73; }
   .price s { font-family: inherit; font-size: 20px; font-weight: 500; color: var(--faint); letter-spacing: 0; margin-left: 8px; text-decoration-thickness: 1.5px; }
   .plan.pick .price s { color: #6B6B73; }
-  .dots { display: none; justify-content: center; align-items: center; gap: 8px; margin-top: 16px; }
-  .dots button { width: 8px; height: 8px; border-radius: 99px; border: 0; padding: 0; background: #C9C9D0; transition: width .25s, background .25s; }
-  .dots button.on { width: 22px; background: var(--ink); }
-  .dots .label { margin-left: 8px; color: var(--muted); }
-  @media (max-width: 760px) { .dots { display: flex; } }
 
   /* ---------- FAQ tabs ---------- */
   .tabs { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line); }
@@ -876,7 +877,6 @@
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
     </div>
-    <div class="dots" id="dots" aria-hidden="true"><button></button><button></button><button></button><span class="label mono" id="dotsLabel"></span></div>
     <p class="fine">Prices in USD. Subscriptions renew automatically until cancelled. App Store prices may vary by country.</p>
   </div>
 </section>
@@ -1082,22 +1082,6 @@
   document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => wasPrices(b.dataset.billing)));
   wasPrices('yearly');
 
-  // Phones: plans swipe sideways, with dots ("Ultimate plan, 3 of 3"); Ultimate is shown first.
-  const plansEl = document.querySelector('.plans'), planEls = [...document.querySelectorAll('.plan')];
-  const dotBtns = [...document.querySelectorAll('#dots button')], dotsLabel = document.getElementById('dotsLabel');
-  const names = planEls.map((p) => p.querySelector('h3').textContent);
-  function markDot() {
-    const mid = plansEl.scrollLeft + plansEl.clientWidth / 2;
-    let best = 0;
-    planEls.forEach((p, i) => { if (Math.abs(p.offsetLeft + p.offsetWidth / 2 - mid) < Math.abs(planEls[best].offsetLeft + planEls[best].offsetWidth / 2 - mid)) best = i; });
-    dotBtns.forEach((d, i) => d.classList.toggle('on', i === best));
-    dotsLabel.textContent = `${names[best]} plan · ${best + 1} of ${planEls.length}`;
-  }
-  const toPlan = (i, smooth = true) => plansEl.scrollTo({ left: planEls[i].offsetLeft - (plansEl.clientWidth - planEls[i].offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
-  dotBtns.forEach((d, i) => d.addEventListener('click', () => toPlan(i)));
-  plansEl.addEventListener('scroll', () => requestAnimationFrame(markDot), { passive: true });
-  if (matchMedia('(max-width: 760px)').matches) toPlan(2, false);
-  markDot();
 
   // FAQ topics.
   function showCat(cat) {
