@@ -385,6 +385,16 @@
     .inc-phone-col { position: sticky; top: 100px; }
   }
   @media (max-width: 760px) { .inc-item { padding: 20px; } .inc-item h3 { font-size: 19px; } }
+  /* Why choose Autocut: three plain cards, each with an icon tile (like Cal AI). */
+  .why .wrap { max-width: 1200px; }
+  .why .head { max-width: 900px; }
+  .why-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+  .why-card { background: #fff; border: 1px solid rgba(17,17,20,.06); border-radius: var(--radius); padding: 40px 40px 44px; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 20px 50px -30px rgba(17,17,20,.18); }
+  .why-ic { width: 56px; height: 56px; border-radius: 16px; background: #F4F4F6; display: grid; place-items: center; margin-bottom: 26px; }
+  .why-ic svg { width: 26px; height: 26px; }
+  .why-card h3 { font-family: inherit; font-size: 23px; font-weight: 650; letter-spacing: -.02em; line-height: 1.25; margin: 0 0 14px; }
+  .why-card p { margin: 0; color: var(--muted); font-size: 16px; line-height: 1.6; }
+  @media (max-width: 960px) { .why-grid { grid-template-columns: 1fr; max-width: 560px; margin: 0 auto; gap: 16px; } .why-card { padding: 30px 28px 32px; } }
   @media (max-width: 960px) and (min-width: 761px) { .step-phone { width: 168px; margin-left: -84px; } .step-stage { height: 300px; } .step-body { padding: 20px 20px 24px; } }
   @media (max-width: 760px) {
     .steps { grid-template-columns: 1fr; gap: 16px; max-width: 440px; margin: 0 auto; }
@@ -771,6 +781,20 @@
         <button type="button" class="inc-item"><h3>B-roll, photos and music</h3><p>Drop clips and photos over your video, resize and move them, and add a song under it all.</p></button>
         <button type="button" class="inc-item"><h3>Schedule your edits</h3><p>Pick a time and it gets cut then, even with your phone off. It will be waiting in Cuts.</p></button>
       </div>
+    </div>
+  </div>
+</section>
+
+<section id="why" class="why panel">
+  <div class="wrap">
+    <div class="head reveal">
+      <h2 class="h">Why choose Autocut?</h2>
+      <p>Autocut is the video editor that does the editing for you.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card reveal"><div class="why-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9.5 2.5h5"/></svg></div><h3>Free up your time</h3><p>Autocut cuts and captions a video in about a minute, so the hours you spent scrubbing a timeline go back into filming the next one.</p></div>
+      <div class="why-card reveal"><div class="why-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.6"/><path d="M10.5 5.5h3"/><path d="M11 11.2v3.6l3-1.8z" fill="#111114"/></svg></div><h3>Everything on your phone</h3><p>Film, cut, caption, add text, music and B-roll, then post straight to TikTok or Instagram. No laptop and no second editor.</p></div>
+      <div class="why-card reveal"><div class="why-ic"><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6.5" r="2.6" stroke="#E5383F"/><circle cx="6" cy="17.5" r="2.6" stroke="#E5383F"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9" stroke="#E5383F"/></svg></div><h3>Sound like your best take</h3><p>The ums, long pauses and fluffed lines are gone and only your best take stays, so every video comes out tight and confident.</p></div>
     </div>
   </div>
 </section>
