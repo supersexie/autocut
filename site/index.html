@@ -134,6 +134,9 @@
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
     .hero-top { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 64px; }
+    /* The hero fills the first screen; the reviews start below it. */
+    .hero { min-height: calc(100svh - 64px); display: flex; align-items: center; padding: 40px 0 56px; }
+    .hero > .wrap { width: 100%; }
     /* Wider than the rest of the page, so the hero uses the screen instead of crowding the middle. */
     .hero .wrap, nav .wrap { max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
     .hero-copy { align-items: flex-start; text-align: left; }
@@ -227,7 +230,7 @@
   .revstrip:hover .revrow { animation-play-state: paused; }
 
   /* Two overflowing review lanes under the hero, like CutAI. */
-  .revwall { padding: 4px 0 48px; overflow: hidden; background: transparent; border-top: 0; }
+  .revwall { padding: 56px 0 56px; overflow: hidden; background: transparent; border-top: 0; }
   .revwall-lane { display: flex; gap: 16px; width: max-content; padding: 8px 0; animation: drift 70s linear infinite; animation-play-state: running; }
   .revwall-lane.r2 { animation-direction: reverse; animation-duration: 85s; }
   .revwall .rev { width: 352px; min-height: 196px; background: #fff; border-radius: 16px; box-shadow: none; border: 1px solid var(--line); display: flex; flex-direction: column; }
@@ -563,12 +566,12 @@
     <div class="revstrip" id="revstrip"><div class="revrow" id="revrow"></div></div>
   </div>
 </header>
+</div>
 
 <section class="revwall" id="revwall" aria-label="Reviews">
   <div class="revwall-lane" id="revlane1"></div>
   <div class="revwall-lane r2" id="revlane2"></div>
 </section>
-</div>
 
 <section id="see-it">
   <div class="wrap">
