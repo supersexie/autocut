@@ -401,26 +401,8 @@
     .step-stage { height: 300px; }
   }
 
-  /* ---------- Features ---------- */
-  .features { display: grid; grid-template-columns: repeat(12, 1fr); gap: 18px; }
-  .feat { grid-column: span 4; background: var(--card); border-radius: var(--radius); padding: 28px 28px 0; display: flex; flex-direction: column; overflow: hidden; min-height: 470px; }
-  .feat.wide { grid-column: span 6; }
-  .feat h3 { font-family: inherit; font-size: 23px; letter-spacing: -.02em; margin: 0 0 6px; }
-  .feat p { margin: 0 0 22px; color: var(--muted); font-size: 15.5px; }
-  .feat { padding-bottom: 34px; min-height: 0; }
-  .feat .iphone { margin-top: auto; }
-  @media (max-width: 960px) { .feat, .feat.wide { grid-column: span 6; } }
-  @media (max-width: 640px) {
-    /* Phones: a swipeable row of cards, like the App Store. */
-    .features { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)); padding: 4px var(--gutter) 18px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
-    .features::-webkit-scrollbar { display: none; }
-    .feat, .feat.wide { flex: 0 0 80%; scroll-snap-align: center; padding: 24px 22px 28px; opacity: 1 !important; transform: none !important; }
-    .feat h3 { font-size: 21px; }
-    .feat p { font-size: 15px; margin-bottom: 18px; }
-    .feat .iphone { --w: min(200px, 54vw) !important; }
-    .swipe-hint { display: block; }
-  }
-  .swipe-hint { display: none; text-align: center; font-size: 13px; color: var(--muted); margin-top: 4px; }
+  /* ---------- Features: one looping video that walks through them ---------- */
+  .feat-video { margin: 0 auto; max-width: 1040px; background: #EFEFF2; }
 
   /* ---------- Calculator ---------- */
   .calc { background: var(--ink); color: #fff; border-radius: 36px; padding: 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
@@ -807,14 +789,9 @@
       <h2 class="h">An editor in your pocket.</h2>
       <p>Built for creators who talk to camera: UGC, explainers, reviews, daily posts.</p>
     </div>
-    <div class="features">
-      <div class="feat wide reveal"><h3>Captions on every word</h3><p>Timed to the word. Pick a look, a colour and capitals; drag and resize them on the video.</p><div class="iphone" style="--w:min(260px, 66vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/editor.jpg" alt="Captions on every word in the Autocut editor" loading="lazy"><div class="island"></div></div></div></div></div>
-      <div class="feat wide reveal"><h3>Keep filming while it cuts</h3><p>Send a take and record the next one. Your cuts wait for you, ready to post.</p><div class="iphone" style="--w:min(260px, 66vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/cutting.jpg" alt="Autocut cutting a take" loading="lazy"><div class="island"></div></div></div></div></div>
-      <div class="feat reveal"><h3>Edit 10 videos at once</h3><p>Line up a week of content and tap Edit all.</p><div class="iphone" style="--w:min(220px, 62vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/batch.jpg" alt="Batch editing in Autocut" loading="lazy"><div class="island"></div></div></div></div></div>
-      <div class="feat reveal"><h3>Text, music and B-roll</h3><p>Add titles in creator styles, songs, photos and clips.</p><div class="iphone" style="--w:min(220px, 62vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/text-edit.jpg" alt="Adding a bold title in Autocut" loading="lazy"><div class="island"></div></div></div></div></div>
-      <div class="feat reveal"><h3>Schedule your edits</h3><p>Pick a time and it's cut then, even with your phone off.</p><div class="iphone" style="--w:min(220px, 62vw)"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><img src="media/schedule.jpg" alt="Scheduling an edit in Autocut" loading="lazy"><div class="island"></div></div></div></div></div>
-    </div>
-    <p class="swipe-hint">Swipe to see more →</p>
+    <figure class="intro feat-video reveal">
+      <video src="media/features.mp4" poster="media/features-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A tour of Autocut's features: captions on every word, keep filming while it cuts, edit 10 videos at once, text, music and B-roll, and scheduling"></video>
+    </figure>
   </div>
 </section>
 
