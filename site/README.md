@@ -12,8 +12,9 @@ The landing page that sends people to the App Store. One file (`index.html`) plu
 Also uncomment the `apple-itunes-app` meta tag in `<head>` and put in the App Store id: Safari on iPhone then
 shows Apple's own "Get / Open" banner.
 
-**Reviews:** the hero has CutAI-style floating review cards and an App Store rating row. They stay hidden
-until you fill in `REVIEWS` and `RATING` (same `<script>` settings). Only use **real** reviews: App Store
+**Reviews:** the hero has CutAI-style floating cards. Until there are real reviews they show "cut cards"
+(what Autocut cuts out of a take), with a stats row instead of a rating. Fill in `REVIEWS` and `RATING`
+(same `<script>` settings) and real reviews and the App Store rating take their place. Only use **real** reviews: App Store
 reviews once the app is live, or testers who agreed to be quoted. Made-up reviews are illegal in the US (FTC
 rules, fines per review) and break Apple's guidelines. To see the layout before then, open the page with
 `?sample-reviews` at the end of the address: it fills in labelled placeholders that only appear with that.

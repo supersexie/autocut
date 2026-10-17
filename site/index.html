@@ -133,6 +133,17 @@
   .revstrip .revrow { position: relative; animation-duration: 70s; padding: 4px 0 8px; }
   .revstrip .rev { background: #fff; box-shadow: 0 1px 0 rgba(17,17,20,.04), inset 0 0 0 1px var(--line), 0 12px 30px rgba(17,17,20,.06); }
   .revstrip:hover .revrow { animation-play-state: paused; }
+  .cutcard .cl { display: flex; align-items: center; gap: 8px; font: 600 11.5px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
+  .cutcard .cl i { width: 22px; height: 22px; border-radius: 7px; background: var(--ink); color: #fff; display: grid; place-items: center; font-style: normal; font-size: 11px; }
+  .cutcard p { margin-top: 12px; color: var(--ink); font-size: 15px; -webkit-line-clamp: 3; }
+  .cutcard p s { color: #D2464E; text-decoration-thickness: 2px; text-decoration-color: rgba(210,70,78,.8); }
+  .cutcard small b { color: var(--ink); font-weight: 600; }
+  .stats { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 10px 26px; margin-top: 34px; font-size: 15px; color: var(--muted); }
+  .stats span { display: inline-flex; align-items: baseline; gap: 7px; }
+  .stats b { color: var(--ink); font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
+  .stats .dot { width: 4px; height: 4px; border-radius: 50%; background: var(--line); align-self: center; }
+  .stats.off { display: none; }
+  @media (max-width: 760px) { .stats .dot { display: none; } .stats { gap: 8px 18px; } .stats b { font-size: 19px; } }
   .sample-note { position: fixed; z-index: 99; left: 12px; bottom: 12px; padding: 8px 12px; border-radius: 10px; background: #F2545B; color: #fff; font: 600 13px/1.2 Inter, sans-serif; }
   @media (max-width: 760px) { .revbg { display: none; } .rev { width: 290px; } }
 
@@ -437,6 +448,7 @@
         <a class="textlink" href="#see-it"><i><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#111114" d="M8 5.5v13l11-6.5z"/></svg></i>See it cut</a>
       </div>
       <div class="note"><span>Dead air, ums and retakes cut</span><span>Every word captioned</span></div>
+      <div class="stats" id="stats"><span><b>~1 min</b>per edit</span><i class="dot"></i><span><b>10</b>videos at once</span><i class="dot"></i><span><b>Every</b>word captioned</span></div>
       <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
     <div class="revstrip" id="revstrip"><div class="revrow" id="revrow"></div></div>
@@ -706,6 +718,25 @@
     }
     const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
     const card = (r) => `<div class="rev"><div class="stars">${'★'.repeat(Math.max(1, Math.min(5, r.stars ?? 5)))}</div><h4>${esc(r.title)}</h4><p>${esc(r.text)}</p><small>${esc(r.name)} · App Store</small></div>`;
+    // Until there are real reviews, the same cards show what Autocut cuts out of a take.
+    const CUTS = [
+      { tag: 'Retake cut', line: '<s>Okay so this is, wait, let me redo that.</s> This is the comfiest hoodie I own.', from: '0:41', to: '0:23' },
+      { tag: '3 ums removed', line: 'So <s>um</s> I\'ve used this for <s>uh</s> two weeks and <s>um</s> my skin has never looked better.', from: '0:34', to: '0:26' },
+      { tag: 'Dead air cut · 2.1s', line: 'And the best part? <s>(2.1 s of silence)</s> It fits in your pocket.', from: '0:29', to: '0:22' },
+      { tag: 'Stutter cut', line: 'It\'s <s>it\'s, it\'s</s> honestly the only one I reach for now.', from: '0:18', to: '0:15' },
+      { tag: 'Retake cut', line: '<s>If you\'ve ever, no, hang on.</s> If you\'ve ever burned your toast, watch this.', from: '0:52', to: '0:31' },
+      { tag: 'Filler cut', line: 'Setting it up is <s>like, you know,</s> super easy.', from: '0:24', to: '0:19' },
+      { tag: 'Dead air cut · 1.4s', line: 'Three sizes, five colours. <s>(1.4 s of silence)</s> Link\'s below.', from: '0:21', to: '0:17' },
+      { tag: 'Best take kept', line: '<s>Take 1. Take 2.</s> Take 3: the one where you nailed it.', from: '1:12', to: '0:24' },
+    ];
+    const cutCard = (c) => `<div class="rev cutcard"><div class="cl"><i aria-hidden="true">✂</i>${c.tag}</div><p>${c.line}</p><small>Raw <b>${c.from}</b> → cut <b>${c.to}</b></small></div>`;
+    if (!list.length) {
+      const row = CUTS.map(cutCard).join('');
+      document.getElementById('revrow').innerHTML = row + row;
+      document.getElementById('revstrip').classList.add('on');
+      const half = [...CUTS.slice(4), ...CUTS.slice(0, 4)].map(cutCard).join('');
+      document.getElementById('revbg').innerHTML = `<div class="revrow" style="top:4%">${row}${row}</div><div class="revrow r2" style="top:38%">${half}${half}</div>`;
+    }
     if (list.length) {
       // Repeat to fill wide screens, then twice over so the drift loops seamlessly.
       const fill = (n) => { let out = []; while (out.length < n) out = out.concat(list); return out.slice(0, n).map(card).join(''); };
@@ -720,6 +751,7 @@
       document.getElementById('ratingScore').textContent = rating.score ? rating.score.toFixed(1) : 'Sample';
       document.getElementById('ratingCount').textContent = rating.count ? rating.count.toLocaleString() : '0';
       document.getElementById('rating').classList.add('on');
+      document.getElementById('stats').classList.add('off');
     }
   })();
 
