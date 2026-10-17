@@ -138,7 +138,8 @@
   .intro { margin: 0; width: 100%; aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; background: #0B0B0D; box-shadow: 0 40px 100px rgba(17,17,20,.22), 0 0 0 1px rgba(17,17,20,.08); }
   .intro video { display: block; width: 100%; height: 100%; object-fit: cover; }
   @media (max-width: 760px) { .intro { border-radius: 16px; } }
-  .cuts { padding: 96px 0 72px; }
+  .cuts { padding: 64px 0 72px; }
+  .cuts .head { margin-bottom: 44px; }
   .cuts .wrap { max-width: 940px; }
   .cuts-h { font-size: clamp(36px, 5vw, 64px); font-weight: 800; text-transform: uppercase; letter-spacing: -.03em; line-height: 1; margin-bottom: 18px; }
   .cuts-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -167,7 +168,7 @@
   @media (min-width: 901px) {
     .hero-top { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 64px; }
     /* The hero fills the first screen; the reviews start below it. */
-    .hero { min-height: 100svh; display: flex; align-items: center; padding: 108px 0 56px; }
+    .hero { min-height: 0; display: flex; align-items: center; padding: 140px 0 32px; }
     .hero > .wrap { width: 100%; }
     /* Wider than the rest of the page, so the hero uses the screen instead of crowding the middle. */
     .hero .wrap, nav .wrap { max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
