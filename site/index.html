@@ -160,6 +160,9 @@
     .hero .wrap, nav .wrap { max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
     .hero-copy { align-items: flex-start; text-align: left; }
     .hero-copy .pills, .hero-copy .cta-row, .hero-copy .note, .hero-copy .stats { justify-content: flex-start; }
+    /* The text block is as wide as the headline; the App Store button sits centred under it. */
+    .hero-copy { width: fit-content; }
+    .hero-copy .cta-row { align-self: center; justify-content: center; }
     .hero h1 { font-size: clamp(44px, 4.2vw, 64px); max-width: none; text-wrap: nowrap; }
     .hero h1 .ln { display: block; }
     .hero-phone { margin-top: 0; padding: 0; }
