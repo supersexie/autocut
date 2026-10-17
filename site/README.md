@@ -23,6 +23,6 @@ rules, fines per review) and break Apple's guidelines. To see the layout before 
 Pages → upload the `site` folder (or connect the GitHub repo with build output directory `site`), then add
 your domain.
 
-**Before release:** the demo videos (`media/raw.mp4`, `media/edited.mp4`) and the screenshots show another
-creator. Get his permission or swap in your own (same file names). Add App Store ratings or reviews only once
-they're real.
+**Before release:** the videos in "These cuts came out of Autocut" (`media/cut-unbox.mp4`, `media/cut-ditl.mp4`,
+`media/cut-strips.mp4`), the motion videos and the screenshots show other creators. Get their permission or
+swap in your own (same file names). Add App Store ratings or reviews only once they're real.
