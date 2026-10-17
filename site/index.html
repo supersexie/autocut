@@ -101,13 +101,21 @@
   /* Three cards: the middle one in front; every few seconds they turn (right comes to the front, the front
      goes left, left goes round to the right), like a marquee behind the main card. */
   .vstack { position: relative; width: min(380px, 100%, calc((100svh - 180px) * .5)); }
-  .vstack .vcard { width: 100%; transition: transform .9s cubic-bezier(.65,0,.35,1), opacity .9s ease, filter .9s ease; will-change: transform; }
-  .vstack .vcard[data-pos="center"] { position: relative; z-index: 3; }
-  .vstack .vcard:not([data-pos="center"]) { position: absolute; inset: 0 auto auto 0; z-index: 1; opacity: .5; filter: saturate(.7); pointer-events: none; }
-  .vstack .vcard[data-pos="left"] { transform: translateX(-46%) scale(.8); }
-  .vstack .vcard[data-pos="right"] { transform: translateX(46%) scale(.8); }
+  .vstack .vcard { width: 100%; position: absolute; inset: 0 auto auto 0; transition: transform 1.1s cubic-bezier(.45,0,.2,1), opacity 1.1s cubic-bezier(.45,0,.2,1); will-change: transform, opacity; }
+  .vstack .vcard[data-pos="center"] { position: relative; z-index: 3; transform: none; opacity: 1; }
+  .vstack .vcard[data-pos="left"] { z-index: 2; transform: translateX(-62%) scale(.8); opacity: .55; }
+  .vstack .vcard[data-pos="right"] { z-index: 2; transform: translateX(62%) scale(.8); opacity: .55; }
+  .vstack .vcard[data-pos="out-left"] { z-index: 1; transform: translateX(-118%) scale(.64); opacity: 0; }
+  .vstack .vcard[data-pos="out-right"] { z-index: 1; transform: translateX(118%) scale(.64); opacity: 0; }
+  .vstack .vcard.jump { transition: none; }
+  .vstack .vcard:not([data-pos="center"]) { pointer-events: none; }
   .vstack .vcard:not([data-pos="center"]) .vmute { opacity: 0; }
-  @media (max-width: 900px) { .vstack .vcard[data-pos="left"] { transform: translateX(-30%) scale(.8); } .vstack .vcard[data-pos="right"] { transform: translateX(30%) scale(.8); } }
+  @media (max-width: 900px) {
+    .vstack .vcard[data-pos="left"] { transform: translateX(-40%) scale(.8); }
+    .vstack .vcard[data-pos="right"] { transform: translateX(40%) scale(.8); }
+    .vstack .vcard[data-pos="out-left"] { transform: translateX(-80%) scale(.64); }
+    .vstack .vcard[data-pos="out-right"] { transform: translateX(80%) scale(.64); }
+  }
   .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 40px 90px rgba(17,17,20,.14); }
   .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
   .vbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -530,30 +538,30 @@
       <div class="vstack" id="vstack">
         <figure class="vcard" data-pos="left">
           <div class="vbox">
-            <video src="media/raw.mp4" poster="media/raw-poster.jpg" muted loop playsinline preload="auto"></video>
-            <span class="vlabel">RAW TAKE</span>
+            <video src="media/cut-hoodie.mp4" poster="media/cut-hoodie-poster.jpg" muted loop playsinline preload="auto"></video>
+            <span class="vlabel">AUTOCUT · 0:13</span>
             <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
           </div>
           <figcaption>
-            <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Before Autocut</span></div>
-            <div class="vmeta">Ums, pauses and retakes in</div>
+            <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
+            <div class="vmeta">Retakes cut · 0:26 → 0:13</div>
           </figcaption>
         </figure>
         <figure class="vcard" data-pos="center">
           <div class="vbox">
             <video id="heroVid" src="media/edited.mp4" poster="media/edited-poster.jpg" muted loop playsinline preload="auto"></video>
-            <span class="vlabel">AUTOCUT · CUT</span>
+            <span class="vlabel">AUTOCUT · 0:24</span>
             <button class="vmute" id="heroMute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
           </div>
           <figcaption>
             <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
-            <div class="vmeta">Retakes, ums and dead air cut</div>
+            <div class="vmeta">Ums and dead air cut</div>
           </figcaption>
         </figure>
         <figure class="vcard" data-pos="right">
           <div class="vbox">
-            <video src="media/edited-2.mp4" poster="media/edited-2-poster.jpg" muted loop playsinline preload="auto"></video>
-            <span class="vlabel">AUTOCUT · CAPTIONS</span>
+            <video src="media/cut-tank.mp4" poster="media/cut-tank-poster.jpg" muted loop playsinline preload="auto"></video>
+            <span class="vlabel">AUTOCUT · 0:38</span>
             <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
           </div>
           <figcaption>
@@ -835,11 +843,21 @@
   playFront();
   const turn = () => {
     if (!front().querySelector('video').muted || document.hidden) return; // someone's listening: stay
-    const next = { left: 'right', center: 'left', right: 'center' };
-    cards.forEach((c) => (c.dataset.pos = next[c.dataset.pos]));
+    const leaving = cards.find((c) => c.dataset.pos === 'left');
+    cards.find((c) => c.dataset.pos === 'center').dataset.pos = 'left';
+    cards.find((c) => c.dataset.pos === 'right').dataset.pos = 'center';
+    leaving.dataset.pos = 'out-left';
     playFront();
+    // Off the left edge, it jumps (unseen) to just past the right edge and slides in as the next card.
+    setTimeout(() => {
+      leaving.classList.add('jump');
+      leaving.dataset.pos = 'out-right';
+      void leaving.offsetWidth;
+      leaving.classList.remove('jump');
+      leaving.dataset.pos = 'right';
+    }, 1150);
   };
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(turn, 5000);
+  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(turn, 5500);
 
   // The marquee loops seamlessly: its words twice over.
   const m = document.getElementById('marquee'); m.innerHTML += m.innerHTML;
