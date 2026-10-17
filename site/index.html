@@ -395,9 +395,8 @@
   .inc-phone::before, .inc-phone::after { content: ""; position: absolute; left: -3px; width: 3px; border-radius: 2px 0 0 2px; background: #2A2A2F; }
   .inc-phone::before { top: 120px; height: 34px; } .inc-phone::after { top: 168px; height: 56px; }
   .inc-screen { position: relative; width: 100%; height: 100%; border-radius: 42px; overflow: hidden; background: #fff; }
-  .inc-screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.03); transition: opacity .5s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
-  .inc-screen img.on { opacity: 1; transform: none; }
-  .inc-screen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .inc-screen img, .inc-screen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.03); transition: opacity .5s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
+  .inc-screen img.on, .inc-screen video.on { opacity: 1; transform: none; }
   .inc-dots { display: flex; gap: 8px; }
   .inc-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 99px; background: rgba(17,17,20,.16); cursor: pointer; transition: width .3s, background .3s; }
   .inc-dots button.on { width: 26px; background: var(--ink); }
@@ -813,9 +812,9 @@
       <p>No timeline to scrub, no ums to hunt down. Autocut does the boring part while you film the next one.</p>
     </div>
     <div class="steps">
-      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>01</b> Film</span><div class="step-phone"><video src="media/how.mp4" poster="media/how-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video></div></div><div class="step-body"><h3>Record or import</h3><p>Film in Autocut (pause and keep going as many takes as you need) or pick videos from Photos.</p></div></div>
-      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>02</b> Send</span><span class="step-tag time">~1 min</span><div class="step-phone"><video src="media/how.mp4" poster="media/how-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video></div></div><div class="step-body"><h3>Tap Send</h3><p>Autocut finds the dead air, filler words and retakes, keeps your best take, and captions every word. Most videos are ready in about a minute.</p></div></div>
-      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>03</b> Post</span><div class="step-phone"><video src="media/how.mp4" poster="media/how-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video></div></div><div class="step-body"><h3>Tweak and post</h3><p>Adjust anything in the editor, add text, music or B-roll, then export in full quality straight to TikTok or Instagram.</p></div></div>
+      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>01</b> Film</span><div class="step-phone"><img src="media/how-batch.jpg" alt="Autocut's Batch screen with three videos made of several takes each" loading="lazy"></div></div><div class="step-body"><h3>Record or import</h3><p>Film in Autocut (pause and keep going as many takes as you need) or pick videos from Photos.</p></div></div>
+      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>02</b> Send</span><span class="step-tag time">~1 min</span><div class="step-phone"><video src="media/how-cutting.mp4" poster="media/how-cutting-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="Autocut cutting a video, 31% done"></video></div></div><div class="step-body"><h3>Tap Send</h3><p>Autocut finds the dead air, filler words and retakes, keeps your best take, and captions every word. Most videos are ready in about a minute.</p></div></div>
+      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>03</b> Post</span><div class="step-phone"><video src="media/how-export.mp4" poster="media/how-export-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="The finished cut, saved to Photos, with TikTok and Instagram buttons"></video></div></div><div class="step-body"><h3>Tweak and post</h3><p>Adjust anything in the editor, add text, music or B-roll, then export in full quality straight to TikTok or Instagram.</p></div></div>
     </div>
     <div class="sec-cta reveal"><a class="btn btn-dark get store-link" href="#">Get the app <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a></div>
   </div>
@@ -829,7 +828,11 @@
     <div class="inc-grid">
       <div class="inc-phone-col reveal">
         <div class="inc-phone"><div class="inc-screen">
-          <video src="media/include.mp4" poster="media/include-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video>
+          <video class="on" src="media/inc-editor.mp4" poster="media/inc-editor-poster.jpg" muted loop playsinline preload="metadata" aria-label="The Autocut editor with the cut video, word captions and a timeline"></video>
+          <video src="media/inc-style.mp4" poster="media/inc-style-poster.jpg" muted loop playsinline preload="metadata" aria-label="Picking a caption style and colour in Autocut"></video>
+          <video src="media/inc-text.mp4" poster="media/inc-text-poster.jpg" muted loop playsinline preload="metadata" aria-label="Typing a title in the White Box style"></video>
+          <video src="media/inc-overlay.mp4" poster="media/inc-overlay-poster.jpg" muted loop playsinline preload="metadata" aria-label="Two photos placed over the video as B-roll"></video>
+          <img src="media/schedule.jpg" alt="Scheduling a video to be edited on Monday at 2 PM" loading="lazy">
         </div></div>
         <div class="inc-dots" role="group" aria-label="Screens"><button type="button" aria-label="Show Every um, pause and retake, gone" class="on"></button><button type="button" aria-label="Show Captions on every word"></button><button type="button" aria-label="Show Titles in creator styles"></button><button type="button" aria-label="Show B-roll, photos and music"></button><button type="button" aria-label="Show Schedule your edits"></button></div>
       </div>
@@ -1192,9 +1195,12 @@
   // What's inside: the phone shows the picked card's screen, and moves on to the next every few seconds while on screen.
   (() => {
     const sec = document.getElementById('inside'); if (!sec) return;
-    const items = [...sec.querySelectorAll('.inc-item')], imgs = [...sec.querySelectorAll('.inc-screen img')], dots = [...sec.querySelectorAll('.inc-dots button')];
+    const items = [...sec.querySelectorAll('.inc-item')], imgs = [...sec.querySelectorAll('.inc-screen > img, .inc-screen > video')], dots = [...sec.querySelectorAll('.inc-dots button')];
     let at = 0, timer = null, seen = false;
-    const pick = (n) => { at = n; [items, imgs, dots].forEach((list) => list.forEach((el, k) => el.classList.toggle('on', k === n))); };
+    const pick = (n) => {
+      at = n; [items, imgs, dots].forEach((list) => list.forEach((el, k) => el.classList.toggle('on', k === n)));
+      imgs.forEach((el, k) => { if (el.tagName !== 'VIDEO') return; if (k === n && seen) el.play().catch(() => {}); else el.pause(); });
+    };
     const run = () => { clearInterval(timer); timer = seen && !matchMedia('(prefers-reduced-motion: reduce)').matches ? setInterval(() => go((at + 1) % items.length), 5000) : null; };
     // On phones the cards are a sideways row: keep the picked card in view, and pick whichever card is
     // swiped to the middle.
@@ -1216,7 +1222,7 @@
     }, { passive: true });
     items.forEach((el, k) => el.addEventListener('click', () => { go(k); run(); }));
     dots.forEach((el, k) => el.addEventListener('click', () => { go(k); run(); }));
-    new IntersectionObserver(([e]) => { seen = e.isIntersecting; run(); }, { threshold: 0.35 }).observe(sec);
+    new IntersectionObserver(([e]) => { seen = e.isIntersecting; pick(at); run(); }, { threshold: 0.35 }).observe(sec);
   })();
 </script>
 </body>

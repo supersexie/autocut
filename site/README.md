@@ -24,6 +24,6 @@ Pages → upload the `site` folder (or connect the GitHub repo with build output
 your domain.
 
 **Before release:** the videos in "These cuts came out of Autocut" (`media/cut-unbox.mp4`, `media/cut-ditl.mp4`,
-`media/cut-strips.mp4`), the videos in the phones under "How it works" and "What does Autocut include?"
-(`media/how.mp4`, `media/include.mp4`) and the motion videos show other creators. Get their permission or swap
+`media/cut-strips.mp4`), the app screens under "How it works" and "What does Autocut include?"
+(`media/how-*`, `media/inc-*`, built from two creators' videos) and the motion videos show other creators. Get their permission or swap
 in your own (same file names). Add App Store ratings or reviews only once they're real.
