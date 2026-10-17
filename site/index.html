@@ -447,38 +447,45 @@
   @media (max-width: 560px) { .calc { padding: 34px 20px; border-radius: 28px; } .calc-panel { padding: 22px 18px; } .vs-row { grid-template-columns: 70px 1fr auto; gap: 10px; } .rstats b { font-size: 17px; } .rstats div { padding: 10px; } }
 
   /* ---------- Pricing ---------- */
-  .toggle { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line); margin: 0 auto 36px; }
-  .toggle button { height: 42px; padding: 0 20px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; }
-  .toggle button.on { background: var(--ink); color: #fff; }
-  .toggle em { font-style: normal; font-size: 12px; padding: 3px 7px; border-radius: 999px; background: #E9E9ED; color: var(--ink); }
-  .toggle button.on em { background: #fff; }
-  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: stretch; }
-  .plan { background: var(--card); border-radius: var(--radius); padding: 32px; display: flex; flex-direction: column; position: relative; }
-  .plan.pick { background: var(--ink); color: #fff; transform: translateY(-10px); box-shadow: 0 30px 60px rgba(17,17,20,.25); }
-  .plan .ribbon { position: absolute; top: 18px; right: 18px; font: 700 11px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Inter, sans-serif; letter-spacing: .1em; padding: 7px 10px; border-radius: 999px; background: #fff; color: var(--ink); }
-  .plan h3 { font-family: inherit; font-size: 26px; letter-spacing: -.02em; margin: 0; }
-  .plan .edits { color: var(--muted); margin: 4px 0 22px; }
-  .plan.pick .edits, .plan.pick .billed, .plan.pick li.no { color: #A1A1A8; }
-  .price { font-family: inherit; font-weight: 700; font-size: 54px; letter-spacing: -.03em; line-height: 1; }
+  .toggle { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line), 0 10px 26px -14px rgba(17,17,20,.2); margin: 0 auto 44px; }
+  .toggle button { height: 42px; padding: 0 22px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background .25s, color .25s; }
+  .toggle button.on { background: var(--ink); color: #fff; box-shadow: 0 6px 16px rgba(17,17,20,.22); }
+  .toggle em { font-style: normal; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #E5383F; color: #fff; }
+  .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; max-width: 1080px; margin: 0 auto; }
+  .plan { position: relative; isolation: isolate; overflow: hidden; background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 28px; padding: 34px 32px 32px; display: flex; flex-direction: column; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 24px 60px -36px rgba(17,17,20,.28); transition: translate .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s; }
+  .plan:hover { translate: 0 -4px; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 34px 70px -36px rgba(17,17,20,.34); }
+  .plan.pick { background: #0E0E11; color: #fff; border-color: transparent; margin: -14px 0; box-shadow: 0 40px 80px -30px rgba(17,17,20,.55); }
+  .plan.pick::before { content: ""; position: absolute; z-index: -1; inset: 0; background: radial-gradient(90% 55% at 100% 0%, rgba(229,56,63,.3), transparent 70%), radial-gradient(70% 50% at 0% 100%, rgba(255,255,255,.06), transparent 70%); }
+  .plan .ribbon { position: absolute; top: 24px; right: 24px; font: 700 10.5px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, sans-serif; letter-spacing: .1em; padding: 7px 10px; border-radius: 999px; background: #E5383F; color: #fff; box-shadow: 0 6px 18px rgba(229,56,63,.4); }
+  .plan h3 { font-family: inherit; font-size: 24px; font-weight: 650; letter-spacing: -.02em; margin: 0; }
+  .plan .edits { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin: 0 0 24px; padding: 7px 12px; border-radius: 999px; background: #F4F4F6; color: var(--ink); font-size: 13.5px; font-weight: 600; }
+  .plan .edits::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #E5383F; }
+  .plan.pick .edits { background: rgba(255,255,255,.08); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+  .plan.pick .billed, .plan.pick li.no, .plan.pick .per { color: #A1A1A8; }
+  .price { font-family: inherit; font-weight: 700; font-size: 52px; letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
   .price small { font-family: inherit; font-size: 16px; font-weight: 500; letter-spacing: 0; color: var(--muted); }
   .plan.pick .price small { color: #A1A1A8; }
-  .billed { font-size: 14px; color: var(--muted); margin: 8px 0 24px; min-height: 22px; }
-  .plan ul { list-style: none; padding: 0; margin: 0 0 28px; display: grid; gap: 12px; font-size: 15.5px; }
-  .plan li { display: flex; gap: 10px; align-items: flex-start; }
-  .plan li::before { content: ""; flex: none; width: 20px; height: 20px; margin-top: 2px; border-radius: 50%; background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") center / 12px no-repeat; }
-  .plan.pick li::before { background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111114' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E"); }
+  .billed { font-size: 14px; color: var(--muted); margin: 10px 0 0; min-height: 21px; }
+  .plan .per { font-size: 13px; color: var(--faint); margin: 2px 0 0; min-height: 19px; }
+  .plan ul { list-style: none; padding: 22px 0 0; margin: 22px 0 30px; border-top: 1px solid #EFEFF2; display: grid; gap: 13px; font-size: 15px; }
+  .plan.pick ul { border-top-color: rgba(255,255,255,.1); }
+  .plan li { display: flex; gap: 11px; align-items: flex-start; }
+  .plan li::before { content: ""; flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") center / 12px no-repeat; }
+  .plan.pick li::before { background-color: #E5383F; box-shadow: 0 0 10px rgba(229,56,63,.5); }
   .plan li.no { color: var(--faint); }
-  .plan li.no::before { background: #E9E9ED url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E") center / 12px no-repeat; }
+  .plan li.no::before { background: #F0F0F3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E") center / 11px no-repeat; box-shadow: none; }
   .plan.pick li.no::before { background-color: #2A2A2E; }
-  .plan .btn { margin-top: auto; width: 100%; }
-  .plan.pick .btn { background: #fff; color: var(--ink); box-shadow: none; }
-  .fine { text-align: center; font-size: 14px; color: var(--muted); margin-top: 28px; }
-  @media (max-width: 920px) { .plans { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; } .plan.pick { transform: none; } }
+  .plan .btn { margin-top: auto; width: 100%; height: 52px; font-size: 16px; }
+  .plan .btn-dark { box-shadow: 0 10px 24px -10px rgba(17,17,20,.5); }
+  .plan.pick .btn { background: #fff; color: var(--ink); box-shadow: 0 10px 30px -8px rgba(255,255,255,.25); }
+  .plan.pick .btn:hover { background: #F2F2F4; }
+  .fine { text-align: center; font-size: 13.5px; color: var(--faint); margin-top: 32px; }
+  @media (max-width: 920px) { .plans { grid-template-columns: 1fr; max-width: 460px; margin: 0 auto; } .plan.pick { margin: 0; } }
   @media (max-width: 760px) {
     .plans { display: flex; max-width: none; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)); padding: 6px var(--gutter) 6px; scrollbar-width: none; }
     .plans::-webkit-scrollbar { display: none; }
-    .plan { flex: 0 0 84%; scroll-snap-align: center; opacity: 1 !important; transform: none !important; }
-    .plan { padding: 26px 24px; }
+    .plan { flex: 0 0 84%; scroll-snap-align: center; opacity: 1 !important; transform: none !important; translate: none !important; }
+    .plan { padding: 28px 24px 26px; }
     .price { font-size: 44px; white-space: nowrap; }
     .plan li { font-size: 14.5px; }
     .dots { display: flex; }
@@ -551,25 +558,37 @@
   .controls button { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border-radius: 999px; border: 0; background: #fff; box-shadow: inset 0 0 0 1px var(--line); font: 600 11.5px/1 ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--ink); }
 
   /* ---------- Comparison table ---------- */
-  .compare { max-width: 980px; margin: 0 auto; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 0 rgba(17,17,20,.04); }
-  .compare table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .compare th, .compare td { padding: 18px 22px; text-align: left; vertical-align: top; border-top: 1px solid var(--line); font-size: 15.5px; }
-  .compare thead th { border-top: 0; padding-top: 24px; font-family: inherit; font-size: 20px; letter-spacing: -.02em; }
-  .compare tbody th { font: 600 11.5px/1.4 ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 21px; }
+  .compare { max-width: 1000px; margin: 0 auto; background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 30px; padding: 14px; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 30px 70px -40px rgba(17,17,20,.25); }
+  .compare table { width: 100%; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+  .compare th, .compare td { padding: 20px 22px; text-align: left; vertical-align: top; border-top: 1px solid #EFEFF2; font-size: 15.5px; line-height: 1.45; transition: background .2s; }
   .compare td { color: var(--muted); }
-  .compare .us { background: var(--ink); color: #fff; }
-  .compare td.us { color: #fff; font-weight: 600; }
-  .compare thead .us { border-radius: 0; }
-  .compare tfoot td { border-top: 1px solid var(--line); font: 600 12px/1.4 ui-monospace, "SF Mono", SFMono-Regular, "JetBrains Mono", Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; }
-  .compare .us-lead { display: inline-flex; align-items: center; gap: 8px; }
-  .compare .us-lead img { width: 22px; height: 22px; border-radius: 6px; }
+  .compare tbody th { font: 600 11px/1.5 ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace; letter-spacing: .09em; text-transform: uppercase; color: var(--faint); padding-top: 23px; }
+  .compare tbody tr:hover th, .compare tbody tr:hover td:not(.us) { background: #FAFAFB; }
+  .compare thead th { border-top: 0; padding: 24px 22px 22px; vertical-align: bottom; font-weight: 400; }
+  .opt { display: flex; flex-direction: column; gap: 12px; }
+  .opt i { width: 42px; height: 42px; border-radius: 13px; background: #F4F4F6; display: grid; place-items: center; }
+  .opt i svg { width: 21px; height: 21px; }
+  .opt b { font-size: 19px; font-weight: 650; letter-spacing: -.02em; color: var(--ink); line-height: 1.2; }
+  .opt small { display: block; margin-top: 3px; font-size: 13px; color: var(--faint); font-weight: 500; }
+  /* Autocut's column: a dark pillar with a red glow at the top. */
+  .compare .us { background: #0E0E11; color: #fff; border-top-color: rgba(255,255,255,.08); }
+  .compare thead .us { border-radius: 20px 20px 0 0; background: radial-gradient(120% 90% at 50% 0%, rgba(229,56,63,.38), transparent 70%), #0E0E11; }
+  .compare tbody tr:last-child .us { border-radius: 0 0 20px 20px; }
+  .compare .us .opt i { background: #fff; overflow: hidden; }
+  .compare .us .opt i img { width: 100%; height: 100%; }
+  .compare .us .opt b { color: #fff; } .compare .us .opt small { color: #A1A1A8; }
+  .compare td.us { font-weight: 600; }
+  .compare td.us::before { content: ""; display: inline-block; vertical-align: -4px; width: 18px; height: 18px; margin-right: 10px; border-radius: 50%; background: #E5383F url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") center / 11px no-repeat; box-shadow: 0 0 12px rgba(229,56,63,.55); }
   @media (max-width: 700px) {
-    .compare { border-radius: 22px; }
-    .compare th, .compare td { padding: 14px 10px; font-size: 13.5px; }
-    .compare thead th { font-size: 15px; }
-    .compare tbody th { font-size: 9.5px; letter-spacing: .05em; }
-    .compare colgroup col:first-child { width: 24%; }
-    .compare .us-lead img { display: none; }
+    .compare { border-radius: 22px; padding: 6px; }
+    .compare th, .compare td { padding: 14px 9px; font-size: 13px; }
+    .compare thead th { padding: 16px 9px 14px; }
+    .opt { gap: 8px; } .opt i { width: 30px; height: 30px; border-radius: 9px; } .opt i svg { width: 16px; height: 16px; }
+    .opt b { font-size: 14px; } .opt small { display: none; }
+    .compare tbody th { font-size: 9px; letter-spacing: .05em; padding-top: 16px; }
+    .compare colgroup col:first-child { width: 21%; }
+    .compare td.us::before { display: block; width: 15px; height: 15px; margin: 0 0 6px; background-size: 9px; }
+    .compare thead .us { border-radius: 14px 14px 0 0; } .compare tbody tr:last-child .us { border-radius: 0 0 14px 14px; }
   }
 
   /* ---------- Pricing extras ---------- */
@@ -852,7 +871,7 @@
     <div class="compare reveal">
       <table>
         <colgroup><col style="width:22%"><col><col><col></colgroup>
-        <thead><tr><th scope="col"><span class="sr-only"></span></th><th scope="col">Do it yourself</th><th scope="col">Hire an editor</th><th scope="col" class="us"><span class="us-lead"><img src="media/logo.svg" alt="">Autocut</span></th></tr></thead>
+        <thead><tr><th scope="col"><span class="sr-only"></span></th><th scope="col"><span class="opt"><i><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="3.6"/><path d="M5 20.5c.8-3.8 3.6-6 7-6s6.2 2.2 7 6"/></svg></i><span><b>Do it yourself</b><small>Editing software, by hand</small></span></span></th><th scope="col"><span class="opt"><i><svg viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7.5" width="18" height="12.5" rx="2.5"/><path d="M9 7.5V5.8A1.8 1.8 0 0 1 10.8 4h2.4A1.8 1.8 0 0 1 15 5.8v1.7M3 12.5h18"/></svg></i><span><b>Hire an editor</b><small>A freelancer or agency</small></span></span></th><th scope="col" class="us"><span class="opt"><i><img src="media/logo.svg" alt=""></i><span><b>Autocut</b><small>On your phone</small></span></span></th></tr></thead>
         <tbody>
           <tr><th scope="row">Cost</th><td>$0, and your evenings</td><td>$500 to $5,000 a month</td><td class="us">From $13.39 a month</td></tr>
           <tr><th scope="row">Your time</th><td>An hour or more a video</td><td>Briefs and revision notes</td><td class="us">One tap</td></tr>
@@ -877,22 +896,22 @@
       <button role="tab" aria-selected="true" data-billing="yearly" class="on">Yearly <em>−33%</em></button>
     </div>
     <div class="plans" style="text-align:left">
-      <div class="plan reveal" data-monthly="19.99">
+      <div class="plan reveal" data-monthly="19.99" data-edits="100">
         <h3>Starter</h3><div class="for">For posting a few times a week</div><div class="edits">100 AI edits a month</div>
-        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$13.39</span><small> / month</small></div><div class="billed"></div>
+        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$13.39</span><small> / month</small></div><div class="billed"></div><div class="per"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li class="no">Overlap audio</li><li class="no">Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
-      <div class="plan pick reveal" data-monthly="49.99">
+      <div class="plan pick reveal" data-monthly="49.99" data-edits="300">
         <span class="ribbon">MOST POPULAR</span>
         <h3>Pro</h3><div class="for">For posting every day</div><div class="edits">300 AI edits a month</div>
-        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$33.49</span><small> / month</small></div><div class="billed"></div>
+        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$33.49</span><small> / month</small></div><div class="billed"></div><div class="per"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li>Overlap audio</li><li>Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
       <div class="plan reveal" data-monthly="99.99">
         <h3>Ultimate</h3><div class="for">For teams and high-volume creators</div><div class="edits">Unlimited AI edits</div>
-        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$66.99</span><small> / month</small></div><div class="billed"></div>
+        <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$66.99</span><small> / month</small></div><div class="billed"></div><div class="per"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li>Overlap audio</li><li>Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
@@ -1115,6 +1134,8 @@
       const per = b === 'yearly' ? Math.round(monthly * 0.67 * 100) / 100 : monthly;
       p.querySelector('.amt').textContent = money(per);
       p.querySelector('.billed').textContent = b === 'yearly' ? `Billed ${money(per * 12)} a year` : 'Billed monthly';
+      const edits = +p.dataset.edits;
+      p.querySelector('.per').textContent = edits ? `About ${money(per / edits)} an edit` : 'No limit on edits';
     });
   }
   document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => setBilling(b.dataset.billing)));
