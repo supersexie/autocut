@@ -110,6 +110,32 @@
     .tag.t3 { left: 0 !important; top: 78% !important; }
   }
 
+  /* ---------- Reviews (filled from REVIEWS in the script; nothing shows until there are real ones) ---------- */
+  .revbg { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; opacity: .55;
+    mask-image: radial-gradient(ellipse 60% 55% at 50% 38%, transparent 0%, transparent 38%, #000 75%);
+    -webkit-mask-image: radial-gradient(ellipse 60% 55% at 50% 38%, transparent 0%, transparent 38%, #000 75%); }
+  .revrow { position: absolute; left: 0; display: flex; gap: 22px; width: max-content; animation: drift 90s linear infinite; }
+  .revrow.r2 { animation-direction: reverse; animation-duration: 110s; }
+  .rev { width: 360px; flex: none; padding: 22px 24px; border-radius: 18px; background: rgba(255,255,255,.7); box-shadow: inset 0 0 0 1px rgba(17,17,20,.06); text-align: left; }
+  .rev .stars { color: #F5A623; letter-spacing: 2px; font-size: 14px; }
+  .rev h4 { margin: 8px 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+  .rev p { margin: 0; font-size: 14.5px; line-height: 1.5; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .rev small { display: block; margin-top: 12px; font: 500 11.5px/1 "JetBrains Mono", ui-monospace, monospace; letter-spacing: .06em; color: var(--faint); text-transform: uppercase; }
+  .revbg .rev { background: rgba(255,255,255,.45); }
+  .revbg .rev h4, .revbg .rev p, .revbg .rev small, .revbg .rev .stars { opacity: .55; }
+  .rating { display: none; align-items: center; justify-content: center; gap: 12px; margin-top: 34px; font-size: 16px; color: var(--muted); }
+  .rating.on { display: flex; }
+  .rating .badge-as { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(180deg, #1EA7FD, #1263F5); display: grid; place-items: center; }
+  .rating .stars { color: #F5A623; font-size: 19px; letter-spacing: 2px; }
+  .rating b { color: var(--ink); }
+  .revstrip { display: none; position: relative; z-index: 1; margin-top: 44px; overflow: hidden; mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  .revstrip.on { display: block; }
+  .revstrip .revrow { position: relative; animation-duration: 70s; padding: 4px 0 8px; }
+  .revstrip .rev { background: #fff; box-shadow: 0 1px 0 rgba(17,17,20,.04), inset 0 0 0 1px var(--line), 0 12px 30px rgba(17,17,20,.06); }
+  .revstrip:hover .revrow { animation-play-state: paused; }
+  .sample-note { position: fixed; z-index: 99; left: 12px; bottom: 12px; padding: 8px 12px; border-radius: 10px; background: #F2545B; color: #fff; font: 600 13px/1.2 Inter, sans-serif; }
+  @media (max-width: 760px) { .revbg { display: none; } .rev { width: 290px; } }
+
   /* ---------- Strip ---------- */
   .strip { background: var(--ink); color: #fff; padding: 26px 0; overflow: hidden; }
   .marquee { display: flex; gap: 48px; width: max-content; animation: scroll 32s linear infinite; font-family: "Inter Tight", sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -.02em; }
@@ -364,7 +390,7 @@
   /* Reveal on scroll */
   .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
   .reveal.in { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .marquee, .tag, .ghost-row, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .marquee, .tag, .ghost-row, .revrow, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -394,6 +420,7 @@
 <main>
 
 <header class="hero" id="top">
+  <div class="revbg" id="revbg" aria-hidden="true"></div>
   <div class="wrap">
     <div class="hero-copy">
       <div class="pills">
@@ -410,7 +437,9 @@
         <a class="textlink" href="#see-it"><i><svg width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path fill="#111114" d="M8 5.5v13l11-6.5z"/></svg></i>See it cut</a>
       </div>
       <div class="note"><span>Dead air, ums and retakes cut</span><span>Every word captioned</span></div>
+      <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
+    <div class="revstrip" id="revstrip"><div class="revrow" id="revrow"></div></div>
     <div class="hero-phone" style="position:relative">
       <div class="iphone" style="--w:min(320px, 70vw, calc((100svh - 150px) * .45))"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><video src="media/edited.mp4" poster="media/edited-poster.jpg" autoplay muted loop playsinline></video><div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
       <div class="tag t1" style="left:-14px; top:22%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Retakes cut</div>
@@ -617,6 +646,11 @@
   const APP_STORE_URL = '';  // e.g. https://apps.apple.com/app/id0000000000 (empty: buttons say "Coming soon")
   const LEGAL_BASE = 'https://autocut-production-88f1.up.railway.app'; // the server that hosts /privacy and /terms
   const SUPPORT_EMAIL = '';  // e.g. support@yourdomain.com
+  // Real reviews only: from the App Store once it's live, or from testers who agreed to be quoted.
+  // Leave empty and no reviews or rating show. Each: { title, text, name, stars (1-5) }.
+  const REVIEWS = [];
+  // The App Store rating once there is one, e.g. { score: 4.8, count: 120 }. null hides the rating row.
+  const RATING = null;
 
   // App Store buttons. Until the app is live they don't go anywhere.
   document.querySelectorAll('.store-link').forEach((a) => {
@@ -660,6 +694,34 @@
 
   // The marquee loops seamlessly: its words twice over.
   const m = document.getElementById('marquee'); m.innerHTML += m.innerHTML;
+
+  // Reviews: drifting faded cards behind the hero and a row of cards under the buttons, like CutAI.
+  // ?sample-reviews shows clearly labelled placeholders, to check the layout before real ones exist.
+  (() => {
+    let list = REVIEWS, rating = RATING;
+    if (new URLSearchParams(location.search).has('sample-reviews')) {
+      list = Array.from({ length: 8 }, (_, i) => ({ title: `Sample review ${i + 1}`, text: 'Placeholder text, to check the layout. Replace with real App Store reviews once the app is live. This line is here so the card has a realistic length.', name: 'sample', stars: 5 }));
+      rating = { score: 0, count: 0 };
+      const note = document.createElement('div'); note.className = 'sample-note'; note.textContent = 'Sample reviews (layout preview, not real)'; document.body.append(note);
+    }
+    const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    const card = (r) => `<div class="rev"><div class="stars">${'★'.repeat(Math.max(1, Math.min(5, r.stars ?? 5)))}</div><h4>${esc(r.title)}</h4><p>${esc(r.text)}</p><small>${esc(r.name)} · App Store</small></div>`;
+    if (list.length) {
+      // Repeat to fill wide screens, then twice over so the drift loops seamlessly.
+      const fill = (n) => { let out = []; while (out.length < n) out = out.concat(list); return out.slice(0, n).map(card).join(''); };
+      const row = fill(Math.max(8, list.length));
+      document.getElementById('revrow').innerHTML = row + row;
+      document.getElementById('revstrip').classList.add('on');
+      const half = [...list.slice(Math.ceil(list.length / 2)), ...list.slice(0, Math.ceil(list.length / 2))];
+      const bgRow = (items, cls, top) => { let out = []; while (out.length < 8) out = out.concat(items); const h = out.slice(0, 8).map(card).join(''); return `<div class="revrow ${cls}" style="top:${top}">${h}${h}</div>`; };
+      document.getElementById('revbg').innerHTML = bgRow(list, '', '4%') + bgRow(half, 'r2', '38%');
+    }
+    if (rating) {
+      document.getElementById('ratingScore').textContent = rating.score ? rating.score.toFixed(1) : 'Sample';
+      document.getElementById('ratingCount').textContent = rating.count ? rating.count.toLocaleString() : '0';
+      document.getElementById('rating').classList.add('on');
+    }
+  })();
 
   // Before/after videos play when on screen; the speaker gives one sound (and mutes the other).
   const vids = [...document.querySelectorAll('video[data-auto]')];
