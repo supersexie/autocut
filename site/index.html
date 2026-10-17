@@ -381,8 +381,19 @@
   .inc-item p { margin: 0; color: var(--muted); font-size: 15.5px; line-height: 1.55; }
   .inc-item:focus { outline: none; } .inc-item:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
   @media (min-width: 901px) {
-    .inc-grid { grid-template-columns: .85fr 1.15fr; gap: 72px; align-items: start; }
-    .inc-phone-col { position: sticky; top: 100px; }
+    /* The whole section fits on one screen: the phone and the cards size to the window's height. */
+    main > section.inc { padding: 84px 0 28px; min-height: 100svh; display: flex; align-items: center; box-sizing: border-box; }
+    .inc .wrap { width: 100%; }
+    .inc .head { margin-bottom: clamp(20px, 3.5svh, 40px); }
+    .inc .head .h { font-size: clamp(30px, min(3.6vw, 5.6svh), 50px); margin: 10px 0 0; }
+    .inc-grid { grid-template-columns: .72fr 1.28fr; gap: 48px; align-items: center; }
+    .inc-phone-col { gap: 14px; }
+    .inc-phone { height: clamp(360px, calc(100svh - 300px), 580px); width: auto; padding: 9px; border-radius: 46px; }
+    .inc-screen { border-radius: 38px; }
+    .inc-list { gap: clamp(8px, 1.2svh, 12px); }
+    .inc-item { padding: clamp(12px, 1.8svh, 20px) 24px; border-radius: 18px; }
+    .inc-item h3 { font-size: clamp(16px, 2.2svh, 19px); margin-bottom: 3px; }
+    .inc-item p { font-size: clamp(13px, 1.8svh, 15px); line-height: 1.5; }
   }
   @media (max-width: 760px) { .inc-item { padding: 20px; } .inc-item h3 { font-size: 19px; } }
   /* Why choose Autocut: three plain cards, each with an icon tile (like Cal AI). */
