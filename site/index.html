@@ -116,6 +116,9 @@
     .vstack .vcard[data-pos="left"] { transform: translateX(-40%) scale(.8); }
     .vstack .vcard[data-pos="right"] { transform: translateX(40%) scale(.8); }
   }
+  .intro { margin: 0; width: 100%; aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; background: #0B0B0D; box-shadow: 0 40px 100px rgba(17,17,20,.22), 0 0 0 1px rgba(17,17,20,.08); }
+  .intro video { display: block; width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 760px) { .intro { border-radius: 16px; } }
   .vcard { margin: 0; width: min(380px, 100%, calc((100svh - 180px) * .5)); padding: 18px; background: #E9ECF1; border: 1px solid rgba(17,17,20,.07); border-radius: 8px; box-shadow: 0 18px 40px rgba(17,17,20,.08); }
   .vbox { position: relative; aspect-ratio: 9 / 16; overflow: hidden; background: #111; border-radius: 2px; }
   .vbox video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
@@ -130,7 +133,7 @@
   .vmeta { text-align: center; margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
-    .hero-top { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 72px; }
+    .hero-top { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 64px; }
     /* Wider than the rest of the page, so the hero uses the screen instead of crowding the middle. */
     .hero .wrap, nav .wrap { max-width: 1440px; padding: 0 clamp(24px, 4vw, 64px); }
     .hero-copy { align-items: flex-start; text-align: left; }
@@ -554,41 +557,9 @@
       <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
     <div class="hero-phone">
-      <div class="vstack" id="vstack">
-        <figure class="vcard" data-pos="left">
-          <div class="vbox">
-            <video src="media/cut-hoodie.mp4" poster="media/cut-hoodie-poster.jpg" muted loop playsinline preload="auto"></video>
-            <span class="vlabel">AUTOCUT · 0:13</span>
-            <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
-          </div>
-          <figcaption>
-            <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
-            <div class="vmeta">Retakes cut · 0:26 → 0:13</div>
-          </figcaption>
-        </figure>
-        <figure class="vcard" data-pos="center">
-          <div class="vbox">
-            <video id="heroVid" src="media/edited.mp4" poster="media/edited-poster.jpg" muted loop playsinline preload="auto"></video>
-            <span class="vlabel">AUTOCUT · 0:24</span>
-            <button class="vmute" id="heroMute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
-          </div>
-          <figcaption>
-            <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
-            <div class="vmeta">Ums and dead air cut</div>
-          </figcaption>
-        </figure>
-        <figure class="vcard" data-pos="right">
-          <div class="vbox">
-            <video src="media/cut-tank.mp4" poster="media/cut-tank-poster.jpg" muted loop playsinline preload="auto"></video>
-            <span class="vlabel">AUTOCUT · 0:38</span>
-            <button class="vmute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
-          </div>
-          <figcaption>
-            <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
-            <div class="vmeta">Every word captioned</div>
-          </figcaption>
-        </figure>
-      </div>
+      <figure class="intro">
+        <video src="media/intro.mp4" poster="media/intro-poster.jpg" autoplay muted loop playsinline preload="auto" aria-label="Autocut in 15 seconds: drop in a raw take, ums and retakes cut, captions on every word, scheduled edits"></video>
+      </figure>
     </div>
     </div>
     <div class="revstrip" id="revstrip"><div class="revrow" id="revrow"></div></div>
@@ -823,57 +794,6 @@
 
   // Muted video should autoplay, but some browsers need a nudge.
   document.querySelectorAll('.hero video').forEach((v) => v.play().catch(() => {}));
-  // Hero cards: the front card plays (sound on its button); every 5 s they turn, unless the viewer is listening.
-  const cards = [...document.querySelectorAll('#vstack .vcard')];
-  const firstMute = cards[1].querySelector('.vmute');
-  const MUTED_IC = firstMute.innerHTML;
-  const SOUND_IC = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/></svg>';
-  const setMuted = (card, muted) => {
-    const v = card.querySelector('video'), b = card.querySelector('.vmute');
-    v.muted = muted;
-    b.innerHTML = muted ? MUTED_IC : SOUND_IC;
-    b.setAttribute('aria-pressed', String(!muted));
-    b.setAttribute('aria-label', muted ? 'Turn sound on' : 'Turn sound off');
-  };
-  const front = () => cards.find((c) => c.dataset.pos === 'center');
-  // All three play (muted); only the front card can have sound.
-  const playFront = () => cards.forEach((c) => {
-    const v = c.querySelector('video');
-    if (c.dataset.pos !== 'center') setMuted(c, true);
-    v.play().catch(() => {});
-  });
-  cards.forEach((c) => c.querySelector('.vmute').addEventListener('click', () => {
-    const v = c.querySelector('video');
-    setMuted(c, !v.muted);
-    if (!v.muted) { v.currentTime = 0; v.play().catch(() => {}); }
-  }));
-  playFront();
-  // Start them again if the browser held off (a background tab, or before the videos had loaded).
-  cards.forEach((c) => c.querySelector('video').addEventListener('loadeddata', playFront, { once: true }));
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) playFront(); });
-  // Bring a side card to the front: the front card slides to the side it came from, and the card on the
-  // other side slides across (behind) to take the free side.
-  const bring = (card) => {
-    const from = card.dataset.pos;
-    if (from === 'center') return;
-    const other = from === 'right' ? 'left' : 'right';
-    const mid = front(), far = cards.find((c) => c.dataset.pos === other);
-    far.classList.add('travel');
-    setTimeout(() => far.classList.remove('travel'), 1150);
-    card.dataset.pos = 'center';
-    far.dataset.pos = from;
-    mid.dataset.pos = other;
-    playFront();
-  };
-  let lastMove = Date.now();
-  cards.forEach((c) => c.addEventListener('click', () => { if (c.dataset.pos !== 'center') { bring(c); lastMove = Date.now(); } }));
-  // On its own, every few seconds the right card comes to the front (not while someone's listening or just clicked).
-  const turn = () => {
-    if (!front().querySelector('video').muted || document.hidden || Date.now() - lastMove < 5000) return;
-    bring(cards.find((c) => c.dataset.pos === 'right'));
-    lastMove = Date.now();
-  };
-  if (!matchMedia('(prefers-reduced-motion: reduce)').matches) setInterval(turn, 5500);
 
   // Reviews wall under the hero. Fill REVIEWS with real App Store quotes before launch.
   // ?sample-reviews forces the labelled placeholders (and a corner note).
