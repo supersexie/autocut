@@ -104,13 +104,8 @@
   .typer { font-size: 20px; color: var(--muted); min-height: 32px; margin: 0 0 30px; }
   .typer b { color: var(--ink); font-weight: 600; }
   .typer .caret { display: inline-block; width: 2px; height: 1.05em; background: var(--ink); vertical-align: -3px; margin-left: 2px; border-radius: 1px; animation: caretBlink 1.1s ease-in-out infinite; }
-  /* While typing the caret stays solid. Each letter fades in; the finished phrase fades out as a whole. */
+  /* The caret stays solid while typing or deleting, and blinks only while a phrase is shown. */
   .typer.busy .caret { animation: none; opacity: 1; }
-  .typer b i { font-style: normal; display: inline-block; white-space: pre; animation: charIn .32s cubic-bezier(.2,.7,.2,1) both; }
-  .typer b.out { transition: opacity .38s ease, filter .38s ease, transform .38s ease; opacity: 0; filter: blur(4px); transform: translateY(-4px); }
-  .typer b { display: inline-block; }
-  .typer.fading .caret { animation: none; opacity: 0; transition: opacity .2s ease; }
-  @keyframes charIn { from { opacity: 0; filter: blur(3px); transform: translateY(3px); } }
   @keyframes caretBlink { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0; } }
   @keyframes blink { 50% { opacity: 0; } }
   .cta-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; }
@@ -1040,18 +1035,26 @@
   else (async () => {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const line = typed.parentElement;
-    // Letters arrive at a steady beat and each one fades in; after a pause the phrase fades out whole
-    // (no backspacing) and the next one is typed.
+    // A plain typewriter, fast and even: letters are added on animation frames at a fixed rate, so the
+    // timing doesn't drift; then the phrase is deleted the same way, faster.
+    const run = (from, to, msPerChar, text) => new Promise((done) => {
+      const start = performance.now();
+      const step = (now) => {
+        const n = Math.min(Math.abs(to - from), Math.floor((now - start) / msPerChar));
+        typed.textContent = text.slice(0, from < to ? from + n : from - n);
+        if (n < Math.abs(to - from)) requestAnimationFrame(step); else done();
+      };
+      requestAnimationFrame(step);
+    });
     for (let i = 0; ; i = (i + 1) % phrases.length) {
+      const p = phrases[i];
       line.classList.add('busy');
-      for (const ch of phrases[i]) { const c = document.createElement('i'); c.textContent = ch; typed.append(c); await wait(62); }
+      await run(0, p.length, 38, p);
       line.classList.remove('busy');
-      await wait(2000);
-      typed.classList.add('out'); line.classList.add('fading');
-      await wait(420);
-      typed.replaceChildren(); typed.classList.remove('out');
-      await wait(60); line.classList.remove('fading'); line.classList.add('busy');
-      await wait(200);
+      await wait(1800);
+      line.classList.add('busy');
+      await run(p.length, 0, 20, p);
+      await wait(180);
     }
   })();
 
