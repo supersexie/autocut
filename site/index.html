@@ -423,7 +423,20 @@
     .inc-item h3 { font-size: clamp(16px, 2.2svh, 19px); margin-bottom: 3px; }
     .inc-item p { font-size: clamp(13px, 1.8svh, 15px); line-height: 1.5; }
   }
-  @media (max-width: 760px) { .inc-item { padding: 20px; } .inc-item h3 { font-size: 19px; } }
+  @media (max-width: 900px) {
+    /* Phones and tablets: a smaller phone, and the cards in a sideways row right under it, so the
+       phone and the card it's showing are on screen together. Swipe the cards to change the screen. */
+    .inc .head { margin-bottom: 28px; }
+    .inc-grid { gap: 18px; }
+    .inc-phone-col { gap: 12px; }
+    .inc-phone { height: min(46svh, 440px); width: auto; padding: 8px; border-radius: 40px; }
+    .inc-screen { border-radius: 33px; }
+    .inc-list { flex-direction: row; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 calc(-1 * var(--gutter)); padding: 4px var(--gutter) 8px; scrollbar-width: none; }
+    .inc-list::-webkit-scrollbar { display: none; }
+    .inc-item { flex: 0 0 84%; max-width: 420px; scroll-snap-align: center; padding: 18px 20px; display: flex; flex-direction: column; justify-content: flex-start; }
+    .inc-item h3 { font-size: 18px; }
+    .inc-item p { font-size: 14.5px; }
+  }
   /* Why choose Autocut: three plain cards, each with an icon tile (like Cal AI). */
   .why .wrap { max-width: 1200px; }
   .why .head { max-width: 900px; }
@@ -1185,9 +1198,27 @@
     const items = [...sec.querySelectorAll('.inc-item')], imgs = [...sec.querySelectorAll('.inc-screen img')], dots = [...sec.querySelectorAll('.inc-dots button')];
     let at = 0, timer = null, seen = false;
     const pick = (n) => { at = n; [items, imgs, dots].forEach((list) => list.forEach((el, k) => el.classList.toggle('on', k === n))); };
-    const run = () => { clearInterval(timer); timer = seen && !matchMedia('(prefers-reduced-motion: reduce)').matches ? setInterval(() => pick((at + 1) % items.length), 5000) : null; };
-    items.forEach((el, k) => el.addEventListener('click', () => { pick(k); run(); }));
-    dots.forEach((el, k) => el.addEventListener('click', () => { pick(k); run(); }));
+    const run = () => { clearInterval(timer); timer = seen && !matchMedia('(prefers-reduced-motion: reduce)').matches ? setInterval(() => go((at + 1) % items.length), 5000) : null; };
+    // On phones the cards are a sideways row: keep the picked card in view, and pick whichever card is
+    // swiped to the middle.
+    const list = sec.querySelector('.inc-list'), sideways = () => getComputedStyle(list).flexDirection === 'row';
+    let auto = false, settle = 0;
+    // Where a card's centre is, measured from the row's visible left edge.
+    const centre = (it) => { const r = it.getBoundingClientRect(), l = list.getBoundingClientRect(); return r.left - l.left + r.width / 2; };
+    const show = (n) => { if (!sideways()) return; auto = true; list.scrollBy({ left: centre(items[n]) - list.clientWidth / 2, behavior: 'smooth' }); clearTimeout(settle); settle = setTimeout(() => (auto = false), 700); };
+    const go = (n) => { pick(n); show(n); };
+    list.addEventListener('scroll', () => {
+      if (auto || !sideways()) return;
+      clearTimeout(settle);
+      settle = setTimeout(() => {
+        const mid = list.clientWidth / 2;
+        let best = 0;
+        items.forEach((it, k) => { if (Math.abs(centre(it) - mid) < Math.abs(centre(items[best]) - mid)) best = k; });
+        if (best !== at) { pick(best); run(); }
+      }, 120);
+    }, { passive: true });
+    items.forEach((el, k) => el.addEventListener('click', () => { go(k); run(); }));
+    dots.forEach((el, k) => el.addEventListener('click', () => { go(k); run(); }));
     new IntersectionObserver(([e]) => { seen = e.isIntersecting; run(); }, { threshold: 0.35 }).observe(sec);
   })();
 </script>
