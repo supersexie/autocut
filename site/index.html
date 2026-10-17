@@ -923,14 +923,14 @@
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li class="no">Overlap audio</li><li class="no">Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
-      <div class="plan pick reveal" data-monthly="49.99" data-edits="300">
-        <span class="ribbon">MOST POPULAR</span>
+      <div class="plan reveal" data-monthly="49.99" data-edits="300">
         <h3>Pro</h3><div class="for">For posting every day</div><div class="edits">300 AI edits a month</div>
         <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$33.49</span><small> / month</small></div><div class="billed"></div><div class="per"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li>Overlap audio</li><li>Scheduled batch edits</li></ul>
         <a class="btn btn-dark store-link" href="#">Get Autocut</a>
       </div>
-      <div class="plan reveal" data-monthly="99.99">
+      <div class="plan pick reveal" data-monthly="99.99">
+        <span class="ribbon">MOST POPULAR</span>
         <h3>Ultimate</h3><div class="for">For teams and high-volume creators</div><div class="edits">Unlimited AI edits</div>
         <div class="wasline"><s class="was"></s>&nbsp;</div><div class="price"><span class="amt">$66.99</span><small> / month</small></div><div class="billed"></div><div class="per"></div>
         <ul><li>Dead air, ums and retakes cut</li><li>Captions on every word</li><li>Batch edits</li><li>Overlap audio</li><li>Scheduled batch edits</li></ul>
@@ -1159,7 +1159,7 @@
   document.querySelectorAll('.toggle button').forEach((b) => b.addEventListener('click', () => wasPrices(b.dataset.billing)));
   wasPrices('yearly');
 
-  // Phones: plans swipe sideways, with dots ("Pro plan, 2 of 3"); Pro is shown first.
+  // Phones: plans swipe sideways, with dots ("Ultimate plan, 3 of 3"); Ultimate is shown first.
   const plansEl = document.querySelector('.plans'), planEls = [...document.querySelectorAll('.plan')];
   const dotBtns = [...document.querySelectorAll('#dots button')], dotsLabel = document.getElementById('dotsLabel');
   const names = planEls.map((p) => p.querySelector('h3').textContent);
@@ -1173,7 +1173,7 @@
   const toPlan = (i, smooth = true) => plansEl.scrollTo({ left: planEls[i].offsetLeft - (plansEl.clientWidth - planEls[i].offsetWidth) / 2, behavior: smooth ? 'smooth' : 'auto' });
   dotBtns.forEach((d, i) => d.addEventListener('click', () => toPlan(i)));
   plansEl.addEventListener('scroll', () => requestAnimationFrame(markDot), { passive: true });
-  if (matchMedia('(max-width: 760px)').matches) toPlan(1, false);
+  if (matchMedia('(max-width: 760px)').matches) toPlan(2, false);
   markDot();
 
   // FAQ topics.
