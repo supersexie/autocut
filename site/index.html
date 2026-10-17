@@ -108,17 +108,62 @@
     .hero-phone { margin-top: 0; padding: 0 30px; }
     .revbg { mask-image: radial-gradient(ellipse 48% 60% at 30% 42%, transparent 0%, transparent 45%, #000 80%); -webkit-mask-image: radial-gradient(ellipse 48% 60% at 30% 42%, transparent 0%, transparent 45%, #000 80%); }
   }
-  .tag { position: absolute; z-index: 3; display: flex; align-items: center; gap: 10px; padding: 12px 18px 12px 12px; border-radius: 999px; background: #fff; font-weight: 600; font-size: 15px; white-space: nowrap; box-shadow: 0 16px 40px rgba(17,17,20,.14); animation: float 6s ease-in-out infinite; }
-  .tag i { width: 28px; height: 28px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+  .tag { position: absolute; z-index: 3; display: flex; align-items: center; gap: 7px; padding: 7px 12px 7px 7px; border-radius: 999px; background: #fff; font-weight: 600; font-size: 13px; white-space: nowrap; box-shadow: 0 16px 40px rgba(17,17,20,.14); animation: float 6s ease-in-out infinite; }
+  .tag i { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+  .tag i svg { width: 11px; height: 11px; }
+
+  /* The hero phone's screen: a take being cut (strikes, then the timeline closes up), on a loop. */
+  .iphone.light .screen { background: #F4F4F6; }
+  .iphone.light .sb { color: var(--ink); background: none; }
+  .iphone.light .sb svg { fill: var(--ink); }
+  .iphone.light .sb svg rect[stroke] { stroke: var(--ink); }
+  .ui { position: absolute; inset: 0; display: flex; flex-direction: column; gap: .8em; padding: 4.2em 1.05em 1.1em; font-size: calc(var(--w) * .041); line-height: 1.35; color: var(--ink); text-align: left; }
+  .ui-head { display: flex; align-items: center; gap: .5em; font-weight: 700; font-size: 1.05em; }
+  .ui-head img { width: 1.5em; height: 1.5em; }
+  .ui-take { position: relative; height: 14.5em; border-radius: .9em; overflow: hidden; background: #222; flex: none; }
+  .ui-take img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; }
+  .ui-take span { position: absolute; bottom: .55em; padding: .3em .55em; border-radius: .45em; font: 600 .68em/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; color: #fff; }
+  .ui-raw { left: .55em; background: rgba(0,0,0,.55); animation: uiRaw 9s infinite; }
+  .ui-out { right: .55em; background: #E5383F; opacity: 0; animation: uiOut 9s infinite; }
+  .ui-cap { position: absolute; left: 8%; right: 8%; bottom: 2.6em; text-align: center; color: #fff; font-weight: 800; font-size: .95em; line-height: 1.2; text-shadow: 0 0 .25em rgba(0,0,0,.9), 0 .08em .1em rgba(0,0,0,.9); }
+  .ui-card { background: #fff; border-radius: .9em; padding: .85em .95em; box-shadow: inset 0 0 0 1px rgba(17,17,20,.06); }
+  .ui-label { font: 600 .66em/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: .6em; }
+  .ui-card p { margin: 0 0 .45em; font-size: .9em; }
+  .ui-card p:last-child { margin: 0; }
+  .ui-card s { text-decoration: none; position: relative; transition: color .3s; }
+  .ui-card s::after { content: ""; position: absolute; left: 0; right: 0; top: 55%; height: .12em; border-radius: 1em; background: #E5383F; transform: scaleX(0); transform-origin: left; }
+  .ui-card em { font: 600 .62em/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: #fff; background: #E5383F; padding: .25em .45em; border-radius: .4em; vertical-align: .15em; opacity: 0; }
+  .ui-tl { display: flex; gap: .18em; height: 1.9em; padding: .3em; border-radius: .6em; background: #fff; box-shadow: inset 0 0 0 1px rgba(17,17,20,.06); flex: none; }
+  .ui-tl i { border-radius: .3em; min-width: 0; }
+  .ui-tl .keep { background: var(--ink); }
+  .ui-tl .cut { background: repeating-linear-gradient(135deg, #E5383F 0 .25em, #F07A7F .25em .5em); }
+  .ui-done { margin-top: auto; display: flex; align-items: center; gap: .6em; padding: .7em .8em; border-radius: .9em; background: var(--ink); color: #fff; opacity: 0; transform: translateY(.6em); animation: uiDone 9s infinite; }
+  .ui-done i { width: 1.7em; height: 1.7em; border-radius: 50%; background: #2FB463; display: grid; place-items: center; flex: none; }
+  .ui-done svg { width: 1em; height: 1em; }
+  .ui-done span { display: flex; flex-direction: column; font-size: .78em; color: rgba(255,255,255,.7); }
+  .ui-done b { color: #fff; font-size: 1.2em; }
+  /* Each cut: its words are struck through, then its piece of the timeline closes up. */
+  .ui-card s.k1::after { animation: uiStrike 9s infinite .0s; } .ui-card s.k1 { animation: uiFade 9s infinite .0s; } .ui-card em.k1 { animation: uiTag 9s infinite; }
+  .ui-card s.k2::after { animation: uiStrike 9s infinite .6s; } .ui-card s.k2 { animation: uiFade 9s infinite .6s; }
+  .ui-card s.k3::after { animation: uiStrike 9s infinite 1.2s; } .ui-card s.k3 { animation: uiFade 9s infinite 1.2s; }
+  .ui-card s.k4::after { animation: uiStrike 9s infinite 1.8s; } .ui-card s.k4 { animation: uiFade 9s infinite 1.8s; }
+  .ui-tl .cut { animation: uiClose 9s infinite; }
+  @keyframes uiStrike { 0%, 8% { transform: scaleX(0); } 14%, 92% { transform: scaleX(1); } 100% { transform: scaleX(0); } }
+  @keyframes uiFade { 0%, 12% { color: inherit; } 18%, 92% { color: #B8B8BF; } 100% { color: inherit; } }
+  @keyframes uiTag { 0%, 12% { opacity: 0; } 18%, 92% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes uiClose { 0%, 40% { flex-grow: var(--g, 1); opacity: 1; } 52%, 92% { flex-grow: 0; flex-basis: 0; opacity: 0; margin: 0 -.09em; } 100% { opacity: 1; } }
+  @keyframes uiRaw { 0%, 52% { opacity: 1; } 58%, 92% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes uiOut { 0%, 52% { opacity: 0; } 58%, 92% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes uiDone { 0%, 56% { opacity: 0; transform: translateY(.6em); } 62%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(.6em); } }
   .tag.t2 { animation-delay: -2s; }
   .tag.t3 { animation-delay: -4s; }
   @keyframes float { 50% { transform: translateY(-8px); } }
 
   @media (max-width: 900px) {
     .hero-phone { margin-top: 40px; padding: 0 12px; }
-    .tag { font-size: 12px; padding: 7px 11px 7px 7px; gap: 7px; }
-    .tag i { width: 20px; height: 20px; }
-    .tag i svg { width: 11px; height: 11px; }
+    .tag { font-size: 11.5px; padding: 6px 10px 6px 6px; gap: 6px; }
+    .tag i { width: 18px; height: 18px; }
+    .tag i svg { width: 10px; height: 10px; }
     .tag.t1 { left: 0 !important; top: 14% !important; }
     .tag.t2 { right: 0 !important; top: 46% !important; }
     .tag.t3 { left: 0 !important; top: 78% !important; }
@@ -415,7 +460,8 @@
   /* Reveal on scroll */
   .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s ease, transform .7s ease; }
   .reveal.in { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; } .marquee, .tag, .ghost-row, .revrow, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) { .ui *, .ui *::after { animation: none !important; } .ui-card s { color: #B8B8BF; } .ui-card s::after { transform: scaleX(1); } .ui-card em, .ui-done, .ui-out { opacity: 1; transform: none; } .ui-raw { opacity: 0; } .ui-tl .cut { display: none; }
+    .reveal { opacity: 1; transform: none; } .marquee, .tag, .ghost-row, .revrow, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
 </style>
 </head>
 <body>
@@ -467,7 +513,19 @@
       <div class="rating" id="rating"><span class="badge-as" aria-hidden="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9.5 4.5 16 16M14.5 4.5 8 16M4 16h16M7.5 19.5l-1 1.5M16.5 19.5l1 1.5"/></svg></span><span class="stars" aria-hidden="true">★★★★★</span><span><b id="ratingScore"></b> · <span id="ratingCount"></span> ratings</span></div>
     </div>
     <div class="hero-phone" style="position:relative">
-      <div class="iphone" style="--w:min(320px, 70vw, calc((100svh - 150px) * .45))"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><video src="media/edited.mp4" poster="media/edited-poster.jpg" autoplay muted loop playsinline></video><div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
+      <div class="iphone light" style="--w:min(320px, 70vw, calc((100svh - 150px) * .45))"><i class="b b1"></i><i class="b b2"></i><i class="b b3"></i><i class="b b4"></i><div class="bezel"><div class="screen"><div class="ui" role="img" aria-label="Autocut cutting a 38-second take down to 21 seconds: the retake, the ums and a pause are cut out">
+            <div class="ui-head"><img src="media/logo.svg" alt=""><span>Cutting your take</span></div>
+            <div class="ui-take"><img src="media/raw-poster.jpg" alt=""><b class="ui-cap">This is the comfiest hoodie I own.</b><span class="ui-raw">RAW 0:38</span><span class="ui-out">CUT 0:21</span></div>
+            <div class="ui-card">
+              <div class="ui-label">What got cut</div>
+              <p><s class="k1">Okay so, wait, let me redo that.</s> <em class="k1">Retake</em></p>
+              <p>This is the comfiest hoodie I own.</p>
+              <p>It's <s class="k2">um</s> so soft and <s class="k3">uh</s> it fits perfectly.</p>
+              <p><s class="k4">(1.4 s pause)</s> Link's below.</p>
+            </div>
+            <div class="ui-tl" aria-hidden="true"><i class="keep" style="flex:6"></i><i class="cut k1" style="--g:5; flex:5"></i><i class="keep" style="flex:7"></i><i class="cut k2" style="--g:1.2; flex:1.2"></i><i class="keep" style="flex:3"></i><i class="cut k3" style="--g:1; flex:1"></i><i class="keep" style="flex:4"></i><i class="cut k4" style="--g:2.4; flex:2.4"></i><i class="keep" style="flex:3"></i></div>
+            <div class="ui-done"><i><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span><b>Ready to post</b>4 cuts · captioned</span></div>
+          </div><div class="island"></div><div class="sb"><span>9:41</span><svg viewBox="0 0 76 13" fill="#fff" aria-hidden="true"><rect x="0" y="8" width="3.2" height="5" rx="1"/><rect x="5" y="5.5" width="3.2" height="7.5" rx="1"/><rect x="10" y="3" width="3.2" height="10" rx="1"/><rect x="15" y=".5" width="3.2" height="12.5" rx="1"/><path d="M30.5 12.6l2.4-2.7a3.6 3.6 0 0 0-4.8 0zm-4.3-4.8a7.3 7.3 0 0 1 8.6 0l1.7-1.9a9.9 9.9 0 0 0-12 0zm-3.4-3.8a12.4 12.4 0 0 1 15.4 0l1.7-1.9a15 15 0 0 0-18.8 0z"/><rect x="47" y=".8" width="24" height="11.4" rx="3.5" fill="none" stroke="#fff" stroke-opacity=".5"/><rect x="49" y="2.8" width="20" height="7.4" rx="2"/><rect x="72.5" y="4.4" width="1.6" height="4.2" rx=".8" fill-opacity=".5"/></svg></div></div></div></div>
       <div class="tag t1" style="left:-14px; top:22%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Retakes cut</div>
       <div class="tag t2" style="right:-10px; top:42%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Ums removed</div>
       <div class="tag t3" style="left:0; top:62%"><i><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>Captions on every word</div>
