@@ -379,16 +379,12 @@
   .inc-item.on { background: #F4F4F6; border-color: var(--ink); box-shadow: 0 16px 40px -22px rgba(17,17,20,.3); }
   .inc-item h3 { font-family: inherit; font-size: 21px; font-weight: 650; letter-spacing: -.02em; margin: 0 0 6px; }
   .inc-item p { margin: 0; color: var(--muted); font-size: 15.5px; line-height: 1.55; }
-  .inc-item .bar { position: absolute; left: 28px; right: 28px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--ink); transform: scaleX(0); transform-origin: left; opacity: 0; }
-  .inc-item.on .bar { opacity: 1; animation: incbar 5.5s linear forwards; }
-  .inc.paused .inc-item.on .bar { animation-play-state: paused; }
-  @keyframes incbar { to { transform: scaleX(1); } }
+  .inc-item:focus { outline: none; } .inc-item:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
   @media (min-width: 901px) {
     .inc-grid { grid-template-columns: .85fr 1.15fr; gap: 72px; align-items: start; }
     .inc-phone-col { position: sticky; top: 100px; }
   }
-  @media (max-width: 760px) { .inc-item { padding: 20px; } .inc-item h3 { font-size: 19px; } .inc-item .bar { left: 20px; right: 20px; } }
-  @media (prefers-reduced-motion: reduce) { .inc-item.on .bar { animation: none; } }
+  @media (max-width: 760px) { .inc-item { padding: 20px; } .inc-item h3 { font-size: 19px; } }
   @media (max-width: 960px) and (min-width: 761px) { .step-phone { width: 168px; margin-left: -84px; } .step-stage { height: 300px; } .step-body { padding: 20px 20px 24px; } }
   @media (max-width: 760px) {
     .steps { grid-template-columns: 1fr; gap: 16px; max-width: 440px; margin: 0 auto; }
@@ -769,11 +765,11 @@
         <div class="inc-dots" role="group" aria-label="Screens"><button type="button" aria-label="Show Every um, pause and retake, gone" class="on"></button><button type="button" aria-label="Show Captions on every word"></button><button type="button" aria-label="Show Titles in creator styles"></button><button type="button" aria-label="Show B-roll, photos and music"></button><button type="button" aria-label="Show Schedule your edits"></button></div>
       </div>
       <div class="inc-list reveal">
-        <button type="button" class="inc-item on"><h3>Every um, pause and retake, gone</h3><p>Autocut hears every word, drops the filler and dead air, and keeps your best take. Each cut sits on a real timeline you can trim, split or undo.</p><i class="bar" aria-hidden="true"></i></button>
-        <button type="button" class="inc-item"><h3>Captions on every word</h3><p>Timed to the word. Pick a look and a colour, then drag and resize them right on the video.</p><i class="bar" aria-hidden="true"></i></button>
-        <button type="button" class="inc-item"><h3>Titles in creator styles</h3><p>Type a hook, pick Classic, White Box, Dark Box or Loud, and place it anywhere on screen.</p><i class="bar" aria-hidden="true"></i></button>
-        <button type="button" class="inc-item"><h3>B-roll, photos and music</h3><p>Drop clips and photos over your video, resize and move them, and add a song under it all.</p><i class="bar" aria-hidden="true"></i></button>
-        <button type="button" class="inc-item"><h3>Schedule your edits</h3><p>Pick a time and it gets cut then, even with your phone off. It will be waiting in Cuts.</p><i class="bar" aria-hidden="true"></i></button>
+        <button type="button" class="inc-item on"><h3>Every um, pause and retake, gone</h3><p>Autocut hears every word, drops the filler and dead air, and keeps your best take. Each cut sits on a real timeline you can trim, split or undo.</p></button>
+        <button type="button" class="inc-item"><h3>Captions on every word</h3><p>Timed to the word. Pick a look and a colour, then drag and resize them right on the video.</p></button>
+        <button type="button" class="inc-item"><h3>Titles in creator styles</h3><p>Type a hook, pick Classic, White Box, Dark Box or Loud, and place it anywhere on screen.</p></button>
+        <button type="button" class="inc-item"><h3>B-roll, photos and music</h3><p>Drop clips and photos over your video, resize and move them, and add a song under it all.</p></button>
+        <button type="button" class="inc-item"><h3>Schedule your edits</h3><p>Pick a time and it gets cut then, even with your phone off. It will be waiting in Cuts.</p></button>
       </div>
     </div>
   </div>
@@ -1153,18 +1149,16 @@
   });
   document.querySelectorAll('.hero .store, .final .store').forEach((b) => so.observe(b));
 
-  // What's inside: the phone shows the picked card's screen; the next one comes up when its bar fills (only while on screen).
+  // What's inside: the phone shows the picked card's screen, and moves on to the next every few seconds while on screen.
   (() => {
     const sec = document.getElementById('inside'); if (!sec) return;
     const items = [...sec.querySelectorAll('.inc-item')], imgs = [...sec.querySelectorAll('.inc-screen img')], dots = [...sec.querySelectorAll('.inc-dots button')];
-    const pick = (n) => {
-      [items, imgs, dots].forEach((list) => list.forEach((el, k) => el.classList.toggle('on', k === n)));
-      const bar = items[n].querySelector('.bar'); bar.style.animation = 'none'; void bar.offsetWidth; bar.style.animation = '';
-    };
-    items.forEach((el, k) => { el.addEventListener('click', () => pick(k)); el.querySelector('.bar').addEventListener('animationend', () => pick((k + 1) % items.length)); });
-    dots.forEach((el, k) => el.addEventListener('click', () => pick(k)));
-    sec.classList.add('paused');
-    new IntersectionObserver(([e]) => sec.classList.toggle('paused', !e.isIntersecting), { threshold: 0.35 }).observe(sec);
+    let at = 0, timer = null, seen = false;
+    const pick = (n) => { at = n; [items, imgs, dots].forEach((list) => list.forEach((el, k) => el.classList.toggle('on', k === n))); };
+    const run = () => { clearInterval(timer); timer = seen && !matchMedia('(prefers-reduced-motion: reduce)').matches ? setInterval(() => pick((at + 1) % items.length), 5000) : null; };
+    items.forEach((el, k) => el.addEventListener('click', () => { pick(k); run(); }));
+    dots.forEach((el, k) => el.addEventListener('click', () => { pick(k); run(); }));
+    new IntersectionObserver(([e]) => { seen = e.isIntersecting; run(); }, { threshold: 0.35 }).observe(sec);
   })();
 </script>
 </body>
