@@ -450,16 +450,16 @@
   .toggle { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line), 0 10px 26px -14px rgba(17,17,20,.2); margin: 0 auto 44px; }
   .toggle button { height: 42px; padding: 0 22px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; cursor: pointer; transition: background .25s, color .25s; }
   .toggle button.on { background: var(--ink); color: #fff; box-shadow: 0 6px 16px rgba(17,17,20,.22); }
-  .toggle em { font-style: normal; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #E5383F; color: #fff; }
+  .toggle em { font-style: normal; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: #E9E9ED; color: var(--ink); }
+  .toggle button.on em { background: rgba(255,255,255,.16); color: #fff; }
   .plans { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: stretch; max-width: 1080px; margin: 0 auto; }
   .plan { position: relative; isolation: isolate; overflow: hidden; background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 28px; padding: 34px 32px 32px; display: flex; flex-direction: column; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 24px 60px -36px rgba(17,17,20,.28); transition: translate .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s; }
   .plan:hover { translate: 0 -4px; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 34px 70px -36px rgba(17,17,20,.34); }
   .plan.pick { background: #0E0E11; color: #fff; border-color: transparent; margin: -14px 0; box-shadow: 0 40px 80px -30px rgba(17,17,20,.55); }
-  .plan.pick::before { content: ""; position: absolute; z-index: -1; inset: 0; background: radial-gradient(90% 55% at 100% 0%, rgba(229,56,63,.3), transparent 70%), radial-gradient(70% 50% at 0% 100%, rgba(255,255,255,.06), transparent 70%); }
-  .plan .ribbon { position: absolute; top: 24px; right: 24px; font: 700 10.5px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, sans-serif; letter-spacing: .1em; padding: 7px 10px; border-radius: 999px; background: #E5383F; color: #fff; box-shadow: 0 6px 18px rgba(229,56,63,.4); }
+  .plan.pick::before { content: ""; position: absolute; z-index: -1; inset: 0; background: radial-gradient(90% 55% at 100% 0%, rgba(255,255,255,.09), transparent 70%); }
+  .plan .ribbon { position: absolute; top: 24px; right: 24px; font: 700 10.5px/1 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Inter, sans-serif; letter-spacing: .1em; padding: 7px 10px; border-radius: 999px; background: #fff; color: var(--ink); }
   .plan h3 { font-family: inherit; font-size: 24px; font-weight: 650; letter-spacing: -.02em; margin: 0; }
   .plan .edits { align-self: flex-start; display: inline-flex; align-items: center; gap: 8px; margin: 0 0 24px; padding: 7px 12px; border-radius: 999px; background: #F4F4F6; color: var(--ink); font-size: 13.5px; font-weight: 600; }
-  .plan .edits::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #E5383F; }
   .plan.pick .edits { background: rgba(255,255,255,.08); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
   .plan.pick .billed, .plan.pick li.no, .plan.pick .per { color: #A1A1A8; }
   .price { font-family: inherit; font-weight: 700; font-size: 52px; letter-spacing: -.035em; line-height: 1; font-variant-numeric: tabular-nums; }
@@ -471,7 +471,7 @@
   .plan.pick ul { border-top-color: rgba(255,255,255,.1); }
   .plan li { display: flex; gap: 11px; align-items: flex-start; }
   .plan li::before { content: ""; flex: none; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") center / 12px no-repeat; }
-  .plan.pick li::before { background-color: #E5383F; box-shadow: 0 0 10px rgba(229,56,63,.5); }
+  .plan.pick li::before { background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111114' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E"); }
   .plan li.no { color: var(--faint); }
   .plan li.no::before { background: #F0F0F3 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23A1A1A8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M7 7l10 10M17 7L7 17'/%3E%3C/svg%3E") center / 11px no-repeat; box-shadow: none; }
   .plan.pick li.no::before { background-color: #2A2A2E; }
@@ -492,19 +492,30 @@
   }
 
   /* ---------- FAQ ---------- */
-  .faq { max-width: 780px; margin: 0 auto; }
-  details { background: var(--card); border-radius: 20px; margin-bottom: 12px; padding: 0 26px; transition: background .2s; }
-  summary { list-style: none; cursor: pointer; padding: 22px 0; font-weight: 600; font-size: 17.5px; display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .faq-grid { display: grid; gap: 36px; max-width: 1200px; margin: 0 auto; }
+  .faq-side .h { font-size: clamp(36px, 4.4vw, 58px); margin: 14px 0 14px; }
+  .faq-side > p { font-size: 17px; color: var(--muted); margin: 0 0 26px; max-width: 26em; }
+  .faq-side .contact { margin-top: 22px; }
+  .faq-list { background: #fff; border: 1px solid rgba(17,17,20,.07); border-radius: 28px; padding: 6px 30px; box-shadow: 0 1px 0 rgba(17,17,20,.03), 0 30px 70px -40px rgba(17,17,20,.25); }
+  details { border-bottom: 1px solid #EFEFF2; }
+  details.last { border-bottom: 0; }
+  summary { list-style: none; cursor: pointer; padding: 24px 0; font-weight: 600; font-size: 17.5px; letter-spacing: -.01em; display: flex; justify-content: space-between; align-items: center; gap: 20px; transition: color .2s; }
   summary::-webkit-details-marker { display: none; }
-  summary::after { content: "+"; font-size: 26px; font-weight: 400; color: var(--muted); transition: transform .25s; }
-  details[open] summary::after { transform: rotate(45deg); }
-  details p { margin: -6px 0 22px; color: var(--muted); }
+  summary:hover { color: #3A3A40; }
+  /* A plus in a circle that turns into a minus when open. */
+  summary::after { content: ""; flex: none; width: 32px; height: 32px; border-radius: 50%; background: #F4F4F6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111114' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 6v12M6 12h12'/%3E%3C/svg%3E") center / 14px no-repeat; transition: transform .3s cubic-bezier(.2,.7,.2,1), background-color .2s; }
+  details[open] summary::after { transform: rotate(135deg); background-color: var(--ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M12 6v12M6 12h12'/%3E%3C/svg%3E"); }
+  details p { margin: -6px 52px 24px 0; color: var(--muted); font-size: 16px; line-height: 1.65; }
+  details[open] p { animation: faqIn .35s ease; }
+  @keyframes faqIn { from { opacity: 0; transform: translateY(-6px); } }
+  @media (min-width: 901px) {
+    .faq-grid { grid-template-columns: .8fr 1.2fr; gap: 72px; align-items: start; }
+    .faq-side { position: sticky; top: 110px; }
+  }
+  @media (max-width: 900px) { .faq-side { text-align: center; } .faq-side > p { margin-left: auto; margin-right: auto; } }
+  @media (max-width: 760px) { .faq-list { padding: 2px 20px; border-radius: 22px; } summary { font-size: 16px; padding: 20px 0; } summary::after { width: 28px; height: 28px; } details p { margin-right: 0; font-size: 15px; } }
 
   /* ---------- Final CTA ---------- */
-  .final { background: var(--wash); text-align: center; padding: 120px 0 130px; }
-  .final .h { font-size: clamp(48px, 8vw, 104px); margin-bottom: 22px; }
-  .final p { font-size: 19px; color: var(--muted); margin: 0 0 34px; }
-  .final .icon { width: 96px; height: 96px; border-radius: 22px; margin: 0 auto 30px; box-shadow: 0 20px 50px rgba(17,17,20,.25); }
 
   /* ---------- Footer ---------- */
   footer { background: var(--ink); color: #A1A1A8; padding: 48px 0 calc(48px + env(safe-area-inset-bottom)); font-size: 14px; }
@@ -539,18 +550,6 @@
   .stack i:nth-child(2) { background: #3A3A3F; } .stack i:nth-child(3) { background: #6B6B73; }
   .pill.small { height: 30px; padding: 0 12px; font-size: 13px; font-weight: 500; background: rgba(255,255,255,.6); }
   .ghosts { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, #000 15%, #000 85%, transparent); }
-  .hero-bg { position: absolute; z-index: 0; inset: 0; overflow: hidden; pointer-events: none; -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 78%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0%, #000 12%, #000 78%, transparent 100%); }
-  .hb-row { position: absolute; left: 0; display: flex; gap: 24px; width: max-content; animation: hbdrift 90s linear infinite; }
-  .hb-row.r1 { top: 15%; } .hb-row.r2 { top: 54%; animation-direction: reverse; animation-duration: 110s; }
-  .hb-card { width: 330px; height: 186px; flex: none; padding: 22px 24px; border-radius: 6px; background: rgba(255,255,255,.42); border: 1px solid rgba(17,17,20,.06); display: flex; flex-direction: column; }
-  .hb-card .k { font: 600 10.5px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: rgba(17,17,20,.16); display: flex; align-items: center; gap: 7px; }
-  .hb-card .k svg { width: 12px; height: 12px; }
-  .hb-card b { margin-top: 14px; font-size: 18px; font-weight: 650; letter-spacing: -.01em; color: rgba(17,17,20,.15); }
-  .hb-card p { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; color: rgba(17,17,20,.115); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .hb-card small { margin-top: auto; font: 600 10.5px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; color: rgba(17,17,20,.13); }
-  @keyframes hbdrift { to { transform: translateX(-50%); } }
-  @media (max-width: 760px) { .hb-card { width: 250px; height: 160px; padding: 18px; } .hb-card b { font-size: 16px; } .hb-card p { font-size: 13px; -webkit-line-clamp: 2; } .hb-row.r1 { top: 10%; } .hb-row.r2 { top: 62%; } }
-  @media (prefers-reduced-motion: reduce) { .hb-row { animation: none; } }
   .ghost-row { position: absolute; left: 0; display: flex; gap: 18px; width: max-content; animation: drift 70s linear infinite; }
   .ghost-row.r2 { animation-direction: reverse; animation-duration: 85s; }
   .ghost-row.r3 { animation-duration: 95s; }
@@ -618,7 +617,6 @@
   @media (max-width: 760px) { .dots { display: flex; } }
 
   /* ---------- FAQ tabs ---------- */
-  .faq-top { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap; }
   .tabs { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line); }
   .tabs button { height: 38px; padding: 0 16px; border: 0; border-radius: 999px; background: transparent; font-weight: 600; font-size: 14.5px; color: var(--muted); }
   .tabs button.on { background: var(--ink); color: #fff; }
@@ -686,7 +684,6 @@
 
 <div class="hero-wash">
 <header class="hero" id="top">
-  <div class="hero-bg" aria-hidden="true"><div class="hb-row r1"><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ums cut</b><p>14 filler words and 38 seconds of dead air removed. Your pace stays natural.</p><small>0:42 → 0:27</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Best take kept</b><p>You said the intro four times. Autocut kept the one without the stumble.</p><small>RETAKES · 4 → 1</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Every word captioned</b><p>Timed to the word, in the style you picked. Drag them anywhere on the video.</p><small>CAPTIONS · 112 WORDS</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ready while you film</b><p>Sent at 9:04, ready at 9:05. Your next take is already rolling.</p><small>ABOUT A MINUTE</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ten videos, one tap</b><p>A week of content lined up and edited in one go with Edit all.</p><small>BATCH · 10 VIDEOS</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ums cut</b><p>14 filler words and 38 seconds of dead air removed. Your pace stays natural.</p><small>0:42 → 0:27</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Best take kept</b><p>You said the intro four times. Autocut kept the one without the stumble.</p><small>RETAKES · 4 → 1</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Every word captioned</b><p>Timed to the word, in the style you picked. Drag them anywhere on the video.</p><small>CAPTIONS · 112 WORDS</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ready while you film</b><p>Sent at 9:04, ready at 9:05. Your next take is already rolling.</p><small>ABOUT A MINUTE</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ten videos, one tap</b><p>A week of content lined up and edited in one go with Edit all.</p><small>BATCH · 10 VIDEOS</small></div></div><div class="hb-row r2"><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Long pauses gone</b><p>The gaps where you stopped to think are tightened, so the video keeps moving.</p><small>DEAD AIR · −31 S</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Scheduled for Monday</b><p>It uploads now and gets cut at 2:00 PM, even with your phone off.</p><small>SCHEDULE · MON 2:00 PM</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Exported in full quality</b><p>Saved to Photos and ready for TikTok or Instagram.</p><small>EXPORT · 1080P</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ums cut</b><p>14 filler words and 38 seconds of dead air removed. Your pace stays natural.</p><small>0:42 → 0:27</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Best take kept</b><p>You said the intro four times. Autocut kept the one without the stumble.</p><small>RETAKES · 4 → 1</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Long pauses gone</b><p>The gaps where you stopped to think are tightened, so the video keeps moving.</p><small>DEAD AIR · −31 S</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Scheduled for Monday</b><p>It uploads now and gets cut at 2:00 PM, even with your phone off.</p><small>SCHEDULE · MON 2:00 PM</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Exported in full quality</b><p>Saved to Photos and ready for TikTok or Instagram.</p><small>EXPORT · 1080P</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Ums cut</b><p>14 filler words and 38 seconds of dead air removed. Your pace stays natural.</p><small>0:42 → 0:27</small></div><div class="hb-card"><span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="6" cy="6.5" r="2.6"/><circle cx="6" cy="17.5" r="2.6"/><path d="M8.2 8l11.3 9M8.2 16l11.3-9"/></svg>AUTOCUT</span><b>Best take kept</b><p>You said the intro four times. Autocut kept the one without the stumble.</p><small>RETAKES · 4 → 1</small></div></div></div>
   <div class="wrap">
     <div class="hero-top">
     <div class="hero-copy">
@@ -936,15 +933,15 @@
 
 <section id="faq" class="panel">
   <div class="wrap">
-    <div class="head reveal">
-      <div class="eyebrow">FAQ</div>
-      <h2 class="h">Questions, answered.</h2>
-    </div>
-    <div class="faq reveal">
-      <div class="faq-top">
+    <div class="faq-grid">
+      <div class="faq-side reveal">
+        <div class="eyebrow">FAQ</div>
+        <h2 class="h">Questions, answered.</h2>
+        <p>The cuts, the app and billing, in plain words.</p>
         <div class="tabs" role="tablist" aria-label="Question topics"><button role="tab" class="on" data-cat="cuts" aria-selected="true">The cuts</button><button role="tab" data-cat="app" aria-selected="false">The app</button><button role="tab" data-cat="billing" aria-selected="false">Billing</button></div>
         <a class="contact" id="contact" href="#">Contact us →</a>
       </div>
+      <div class="faq-list reveal">
       <details data-cat="cuts"><summary>What does Autocut cut, exactly?</summary><p>Long pauses (dead air), filler words like "um" and "uh", stutters, and retakes: when you say a line again, it keeps your last attempt and cuts the earlier one. Then it captions every word that's left.</p></details>
       <details data-cat="cuts"><summary>Can I change what it cut?</summary><p>Yes. Your cut opens in a full editor: trim, split, change speed, restore anything, edit captions, and add text, music, photos and clips. Undo is always there.</p></details>
       <details data-cat="cuts"><summary>Is there a watermark? What quality does it export?</summary><p>No watermark. Exports go up to 4K and 60 fps, and save straight to Photos, with one tap to TikTok or Instagram.</p></details>
@@ -957,21 +954,11 @@
       <details data-cat="billing"><summary>What counts as an edit?</summary><p>Each video Autocut cuts for you. Stopped or failed cuts don't count, and your edits reset at the start of every month.</p></details>
       <details data-cat="billing"><summary>How do I cancel or change my plan?</summary><p>In the app, under Your plan. If you subscribed through the App Store, you can also cancel in your iPhone's Settings › Apple ID › Subscriptions. You keep your plan until the end of the period you paid for.</p></details>
       <details data-cat="billing"><summary>Do you offer refunds?</summary><p>Purchases made through the App Store are refunded by Apple: request one at reportaproblem.apple.com. For anything else, contact us.</p></details>
+      </div>
     </div>
   </div>
 </section>
 
-<section class="final">
-  <div class="wrap reveal">
-    <img class="icon" src="media/logo.svg" alt="">
-    <h2 class="h">Stop editing.<br>Start posting.</h2>
-    <p>Raw take in. Tight cut out.</p>
-    <a class="btn btn-dark store store-link" href="#" aria-label="Download Autocut on the App Store">
-      <svg width="24" height="29" viewBox="0 0 814 1000" aria-hidden="true"><path fill="#fff" d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-165-40c-77 0-104 41-167 41s-106-57-156-128C42 787-5 657-5 534c0-198 129-303 256-303 67 0 124 44 166 44 40 0 103-47 180-47 29 0 133 3 201 113zM555 158c31-37 53-88 53-139 0-7-1-14-2-20-50 2-110 33-146 75-28 32-55 83-55 135 0 8 1 15 2 18 3 1 9 2 14 2 45 0 102-30 134-71z"/></svg>
-      <span><small>Download on the</small><b>App Store</b></span>
-    </a>
-  </div>
-</section>
 
 </main>
 <footer>
@@ -1182,6 +1169,8 @@
   function showCat(cat) {
     document.querySelectorAll('.tabs button').forEach((b) => { const on = b.dataset.cat === cat; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); });
     document.querySelectorAll('details[data-cat]').forEach((d) => { d.hidden = d.dataset.cat !== cat; if (d.hidden) d.open = false; });
+    const shown = [...document.querySelectorAll('details[data-cat]:not([hidden])')];
+    document.querySelectorAll('details[data-cat]').forEach((d) => d.classList.toggle('last', d === shown[shown.length - 1]));
   }
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => showCat(b.dataset.cat)));
   showCat('cuts');
@@ -1218,13 +1207,13 @@
 
   // Phones: a sticky App Store button once the hero's button scrolls away.
   const sticky = document.getElementById('sticky');
-  // Hidden while the hero's or the final App Store button is on screen (no point showing two).
+  // Hidden while the hero's App Store button is on screen (no point showing two).
   const seen = new Map();
   const so = new IntersectionObserver((es) => {
     es.forEach((e) => seen.set(e.target, e.isIntersecting));
     sticky.classList.toggle('show', ![...seen.values()].some(Boolean));
   });
-  document.querySelectorAll('.hero .store, .final .store').forEach((b) => so.observe(b));
+  document.querySelectorAll('.hero .store').forEach((b) => so.observe(b));
 
   // What's inside: the phone shows the picked card's screen, and moves on to the next every few seconds while on screen.
   (() => {
