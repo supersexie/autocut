@@ -60,7 +60,15 @@
 
   /* ---------- Nav ---------- */
   /* Top bar: just the logo and one button, floating over the hero (no bar, no line). */
-  nav { position: absolute; top: 0; left: 0; right: 0; z-index: 30; background: transparent; }
+  nav { position: fixed; top: 0; left: 0; right: 0; z-index: 30; background: transparent; pointer-events: none; }
+  nav .wrap { pointer-events: auto; transition: max-width .55s cubic-bezier(.32,.72,0,1), height .55s cubic-bezier(.32,.72,0,1), margin-top .55s cubic-bezier(.32,.72,0,1), padding .55s cubic-bezier(.32,.72,0,1), background-color .4s ease, box-shadow .4s ease, border-radius .55s ease; border-radius: 0; }
+  /* Scrolled: the bar shrinks into a frosted pill, centred, following you down the page (like Everygen). */
+  nav.scrolled .wrap { max-width: 680px !important; height: 60px !important; margin-top: 12px; padding: 0 8px 0 18px !important; border-radius: 999px; background-color: rgba(255,255,255,.72); backdrop-filter: saturate(1.8) blur(18px); -webkit-backdrop-filter: saturate(1.8) blur(18px); box-shadow: 0 10px 34px rgba(17,17,20,.12), 0 0 0 1px rgba(17,17,20,.06); }
+  nav .brand img, nav .brand span, nav .links .btn { transition: all .55s cubic-bezier(.32,.72,0,1); }
+  nav.scrolled .brand img { width: 30px; height: 30px; }
+  nav.scrolled .brand span { font-size: 19px; }
+  nav.scrolled .links .btn { height: 44px !important; padding: 0 20px !important; font-size: 15px !important; box-shadow: none; }
+  @media (max-width: 760px) { nav.scrolled .wrap { width: auto; margin: 10px 12px 0; height: 56px !important; padding: 0 6px 0 14px !important; } nav.scrolled .links .btn { height: 42px !important; padding: 0 16px !important; } }
   nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 88px; }
   .brand { display: flex; align-items: center; gap: 10px; }
   .brand img { width: 34px; height: 34px; border-radius: 9px; }
@@ -943,6 +951,10 @@
   // Phone menu.
   const menuBtn = document.getElementById('menuBtn'), sheet = document.getElementById('sheet');
   const setMenu = (open) => { sheet.classList.toggle('open', open); menuBtn.setAttribute('aria-expanded', open); };
+  const navEl = document.querySelector('nav');
+  const onScroll = () => navEl.classList.toggle('scrolled', scrollY > 24);
+  addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
   menuBtn.addEventListener('click', () => setMenu(!sheet.classList.contains('open')));
   sheet.querySelectorAll('a').forEach((a) => a.addEventListener('click', () => setMenu(false)));
 
