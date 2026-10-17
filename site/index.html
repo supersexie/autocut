@@ -405,23 +405,46 @@
   .feat-video { background: #EFEFF2; }
 
   /* ---------- Calculator ---------- */
-  .calc { background: var(--ink); color: #fff; border-radius: 36px; padding: 56px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
-  .calc .h { font-size: clamp(34px, 4.6vw, 54px); }
-  .calc p.muted { color: #A1A1A8; margin: 14px 0 0; font-size: 17px; }
+  .calc { position: relative; isolation: isolate; overflow: hidden; background: #0E0E11; color: #fff; border-radius: 36px; padding: 64px; display: grid; grid-template-columns: .95fr 1.05fr; gap: 56px; align-items: center; box-shadow: 0 40px 90px -40px rgba(17,17,20,.55); }
+  /* A soft red glow and a faint grid behind it. */
+  .calc::before { content: ""; position: absolute; z-index: -1; inset: 0; background: radial-gradient(60% 70% at 100% 0%, rgba(229,56,63,.22), transparent 60%), radial-gradient(50% 60% at 0% 100%, rgba(255,255,255,.06), transparent 70%); }
+  .calc::after { content: ""; position: absolute; z-index: -1; inset: 0; background-image: linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px); background-size: 48px 48px; -webkit-mask-image: radial-gradient(80% 80% at 30% 40%, #000, transparent); mask-image: radial-gradient(80% 80% at 30% 40%, #000, transparent); }
+  .calc .eyebrow { color: #A1A1A8; }
+  .calc .h { font-size: clamp(34px, 4.2vw, 54px); margin: 14px 0 0; }
+  .calc p.muted { color: #A1A1A8; margin: 16px 0 0; font-size: 17px; max-width: 30em; }
+  /* By hand vs Autocut, as two bars. */
+  .vs { margin-top: 36px; display: grid; gap: 16px; }
+  .vs-row { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 14px; font-size: 14px; }
+  .vs-row > span { color: #A1A1A8; font-weight: 500; }
+  .vs-row b { font-variant-numeric: tabular-nums; font-weight: 650; min-width: 74px; text-align: right; }
+  .vs-track { height: 12px; border-radius: 99px; background: rgba(255,255,255,.06); overflow: hidden; }
+  .vs-bar { height: 100%; width: 100%; border-radius: 99px; background: rgba(255,255,255,.28); transition: width .5s cubic-bezier(.2,.7,.2,1); }
+  .vs-row.ac .vs-bar { background: #E5383F; box-shadow: 0 0 18px rgba(229,56,63,.6); min-width: 12px; }
+  .vs-row.ac > span { color: #fff; }
+  /* The sliders and the answer. */
+  .calc-panel { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); border-radius: 26px; padding: 30px; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .field { margin-bottom: 26px; }
-  .field label { display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 12px; }
-  .field label output { font-variant-numeric: tabular-nums; }
-  input[type=range] { --p: 50%; -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 6px; background: linear-gradient(90deg, #fff var(--p), #2A2A2E var(--p)); outline: none; cursor: pointer; touch-action: none; }
+  .field label { display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 15px; color: #D4D4D8; margin-bottom: 14px; }
+  .field label output { font-variant-numeric: tabular-nums; color: #fff; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.1); border-radius: 99px; padding: 5px 12px; font-size: 14px; }
+  .field .scale { display: flex; justify-content: space-between; margin-top: 9px; font: 600 10.5px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .08em; color: #6B6B73; }
+  input[type=range] { --p: 50%; -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 6px; background: linear-gradient(90deg, #fff var(--p), rgba(255,255,255,.12) var(--p)); outline: none; cursor: pointer; touch-action: none; }
   input[type=range]:focus-visible { outline: 2px solid #fff; outline-offset: 4px; }
-  input[type=range]::-moz-range-track { height: 6px; border-radius: 6px; background: #2A2A2E; }
+  input[type=range]::-moz-range-track { height: 6px; border-radius: 6px; background: rgba(255,255,255,.12); }
   input[type=range]::-moz-range-progress { height: 6px; border-radius: 6px; background: #fff; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.4), 0 0 0 0 rgba(255,255,255,.25); cursor: grab; transition: transform .15s ease, box-shadow .2s ease; }
-  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.12); cursor: grabbing; box-shadow: 0 2px 10px rgba(0,0,0,.4), 0 0 0 8px rgba(255,255,255,.14); }
-  input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: #fff; cursor: pointer; }
-  .result { background: #1C1C1F; border-radius: 22px; padding: 26px; text-align: center; }
-  .result .big { font-family: inherit; font-weight: 700; font-size: 72px; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-  .result small { color: #A1A1A8; display: block; margin-top: 8px; }
-  @media (max-width: 860px) { .calc { grid-template-columns: 1fr; padding: 34px 24px; } }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 2px 10px rgba(0,0,0,.5), 0 0 0 5px rgba(255,255,255,.12); cursor: grab; transition: transform .15s ease, box-shadow .2s ease; }
+  input[type=range]:active::-webkit-slider-thumb { transform: scale(1.1); cursor: grabbing; box-shadow: 0 2px 10px rgba(0,0,0,.5), 0 0 0 9px rgba(255,255,255,.14); }
+  input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: #fff; cursor: pointer; }
+  .result { margin-top: 8px; padding-top: 26px; border-top: 1px solid rgba(255,255,255,.08); }
+  .result .lbl { font: 600 11px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: #A1A1A8; }
+  .result .line { display: flex; align-items: baseline; gap: 12px; margin-top: 12px; }
+  .result .big { font-family: inherit; font-weight: 700; font-size: clamp(64px, 6.4vw, 88px); letter-spacing: -.04em; line-height: .95; font-variant-numeric: tabular-nums; background: linear-gradient(180deg, #fff 30%, #C9C9CF); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .result .unit { font-size: 18px; font-weight: 600; color: #D4D4D8; }
+  .rstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+  .rstats div { background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; padding: 12px 14px; }
+  .rstats b { display: block; font-size: 20px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .rstats span { display: block; margin-top: 2px; font-size: 12.5px; color: #A1A1A8; }
+  @media (max-width: 960px) { .calc { grid-template-columns: 1fr; padding: 44px 32px; gap: 36px; } }
+  @media (max-width: 560px) { .calc { padding: 34px 20px; border-radius: 28px; } .calc-panel { padding: 22px 18px; } .vs-row { grid-template-columns: 70px 1fr auto; gap: 10px; } .rstats b { font-size: 17px; } .rstats div { padding: 10px; } }
 
   /* ---------- Pricing ---------- */
   .toggle { display: inline-flex; background: #fff; border-radius: 999px; padding: 5px; box-shadow: inset 0 0 0 1px var(--line); margin: 0 auto 36px; }
@@ -799,14 +822,26 @@
   <div class="wrap">
     <div class="calc reveal">
       <div>
-        <div class="eyebrow" style="color:#A1A1A8">Your time back</div>
-        <h2 class="h" style="margin-top:14px">How many hours would you save?</h2>
+        <div class="eyebrow">Your time back</div>
+        <h2 class="h">How many hours would you save?</h2>
         <p class="muted">Move the sliders to match how you post. Autocut does the cutting and captions in about a minute a video.</p>
+        <div class="vs" aria-label="Editing time a week">
+          <div class="vs-row"><span>By hand</span><div class="vs-track"><div class="vs-bar" id="barHand"></div></div><b id="handOut">5 h</b></div>
+          <div class="vs-row ac"><span>Autocut</span><div class="vs-track"><div class="vs-bar" id="barAc"></div></div><b id="acOut">10 min</b></div>
+        </div>
       </div>
-      <div>
-        <div class="field"><label for="vids">Videos a week <output id="vidsOut">10</output></label><input id="vids" type="range" min="1" max="50" step="0.01" value="10" aria-valuetext="10 videos a week"></div>
-        <div class="field"><label for="mins">Minutes you spend editing each <output id="minsOut">30</output></label><input id="mins" type="range" min="5" max="120" step="0.01" value="30" aria-valuetext="30 minutes"></div>
-        <div class="result"><div class="big" id="hours">4.8</div><small>hours back every week · <span id="year">250</span> hours a year</small></div>
+      <div class="calc-panel">
+        <div class="field"><label for="vids">Videos a week <output id="vidsOut">10</output></label><input id="vids" type="range" min="1" max="50" step="0.01" value="10" aria-valuetext="10 videos a week"><div class="scale" aria-hidden="true"><span>1</span><span>50</span></div></div>
+        <div class="field"><label for="mins">Minutes you spend editing each <output id="minsOut">30</output></label><input id="mins" type="range" min="5" max="120" step="0.01" value="30" aria-valuetext="30 minutes"><div class="scale" aria-hidden="true"><span>5 min</span><span>2 h</span></div></div>
+        <div class="result">
+          <div class="lbl">You get back</div>
+          <div class="line"><div class="big" id="hours">4.8</div><div class="unit">hours a week</div></div>
+          <div class="rstats">
+            <div><b id="month">21</b><span>hours a month</span></div>
+            <div><b id="year">250</b><span>hours a year</span></div>
+            <div><b id="days">31</b><span>workdays a year</span></div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="head reveal" style="margin:88px auto 36px">
@@ -1042,7 +1077,8 @@
   const vidsIn = document.getElementById('vids'), minsIn = document.getElementById('mins');
   // The sliders glide (fine steps); the labels show whole numbers and the result eases to its new
   // value instead of jumping.
-  const hoursEl = document.getElementById('hours'), yearEl = document.getElementById('year');
+  const hoursEl = document.getElementById('hours'), yearEl = document.getElementById('year'), monthEl = document.getElementById('month'), daysEl = document.getElementById('days');
+  const dur = (h) => (h < 1 ? Math.max(1, Math.round(h * 60)) + ' min' : (h < 10 ? h.toFixed(1).replace(/\.0$/, '') : Math.round(h)) + ' h');
   let shown = 0, target = 0, raf = 0;
   const fill = (el) => el.style.setProperty('--p', ((el.value - el.min) / (el.max - el.min)) * 100 + '%');
   function draw() {
@@ -1050,6 +1086,8 @@
     if (Math.abs(target - shown) < 0.01) shown = target;
     hoursEl.textContent = shown < 10 ? shown.toFixed(1) : Math.round(shown);
     yearEl.textContent = Math.round(shown * 52).toLocaleString();
+    monthEl.textContent = Math.round((shown * 52) / 12).toLocaleString();
+    daysEl.textContent = Math.round((shown * 52) / 8).toLocaleString();
     raf = shown === target ? 0 : requestAnimationFrame(draw);
   }
   function calc() {
@@ -1060,6 +1098,10 @@
     minsIn.setAttribute('aria-valuetext', `${m} minutes`);
     fill(vidsIn); fill(minsIn);
     target = Math.max(0, (v * (m - 1)) / 60);
+    // By hand vs Autocut (about a minute a video), as bars against the by-hand time.
+    document.getElementById('handOut').textContent = dur((v * m) / 60);
+    document.getElementById('acOut').textContent = dur(v / 60);
+    document.getElementById('barAc').style.width = (100 / m).toFixed(2) + '%';
     if (still) { shown = target; draw(); } else if (!raf) raf = requestAnimationFrame(draw);
   }
   vidsIn.oninput = minsIn.oninput = calc; calc();
