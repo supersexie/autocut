@@ -378,7 +378,7 @@
   .step:nth-child(2) .step-stage { background: radial-gradient(120% 90% at 50% 0%, #FFF7F7 0%, #FBE9EA 60%, #F6DADC 100%); }
   .step-stage::after { content: ""; position: absolute; inset: auto 0 0 0; height: 70px; background: linear-gradient(180deg, transparent, rgba(255,255,255,.85)); pointer-events: none; }
   .step-phone { position: absolute; left: 50%; top: 34px; width: 188px; margin-left: -94px; padding: 6px 6px 0; background: #111114; border-radius: 34px 34px 0 0; box-shadow: 0 24px 50px -18px rgba(17,17,20,.45); transition: transform .5s cubic-bezier(.2,.7,.2,1); }
-  .step-phone img { display: block; width: 100%; height: auto; border-radius: 28px 28px 0 0; }
+  .step-phone img, .step-phone video { display: block; width: 100%; height: auto; border-radius: 28px 28px 0 0; }
   .step:hover .step-phone { transform: translateY(-8px); }
   .step-tag { position: absolute; z-index: 2; top: 16px; left: 16px; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 11px; border-radius: 999px; background: rgba(255,255,255,.86); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: inset 0 0 0 1px rgba(17,17,20,.07); font: 600 11px/1 ui-monospace, "SF Mono", SFMono-Regular, Menlo, monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
   .step-tag b { color: var(--ink); }
@@ -397,6 +397,7 @@
   .inc-screen { position: relative; width: 100%; height: 100%; border-radius: 42px; overflow: hidden; background: #fff; }
   .inc-screen img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transform: scale(1.03); transition: opacity .5s ease, transform .7s cubic-bezier(.2,.7,.2,1); }
   .inc-screen img.on { opacity: 1; transform: none; }
+  .inc-screen video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .inc-dots { display: flex; gap: 8px; }
   .inc-dots button { width: 9px; height: 9px; padding: 0; border: 0; border-radius: 99px; background: rgba(17,17,20,.16); cursor: pointer; transition: width .3s, background .3s; }
   .inc-dots button.on { width: 26px; background: var(--ink); }
@@ -812,9 +813,9 @@
       <p>No timeline to scrub, no ums to hunt down. Autocut does the boring part while you film the next one.</p>
     </div>
     <div class="steps">
-      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>01</b> Film</span><div class="step-phone"><img src="media/batch.jpg" alt="Autocut's Batch screen with three videos made of several takes each" loading="lazy"></div></div><div class="step-body"><h3>Record or import</h3><p>Film in Autocut (pause and keep going as many takes as you need) or pick videos from Photos.</p></div></div>
-      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>02</b> Send</span><span class="step-tag time">~1 min</span><div class="step-phone"><img src="media/cutting.jpg" alt="Autocut cutting a video, 31% done" loading="lazy"></div></div><div class="step-body"><h3>Tap Send</h3><p>Autocut finds the dead air, filler words and retakes, keeps your best take, and captions every word. Most videos are ready in about a minute.</p></div></div>
-      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>03</b> Post</span><div class="step-phone"><img src="media/export.jpg" alt="The finished cut, saved to Photos, with TikTok and Instagram buttons" loading="lazy"></div></div><div class="step-body"><h3>Tweak and post</h3><p>Adjust anything in the editor, add text, music or B-roll, then export in full quality straight to TikTok or Instagram.</p></div></div>
+      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>01</b> Film</span><div class="step-phone"><video src="media/how.mp4" poster="media/how-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video></div></div><div class="step-body"><h3>Record or import</h3><p>Film in Autocut (pause and keep going as many takes as you need) or pick videos from Photos.</p></div></div>
+      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>02</b> Send</span><span class="step-tag time">~1 min</span><div class="step-phone"><video src="media/how.mp4" poster="media/how-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video></div></div><div class="step-body"><h3>Tap Send</h3><p>Autocut finds the dead air, filler words and retakes, keeps your best take, and captions every word. Most videos are ready in about a minute.</p></div></div>
+      <div class="step reveal"><div class="step-stage"><span class="step-tag"><b>03</b> Post</span><div class="step-phone"><video src="media/how.mp4" poster="media/how-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video></div></div><div class="step-body"><h3>Tweak and post</h3><p>Adjust anything in the editor, add text, music or B-roll, then export in full quality straight to TikTok or Instagram.</p></div></div>
     </div>
     <div class="sec-cta reveal"><a class="btn btn-dark get store-link" href="#">Get the app <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a></div>
   </div>
@@ -828,11 +829,7 @@
     <div class="inc-grid">
       <div class="inc-phone-col reveal">
         <div class="inc-phone"><div class="inc-screen">
-          <img src="media/editor.jpg" alt="The Autocut editor with the cut video, word captions and a timeline" loading="lazy" class="on">
-          <img src="media/style.jpg" alt="Picking a caption style and colour in Autocut" loading="lazy">
-          <img src="media/text-edit.jpg" alt="Typing a title in the White Box style" loading="lazy">
-          <img src="media/overlay.jpg" alt="Two photos placed over the video as B-roll" loading="lazy">
-          <img src="media/schedule.jpg" alt="Scheduling a video to be edited on Monday at 2 PM" loading="lazy">
+          <video src="media/include.mp4" poster="media/include-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="A finished video cut with Autocut"></video>
         </div></div>
         <div class="inc-dots" role="group" aria-label="Screens"><button type="button" aria-label="Show Every um, pause and retake, gone" class="on"></button><button type="button" aria-label="Show Captions on every word"></button><button type="button" aria-label="Show Titles in creator styles"></button><button type="button" aria-label="Show B-roll, photos and music"></button><button type="button" aria-label="Show Schedule your edits"></button></div>
       </div>
