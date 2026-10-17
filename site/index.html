@@ -304,6 +304,12 @@
   .ba figcaption { margin-top: 18px; font-weight: 600; }
   .ba figcaption small { display: block; font-weight: 500; color: var(--muted); font-size: 14px; margin-top: 2px; }
   .badge { position: absolute; top: calc(var(--w) * .17); left: calc(var(--w) * .06); z-index: 3; padding: 6px 10px; border-radius: 8px; background: rgba(0,0,0,.55); color: #fff; font: 600 11px/1 -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Inter, sans-serif; letter-spacing: .12em; text-transform: uppercase; backdrop-filter: blur(6px); }
+  .tstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 1100px; margin: 28px auto 0; }
+  .tstats div { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; text-align: center; }
+  .tstats b { display: block; font-size: clamp(22px, 2.4vw, 30px); font-weight: 700; letter-spacing: -.02em; }
+  .tstats b i { font-style: normal; color: var(--faint); font-weight: 500; }
+  .tstats span { display: block; margin-top: 4px; font-size: 14px; color: var(--muted); }
+  @media (max-width: 760px) { .tstats { grid-template-columns: 1fr; gap: 10px; } .tstats div { padding: 16px; } }
   .promo { margin: 0 auto; max-width: 1100px; border-radius: 24px; overflow: hidden; background: #0B0B0D; box-shadow: 0 40px 100px rgba(17,17,20,.22), 0 0 0 1px rgba(17,17,20,.08); aspect-ratio: 16 / 9; }
   .promo video { display: block; width: 100%; height: 100%; object-fit: cover; }
   @media (max-width: 760px) { .promo { border-radius: 16px; } }
@@ -554,7 +560,7 @@
   <div class="wrap">
     <a class="brand" href="#top" aria-label="Autocut home"><img src="media/logo.svg" alt=""><span>Autocut</span></a>
     <div class="links">
-      <a href="#see-it">See it cut</a>
+      <a href="#time">Time saved</a>
       <a href="#how">How it works</a>
       <a href="#compare">Compare</a>
       <a href="#pricing">Pricing</a>
@@ -565,7 +571,7 @@
   </div>
 </nav>
 <div class="sheet" id="sheet">
-  <a href="#see-it">See it cut</a>
+  <a href="#time">Time saved</a>
   <a href="#how">How it works</a>
   <a href="#compare">Compare</a>
   <a href="#pricing">Pricing</a>
@@ -649,17 +655,22 @@
   <div class="revwall-lane r2" id="revlane2"></div>
 </section>
 
-<section id="see-it">
+<section id="time" class="time">
   <div class="wrap">
     <div class="head reveal">
-      <div class="eyebrow">See it cut</div>
-      <h2 class="h">Raw take in. Tight cut out.</h2>
-      <p>From raw take to ready-to-post, in 15 seconds.</p>
+      <div class="eyebrow">Time saved</div>
+      <h2 class="h">Get your hours back.</h2>
+      <p>Edit ten videos a week by hand and you lose whole days to scrubbing, retakes and ums. Autocut does the cutting in about a minute a video.</p>
     </div>
     <figure class="promo reveal">
-      <video src="media/promo.mp4" poster="media/promo-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="Autocut in 15 seconds: drop in a raw take, the ums and retakes are cut, captions on every word"></video>
+      <video src="media/time-graph.mp4" poster="media/time-graph-poster.jpg" muted loop playsinline preload="metadata" data-auto aria-label="Hours spent editing ten videos a week: about 75 hours by hand over ten weeks, under 2 with Autocut. One video: 45 minutes by hand, 1 minute with Autocut, 98% less editing."></video>
     </figure>
-    <div class="controls reveal"><span class="mono">Autocut in 15 seconds</span><button id="pauseAll" aria-pressed="false"><svg width="10" height="12" viewBox="0 0 10 12" fill="#111114"><rect width="3" height="12" rx="1"/><rect x="7" width="3" height="12" rx="1"/></svg><span>Pause the videos</span></button></div>
+    <div class="tstats reveal">
+      <div><b>45 min <i>→</i> 1 min</b><span>per video, by hand vs Autocut</span></div>
+      <div><b>98%</b><span>less time editing</span></div>
+      <div><b>75 h <i>→</i> 1.7 h</b><span>ten videos a week, for ten weeks</span></div>
+    </div>
+    <div class="controls reveal"><span class="mono">Editing 10 videos a week</span><button id="pauseAll" aria-pressed="false"><svg width="10" height="12" viewBox="0 0 10 12" fill="#111114"><rect width="3" height="12" rx="1"/><rect x="7" width="3" height="12" rx="1"/></svg><span>Pause the videos</span></button></div>
   </div>
 </section>
 
@@ -812,7 +823,7 @@
   <div class="wrap">
     <div class="cols">
       <div><a class="brand" href="#top"><img src="media/logo.svg" alt=""><span>Autocut</span></a><p class="blurb">AI video editing for creators who talk to camera. Dead air, ums and retakes cut; every word captioned.</p></div>
-      <div class="col"><h4>Product</h4><a href="#see-it">See it cut</a><a href="#how">How it works</a><a href="#compare">Compare</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div>
+      <div class="col"><h4>Product</h4><a href="#time">Time saved</a><a href="#how">How it works</a><a href="#compare">Compare</a><a href="#pricing">Pricing</a><a href="#faq">FAQ</a></div>
       <div class="col"><h4>Legal</h4><a id="privacy" href="#">Privacy Policy</a><a id="terms" href="#">Terms of Service</a><a id="support" href="#">Support</a></div>
     </div>
     <div class="base"><span>© <span id="yr"></span> Autocut</span><span>iPhone and iPad</span></div>
