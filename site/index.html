@@ -105,11 +105,11 @@
   .vmute { position: absolute; right: 16px; bottom: 16px; width: 46px; height: 46px; border: 1px solid rgba(17,17,20,.1); background: rgba(255,255,255,.9); display: grid; place-items: center; cursor: pointer; }
   .vmute:hover { background: #fff; }
   .vcard figcaption { padding: 18px 2px 2px; }
-  .vrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .vrow { display: flex; align-items: center; justify-content: center; }
   .vwho { display: inline-flex; align-items: center; gap: 12px; min-width: 0; font-weight: 600; font-size: 18px; letter-spacing: -.015em; white-space: nowrap; }
   .vwho img { width: 36px; height: 36px; flex: none; }
   .vstat { flex: none; font-weight: 600; font-size: 18px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
-  .vmeta { margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vmeta { text-align: center; margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; }
   @media (min-width: 901px) {
     .hero-top { display: grid; grid-template-columns: 1.12fr .88fr; align-items: center; gap: 48px; }
@@ -524,7 +524,7 @@
           <button class="vmute" id="heroMute" aria-label="Turn sound on" aria-pressed="false"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M22 9l-6 6M16 9l6 6"/></svg></button>
         </div>
         <figcaption>
-          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span><span class="vstat">0:24</span></div>
+          <div class="vrow"><span class="vwho"><img src="media/logo.svg" alt="">Cut with Autocut</span></div>
           <div class="vmeta">Retakes, ums and dead air cut</div>
         </figcaption>
       </figure>
