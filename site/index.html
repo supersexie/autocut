@@ -717,9 +717,16 @@
   .why-ic { background: linear-gradient(180deg, rgba(59,156,255,.95), var(--acc)); box-shadow: 0 10px 22px -10px rgba(59,156,255,.6); }
   .vlabel { color: var(--acc); }
   .hero-phone::before { background: radial-gradient(closest-side, rgba(59,156,255,.32) 0%, rgba(59,156,255,.2) 45%, rgba(59,156,255,.08) 75%, transparent 100%); }
-  .hero-wash { background: linear-gradient(180deg, #FCFCFD 0%, var(--tint-b) 40%, var(--tint-a) 100%); }
-  main > section.panel { background-color: var(--tint-a); }
-  main > section#time, main > section#features, main > section#pricing { background-color: var(--tint-b); }
+  /* One continuous background down the whole page (like Cal AI): soft colours that blend into each
+     other as you scroll, with no lines or boxes between sections. */
+  html { background: #FFFFFF; }
+  body { background: linear-gradient(180deg,
+    #FFFFFF 0%, #F6FAFF 6%, #EDF5FF 14%, #F3F2FF 24%, #F8F6FF 32%, #EEF8F4 42%, #F4FAF6 50%,
+    #FFF6EF 60%, #FFF9F4 68%, #F3F2FF 78%, #EEF6FF 90%, #F6FAFF 100%); }
+  .hero-wash { background: transparent; }
+  .hero::before { opacity: .55; }
+  main > section, main > section.panel { background: transparent; border-top: 0; }
+  .sticky { background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,255,255,.85) 45%); }
 </style>
 </head>
 <body>
