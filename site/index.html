@@ -92,6 +92,13 @@
   .links a:not(.btn), .menu-btn { display: none !important; }
   .links a:hover { color: var(--ink); }
   .links .btn { display: inline-flex !important; height: 46px; padding: 0 22px; font-size: 16px; font-weight: 600; color: #fff; border-radius: 999px; box-shadow: 0 8px 22px rgba(17,17,20,.18); }
+  /* The top bar's App Store badge */
+  .links .nav-store { border-radius: 12px; padding: 0 16px 0 14px !important; gap: 8px; }
+  .links .nav-store svg { width: 17px; height: 20px; }
+  .links .nav-store small { font-size: 9px; }
+  .links .nav-store b { font-size: 15.5px; }
+  nav.scrolled .links .nav-store { border-radius: 999px; padding: 0 18px 0 16px !important; }
+  @media (max-width: 760px) { .links .nav-store { padding: 0 12px 0 10px !important; gap: 6px; } .links .nav-store svg { width: 14px; height: 17px; } .links .nav-store small { font-size: 8px; } .links .nav-store b { font-size: 13.5px; } }
   @media (max-width: 760px) { .links a:not(.btn) { display: none; } }
   /* Phones: a smaller logo and "Get the app" button in the bar. */
   @media (max-width: 760px) {
@@ -718,7 +725,7 @@
       <a href="#compare">Compare</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
-      <a class="btn btn-dark store-link" href="#">Get the app</a>
+      <a class="btn btn-dark store store-link nav-store" href="#" aria-label="Download Autocut on the App Store"><svg width="24" height="29" viewBox="0 0 814 1000" aria-hidden="true"><path fill="#fff" d="M788 341c-6 4-108 62-108 190 0 148 130 200 134 202-1 3-21 72-69 142-43 62-88 124-156 124s-86-40-165-40c-77 0-104 41-167 41s-106-57-156-128C42 787-5 657-5 534c0-198 129-303 256-303 67 0 124 44 166 44 40 0 103-47 180-47 29 0 133 3 201 113zM555 158c31-37 53-88 53-139 0-7-1-14-2-20-50 2-110 33-146 75-28 32-55 83-55 135 0 8 1 15 2 18 3 1 9 2 14 2 45 0 102-30 134-71z"/></svg><span><small>Download on the</small><b>App Store</b></span></a>
       <button class="menu-btn" id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="sheet"><svg width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#111114" stroke-width="2" stroke-linecap="round"><path d="M1 1h16M1 7h16M1 13h16"/></svg></button>
     </div>
   </div>
