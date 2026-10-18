@@ -748,6 +748,13 @@
   #banner .mono::before { content: ""; width: 6px; height: 6px; background: #fff; }
   #banner .btn.white { display: inline-flex; align-items: center; border-radius: 999px; font-weight: 600; }
   #banner h2 { letter-spacing: -.025em; font-weight: 650; }
+  /* Compare: no red glow on the Autocut column, white ticks */
+  .compare thead .us { background: #0E0E11 !important; }
+  .compare td.us::before { background-color: #fff !important; box-shadow: none !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23111114' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E") !important; }
+  @media (max-width: 760px) {
+    .compare td.us { background: #0E0E11 !important; }
+    .compare td.us::after { content: "Autocut" !important; font: 700 14px/1 "Bricolage Grotesque", -apple-system, sans-serif !important; letter-spacing: -.01em !important; text-transform: none !important; color: #A1A1A8 !important; }
+  }
 </style>
 </head>
 <body>
