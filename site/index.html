@@ -106,9 +106,9 @@
   /* ---------- Hero ---------- */
   .hero-wash { background: linear-gradient(180deg, #FCFCFD 0%, #F0F0F3 32%, #ECECF0 52%, #ECECF0 100%); overflow-x: clip; }
   .hero { background: transparent; padding: 112px 0 28px; position: relative; overflow: visible; min-height: 100svh; display: flex; flex-direction: column; }
-  /* A soft grey glow behind the hero video (like Everygen's blue one). */
+  /* A soft blue, violet and pink glow behind the hero video. */
   .hero-phone { position: relative; }
-  .hero-phone::before { content: ""; position: absolute; z-index: -1; left: -34%; right: -34%; top: -62%; bottom: -70%; pointer-events: none; background: radial-gradient(closest-side, rgba(90,90,104,.50) 0%, rgba(96,96,110,.42) 45%, rgba(120,120,134,.24) 64%, rgba(150,150,160,.09) 82%, rgba(160,160,170,0) 100%); }
+  .hero-phone::before { content: ""; position: absolute; z-index: -1; inset: -14% -10% -18% -10%; pointer-events: none; filter: blur(42px); opacity: .9; background: radial-gradient(45% 55% at 22% 40%, rgba(59,156,255,.55), transparent 70%), radial-gradient(45% 55% at 78% 45%, rgba(139,92,246,.45), transparent 70%), radial-gradient(40% 45% at 50% 92%, rgba(244,114,182,.38), transparent 72%); }
   .hero::before { z-index: 0; content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
   .hero .wrap { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; width: 100%; }
   .hero-copy { display: flex; flex-direction: column; align-items: center; max-width: 980px; position: relative; }
@@ -121,7 +121,7 @@
   @keyframes sweep { to { transform: rotate(-1.2deg) scaleX(1); } }
   @keyframes pop { from { opacity: 0; transform: scale(.4) rotate(-30deg); } to { opacity: 1; transform: none; } }
   .typer { font-size: 20px; color: var(--muted); min-height: 32px; margin: 0 0 30px; }
-  .typer b { color: var(--ink); font-weight: 600; }
+  .typer b { color: var(--ink); font-weight: 600; background: linear-gradient(90deg, #3B9CFF, #8B5CF6 60%, #EC4899); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   .typer .caret { display: inline-block; width: 2px; height: 1.05em; background: var(--ink); vertical-align: -3px; margin-left: 2px; border-radius: 1px; animation: caretBlink 1.1s ease-in-out infinite; }
   /* The caret stays solid while typing or deleting, and blinks only while a phrase is shown. */
   .typer.busy .caret { animation: none; opacity: 1; }
@@ -168,6 +168,7 @@
   .intro { margin: 0; width: 100%; aspect-ratio: 16 / 9; border-radius: 22px; overflow: hidden; background: #0B0B0D; box-shadow: 0 40px 100px rgba(17,17,20,.22), 0 0 0 1px rgba(17,17,20,.08); }
   .intro video { display: block; width: 100%; height: 100%; object-fit: cover; }
   @media (max-width: 760px) { .intro { border-radius: 16px; } }
+  .hero .intro { box-shadow: 0 0 0 1px rgba(17,17,20,.08); }
   .cuts { padding: 48px 0 72px; }
   .cuts .head { margin-bottom: 44px; }
   .cuts .wrap { max-width: 940px; }
