@@ -59,8 +59,6 @@
   @media (max-width: 760px) {
     /* Phones: a smaller typing line and smaller hero buttons. */
     .hero .typer { font-size: 13px; min-height: 20px; margin-bottom: 20px; }
-    .hero .hero-eyebrow { font-size: 10px; letter-spacing: .08em; gap: 6px; margin-bottom: 16px; }
-    .hero .hero-eyebrow::before { width: 5px; height: 5px; }
     .hero-points { display: none; }
     .hero .cta-row .btn { height: 44px; width: 140px; font-size: 14.5px; gap: 7px; }
     .hero .cta-row .store, .hero .cta-row .price-btn { border-radius: 12px; }
@@ -114,8 +112,6 @@
   .hero::before { z-index: 0; content: ""; position: absolute; inset: 0; background-image: linear-gradient(rgba(17,17,20,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(17,17,20,.035) 1px, transparent 1px); background-size: 72px 72px; mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 20%, #000 30%, transparent 75%); pointer-events: none; }
   .hero .wrap { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; text-align: center; flex: 1; width: 100%; }
   .hero-copy { display: flex; flex-direction: column; align-items: center; max-width: 980px; position: relative; }
-  .hero-eyebrow { justify-self: center; margin-bottom: 20px; }
-  @media (min-width: 901px) { .hero-eyebrow { margin-bottom: 0; } }
 
   .pill { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 999px; background: #fff; box-shadow: 0 1px 0 rgba(17,17,20,.04), inset 0 0 0 1px var(--line); font-weight: 600; font-size: 14px; }
   .hero h1 { font-size: clamp(40px, 6.2vw, 80px); font-weight: 600; line-height: 1.05; letter-spacing: -.022em; margin: 0 0 20px; max-width: 15.5ch; }
@@ -200,9 +196,7 @@
   .vmeta { text-align: center; margin-top: 12px; font: 500 11.5px/1.3 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero-top { width: 100%; display: flex; flex-direction: column; align-items: center; margin-block: auto; }
   @media (min-width: 901px) {
-    .hero-top { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 40px 64px; }
-    /* The small label sits centred above both the headline and the video. */
-    .hero-top .hero-eyebrow { grid-column: 1 / -1; }
+    .hero-top { display: grid; grid-template-columns: .9fr 1.1fr; align-items: center; gap: 64px; }
     /* The hero fills the first screen; the reviews start below it. */
     /* The hero is the whole first screen: nothing from the next section shows until you scroll. */
     .hero { min-height: 100svh; display: flex; flex-direction: column; align-items: stretch; padding: 84px 0 24px; }
@@ -734,7 +728,6 @@
 <header class="hero" id="top">
   <div class="wrap">
     <div class="hero-top">
-    <div class="eyebrow hero-eyebrow">The AI video editor for creators</div>
     <div class="hero-copy">
       <h1 class="h"><span class="ln">Turn Raw Takes </span><span class="ln">Into Ready‑to‑Post </span><span class="ln">Videos <span class="hl">In a Minute</span></span></h1>
       <p class="typer" aria-live="polite">For creators who <b id="typed"></b><span class="caret" aria-hidden="true"></span></p>
