@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Logo grey options</title>
+<style>
+  :root { --ink: #111114; --muted: #6B6B73; --page: #F4F4F6; --card: #fff; --line: rgba(17,17,20,.08); }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --ink: #F4F4F6; --muted: #A1A1A8; --page: #0E0E11; --card: #1A1A1D; --line: rgba(255,255,255,.08); } }
+  :root[data-theme="dark"] { --ink: #F4F4F6; --muted: #A1A1A8; --page: #0E0E11; --card: #1A1A1D; --line: rgba(255,255,255,.08); }
+  body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; padding: 40px 16px 60px; }
+  h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 6px; text-align: center; }
+  .sub { text-align: center; color: var(--muted); margin: 0 0 32px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; max-width: 1100px; margin: 0 auto; }
+  .opt { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 24px 20px 20px; text-align: center; }
+  .opt h2 { font-size: 15px; margin: 0 0 2px; }
+  .opt code { font: 600 12px ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); }
+  .big { width: 132px; height: 132px; margin: 18px auto 18px; border-radius: 30px; overflow: hidden; box-shadow: 0 14px 30px -14px rgba(0,0,0,.45); }
+  .big svg, .sm svg, .nav svg { display: block; width: 100%; height: 100%; }
+  .sizes { display: flex; justify-content: center; align-items: end; gap: 14px; margin-bottom: 18px; }
+  .sm { border-radius: 22%; overflow: hidden; }
+  .nav { display: flex; align-items: center; gap: 9px; justify-content: center; padding: 12px; border-radius: 14px; background: #F4F4F6; color: #111114; font: 800 19px/1 -apple-system, sans-serif; letter-spacing: -.02em; }
+  .nav i { width: 30px; height: 30px; border-radius: 8px; overflow: hidden; }
+  .nav.dark { background: #0E0E11; color: #fff; margin-top: 8px; }
+  .tag { display: inline-block; margin-top: 4px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+  <h1>Autocut logo, grey options</h1>
+  <p class="sub">Same mark, only the background colour changes. Current one first for comparison.</p>
+  <div class="grid" id="grid"></div>
+<script>
+  const options = [
+    { name: 'Current (near black)', hex: '#111114', note: 'what the site and app use now' },
+    { name: 'Option 1 · Graphite', hex: '#2A2A2E', note: 'darkest grey, still reads as black-ish' },
+    { name: 'Option 2 · Charcoal', hex: '#3A3A3F', note: 'clearly grey, keeps strong contrast' },
+    { name: 'Option 3 · Slate', hex: '#4A4A50', note: 'soft grey' },
+    { name: 'Option 4 · Steel', hex: '#5A5A61', note: 'mid-dark grey' },
+    { name: 'Option 5 · Pewter', hex: '#6B6B73', note: 'mid grey, the site\'s muted text colour' },
+    { name: 'Option 6 · Stone', hex: '#7D7D85', note: 'light-mid grey' },
+    { name: 'Option 7 · Ash', hex: '#8E8E96', note: 'lightest; the white mark is softer here' },
+  ];
+  const mark = (bg) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect width="100" height="100" fill="${bg}"/><g fill="none" stroke="#fff" stroke-width="8.5" stroke-linecap="round" stroke-linejoin="round"><path d="M43 25 H36 Q23 25 23 38 V62 Q23 75 36 75 H43"/><path d="M57 25 H64 Q77 25 77 38 V62 Q77 75 64 75 H57"/><path d="M56 19 L44 81"/></g></svg>`;
+  document.getElementById('grid').innerHTML = options.map((o) => `
+    <div class="opt">
+      <h2>${o.name}</h2><code>${o.hex}</code><br><span class="tag">${o.note}</span>
+      <div class="big">${mark(o.hex)}</div>
+      <div class="sizes">${[60, 40, 28, 18].map((s) => `<div class="sm" style="width:${s}px;height:${s}px">${mark(o.hex)}</div>`).join('')}</div>
+      <div class="nav"><i>${mark(o.hex)}</i>Autocut</div>
+      <div class="nav dark"><i>${mark(o.hex)}</i>Autocut</div>
+    </div>`).join('');
+</script>
+</body>
+</html>
