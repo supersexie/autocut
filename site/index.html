@@ -766,6 +766,23 @@
   #pricing .plan.pick li::before { background-color: var(--ink); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E"); }
   #pricing .plan.pick .btn { background: var(--ink); color: #fff; box-shadow: 0 10px 24px -10px rgba(17,17,20,.5); }
   #pricing .plan.pick .btn:hover { background: #2A2A2E; }
+  /* QR code pop-up for the App Store buttons on a computer */
+  #qr-modal { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(14,14,17,.45); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; }
+  #qr-modal.open { opacity: 1; visibility: visible; }
+  #qr-modal .qr-card { position: relative; width: 384px; max-width: 100%; background: #fff; color: #111114; border-radius: 28px; padding: 36px 32px 28px; text-align: center; box-shadow: 0 40px 90px -30px rgba(14,14,17,.5); transform: translateY(12px) scale(.97); transition: transform .3s cubic-bezier(.2,.7,.2,1); }
+  #qr-modal.open .qr-card { transform: none; }
+  #qr-modal h3 { font: 700 24px/1.15 "Bricolage Grotesque", -apple-system, sans-serif; letter-spacing: -.02em; margin: 0 0 8px; }
+  #qr-modal p { font-size: 14.5px; line-height: 1.45; color: #6B6B73; margin: 0 auto 22px; max-width: 290px; }
+  #qr-modal .qr-code { position: relative; width: 216px; height: 216px; margin: 0 auto 20px; padding: 16px; border-radius: 22px; background: #fff; box-shadow: inset 0 0 0 1px rgba(17,17,20,.08), 0 18px 40px -24px rgba(21,70,229,.35); }
+  #qr-modal .qr-svg, #qr-modal .qr-svg svg { display: block; width: 100%; height: 100%; }
+  #qr-modal .qr-svg svg path { fill: #111114; }
+  #qr-modal .qr-code img { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; translate: -50% -50%; border-radius: 12px; box-shadow: 0 0 0 5px #fff; }
+  #qr-modal .qr-foot { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 600; color: #6B6B73; }
+  #qr-modal .qr-foot svg { width: 13px; height: 15px; margin-top: -2px; }
+  #qr-modal .qr-x { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; border: 0; border-radius: 50%; background: #F4F4F6; color: #111114; font-size: 22px; line-height: 1; cursor: pointer; }
+  #qr-modal .qr-x:hover { background: #E9E9ED; }
+  #qr-modal .qr-x:focus:not(:focus-visible), #qr-modal .qr-card:focus { outline: none; }
+  #qr-modal .qr-fail { margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -1063,11 +1080,48 @@
   // The App Store rating once there is one, e.g. { score: 4.8, count: 120 }. null hides the rating row.
   const RATING = null;
 
-  // App Store buttons. Until the app is live they don't go anywhere.
+  // App Store buttons. On a computer they open a QR code to scan with the phone; on a phone they go
+  // straight to the App Store. Until the app is live the QR opens this site and the buttons say "soon".
+  const onDesktop = () => matchMedia('(hover: hover) and (pointer: fine)').matches && innerWidth > 760;
   document.querySelectorAll('.store-link').forEach((a) => {
     if (APP_STORE_URL) { a.href = APP_STORE_URL; a.rel = 'noopener'; }
-    else a.addEventListener('click', (e) => { e.preventDefault(); a.blur(); toast('Autocut is coming to the App Store soon.'); });
+    a.addEventListener('click', (e) => {
+      if (onDesktop()) { e.preventDefault(); a.blur(); openQr(); }
+      else if (!APP_STORE_URL) { e.preventDefault(); a.blur(); toast('Autocut is coming to the App Store soon.'); }
+    });
   });
+
+  let qrLib;
+  const loadQr = () => qrLib || (qrLib = new Promise((ok, fail) => {
+    const sc = Object.assign(document.createElement('script'), { src: 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js', onload: ok, onerror: fail });
+    document.head.appendChild(sc);
+  }));
+  function openQr() {
+    let m = document.getElementById('qr-modal');
+    if (!m) {
+      m = Object.assign(document.createElement('div'), { id: 'qr-modal' });
+      m.setAttribute('role', 'dialog'); m.setAttribute('aria-modal', 'true'); m.setAttribute('aria-labelledby', 'qr-title');
+      m.innerHTML = `<div class="qr-card" tabindex="-1">
+          <button class="qr-x" type="button" aria-label="Close">&times;</button>
+          <h3 id="qr-title">Scan to get Autocut</h3>
+          <p>${APP_STORE_URL ? 'Scan with your phone\'s camera to open Autocut in the App Store.' : 'Autocut is coming to the App Store soon. Scan to open this page on your phone.'}</p>
+          <div class="qr-code"><div class="qr-svg"></div><img src="media/logo.svg?v=2" alt=""></div>
+          <span class="qr-foot"><svg viewBox="0 0 17 20" aria-hidden="true"><path fill="currentColor" d="M14.1 10.6c0-2.6 2.1-3.8 2.2-3.9-1.2-1.8-3.1-2-3.7-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9C3.6 4.8 1.9 5.8 1 7.4c-1.9 3.3-.5 8.1 1.3 10.8.9 1.3 1.9 2.7 3.3 2.7 1.3-.1 1.8-.9 3.4-.9s2 .9 3.4.8c1.4 0 2.3-1.3 3.2-2.6 1-1.5 1.4-2.9 1.4-3-.1 0-2.8-1-2.9-4.6zM11.6 3c.7-.9 1.2-2 1.1-3.2-1 0-2.3.7-3 1.6-.7.8-1.2 2-1.1 3.1 1.2.1 2.3-.6 3-1.5z"/></svg>For iPhone and iPad</span>
+        </div>`;
+      document.body.appendChild(m);
+      const close = () => { m.classList.remove('open'); document.removeEventListener('keydown', onKey); };
+      const onKey = (e) => { if (e.key === 'Escape') close(); };
+      m._open = () => { m.classList.add('open'); document.addEventListener('keydown', onKey); m.querySelector('.qr-card').focus({ preventScroll: true }); };
+      m.addEventListener('click', (e) => { if (e.target === m || e.target.closest('.qr-x')) close(); });
+      loadQr().then(() => {
+        const q = qrcode(0, 'H');
+        q.addData(APP_STORE_URL || (location.origin + location.pathname));
+        q.make();
+        m.querySelector('.qr-svg').innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+      }).catch(() => { m.querySelector('.qr-code').outerHTML = '<p class="qr-fail">Search for Autocut in the App Store on your phone.</p>'; });
+    }
+    requestAnimationFrame(() => m._open());
+  }
   document.getElementById('privacy').href = LEGAL_BASE + '/privacy';
   document.getElementById('terms').href = LEGAL_BASE + '/terms';
   const sup = document.getElementById('support');
