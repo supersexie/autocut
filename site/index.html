@@ -697,26 +697,6 @@
   @media (prefers-reduced-motion: reduce) { .ui *, .ui *::after { animation: none !important; } .ui-card s { color: #B8B8BF; } .ui-card s::after { transform: scaleX(1); } .ui-card em, .ui-done, .ui-out { opacity: 1; transform: none; } .ui-raw { opacity: 0; } .ui-tl .cut { display: none; }
     .reveal { opacity: 1; transform: none; } .tag, .ghost-row, .revrow, .revwall-lane, .btn-glow::after { animation: none; } .hero h1 .hl::before { animation: none; transform: rotate(-1.2deg); } .hero h1 .hl .cut-ic { animation: none; opacity: 1; } html { scroll-behavior: auto; } }
 
-  /* ---------- Brand colour: Sky blue, in small doses, plus soft blue tints on alternate sections ---------- */
-  :root { --acc: #3B9CFF; --tint-a: #F1F8FF; --tint-b: #F9FCFF; }
-  .eyebrow::before { background: var(--acc); }
-  .tabs button.on, .toggle button.on { background: var(--acc); color: #fff; box-shadow: 0 6px 16px rgba(59,156,255,.3); }
-  .toggle button.on em { background: rgba(255,255,255,.22); color: #fff; }
-  .plan li:not(.no)::before, .plan.pick li:not(.no)::before { background-color: var(--acc); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 12.5l4 4L18 8'/%3E%3C/svg%3E"); }
-  .plan .ribbon { background: var(--acc); color: #fff; }
-  .compare td.us::before { background-color: var(--acc); box-shadow: 0 0 12px rgba(59,156,255,.5); }
-  .compare thead .us { background: radial-gradient(120% 90% at 50% 0%, rgba(59,156,255,.4), transparent 70%), #0E0E11; }
-  .step-tag b { color: var(--acc); }
-  .step:nth-child(2) .step-tag.time { background: var(--acc); box-shadow: 0 6px 16px rgba(59,156,255,.3); }
-  .step:nth-child(2) .step-stage { background: radial-gradient(120% 90% at 50% 0%, #fff 0%, var(--tint-a) 60%, var(--tint-a) 100%); }
-  .inc-item.on { border-color: var(--acc); background: var(--tint-b); }
-  .inc-dots button.on { background: var(--acc); }
-  summary::before { color: var(--acc); }
-  details[open] summary { color: var(--acc); }
-  .hero-points span + span::before { color: var(--acc); }
-  .why-ic { background: linear-gradient(180deg, rgba(59,156,255,.95), var(--acc)); box-shadow: 0 10px 22px -10px rgba(59,156,255,.6); }
-  .vlabel { color: var(--acc); }
-  .hero-phone::before { background: radial-gradient(closest-side, rgba(59,156,255,.32) 0%, rgba(59,156,255,.2) 45%, rgba(59,156,255,.08) 75%, transparent 100%); }
   /* One continuous background down the whole page (like Cal AI): soft colours that blend into each
      other as you scroll, with no lines or boxes between sections. */
   html { background: #FFFFFF; }
