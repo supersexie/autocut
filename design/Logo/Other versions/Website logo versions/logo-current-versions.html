@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autocut logo versions</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--card:#F4F4F6;--ink:#111114;--muted:#6B6B73}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}}
+:root[data-theme="dark"]{--bg:#0c0c0e;--card:#1a1a1d;--ink:#f4f4f6;--muted:#9a9aa2}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif}
+main{max-width:1180px;margin:0 auto;padding:40px 16px 60px}
+h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:40px;letter-spacing:-1px;margin:0}
+.sub{color:var(--muted);margin:8px 0 28px;font-size:15px;line-height:1.5;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:16px}
+.card{background:var(--card);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px}
+.head{display:flex;align-items:baseline;gap:8px}
+.num{font-weight:700;font-size:13px;color:var(--muted)}
+.name{font-weight:700;font-size:16px}
+.note{color:var(--muted);font-size:13px;line-height:1.45}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tile{width:76px;height:76px;border-radius:17px;display:grid;place-items:center;flex:none;overflow:hidden}
+.tile svg{width:100%;height:100%;display:block}
+.dark{background:#000;color:#fff}
+.light{background:#fff;color:#111114;box-shadow:inset 0 0 0 1px #E6E6EA}
+.mini{width:30px;height:30px;border-radius:7px}
+.bare{border-radius:0;overflow:visible}
+.minis{display:flex;flex-direction:column;gap:8px}
+.word{display:flex;align-items:center;gap:8px;background:#fff;color:#111114;border-radius:12px;padding:8px 10px;box-shadow:inset 0 0 0 1px #E6E6EA}
+.word .tile{width:26px;height:26px;border-radius:7px}
+.word span{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.3px}
+</style></head>
+<body><main>
+<h1>Autocut logo, other versions</h1>
+<p class="sub">The logo on the website (first card) and versions of it: 01–15 each change one thing, 16–25 are more takes on Play inside (15). Each is shown in the silver style, white on black, black on white, with the Edits-style gradient, small, and with the wordmark.</p>
+<div class="grid" id="grid"></div>
+</main>
+<script>
+let uid = 0;
+const W = 8.5; // stroke width (of 100)
+const line = (d, paint, extra = '') => `<path d="${d}" fill="none" stroke="${paint}" stroke-width="${W}" stroke-linecap="round" stroke-linejoin="round" ${extra}/>`;
+const masked = (inner, cut) => { const id = 'm' + uid++; return `<mask id="${id}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100" fill="#fff"/>${cut}</mask><g mask="url(#${id})">${inner}</g>`; };
+const black = (pts) => `<polygon points="${pts}" fill="#000"/>`;
+const rect = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#000"/>`;
+const shift = (x, y, inner) => `<g transform="translate(${x} ${y})">${inner}</g>`;
+const dot = (x, y, r, p) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${p}"/>`;
+
+
+// Two rounded brackets and a slanted slash. L/R: outer edges, T/B: top and bottom, r: corner radius, arm: how far each arm reaches in.
+const brackets = (p, { L = 23, R = 77, T = 25, B = 75, r = 13, arm = 20, dyL = 0, dyR = 0, w = W } = {}) => {
+  const ex = `stroke-width="${w}"`;
+  const left = `M${L + arm} ${T + dyL} H${L + r} Q${L} ${T + dyL} ${L} ${T + r + dyL} V${B - r + dyL} Q${L} ${B + dyL} ${L + r} ${B + dyL} H${L + arm}`;
+  const right = `M${R - arm} ${T + dyR} H${R - r} Q${R} ${T + dyR} ${R} ${T + r + dyR} V${B - r + dyR} Q${R} ${B + dyR} ${R - r} ${B + dyR} H${R - arm}`;
+  return line(left, p, ex) + line(right, p, ex);
+};
+const slash = (p, d = 'M56 19 L44 81', w = W) => line(d, p, `stroke-width="${w}"`);
+
+const LOGOS = [
+  { name: 'Now (on the website)', note: 'The current logo, for comparison.',
+    draw: (p) => brackets(p) + slash(p) },
+  { name: 'Thin', note: 'A lighter stroke: finer and more like a line icon.',
+    draw: (p) => brackets(p, { w: 6.5 }) + slash(p, 'M56 19 L44 81', 6.5) },
+  { name: 'Bold', note: 'A heavier stroke: stronger on the home screen.',
+    draw: (p) => brackets(p, { w: 11, L: 22, R: 78 }) + slash(p, 'M56.5 18 L43.5 82', 11) },
+  { name: 'Round', note: 'Fully rounded brackets, closer to ( / ).',
+    draw: (p) => brackets(p, { r: 20, arm: 21 }) + slash(p) },
+  { name: 'Square', note: 'Tighter corners: more like crop marks.',
+    draw: (p) => brackets(p, { r: 6 }) + slash(p) },
+  { name: 'Upright slash', note: 'The slash stands straighter.',
+    draw: (p) => brackets(p) + slash(p, 'M53.5 18 L46.5 82') },
+  { name: 'Leaning slash', note: 'The slash leans further, more like a quick cut.',
+    draw: (p) => brackets(p, { arm: 17 }) + slash(p, 'M61 19 L39 81') },
+  { name: 'Inside slash', note: 'The slash stays inside the frame instead of poking out.',
+    draw: (p) => brackets(p) + slash(p, 'M55 28 L45 72') },
+  { name: 'One line', note: 'Both brackets and the slash drawn as a single continuous stroke.',
+    draw: (p) => line('M43 25 H36 Q23 25 23 38 V62 Q23 75 36 75 H45 L55 25 H64 Q77 25 77 38 V62 Q77 75 64 75 H57', p) },
+  { name: 'Jump', note: 'The right bracket drops a little: a jump cut.',
+    draw: (p) => brackets(p, { dyL: -4, dyR: 4 }) + slash(p, 'M56 17 L44 83') },
+  { name: 'Vertical', note: 'Taller and narrower, like a vertical video.',
+    draw: (p) => brackets(p, { L: 28, R: 72, T: 17, B: 83, arm: 15, r: 12 }) + slash(p, 'M55.5 12 L44.5 88') },
+  { name: 'Wide', note: 'Wider and shorter, like a landscape video.',
+    draw: (p) => brackets(p, { L: 15, R: 85, T: 30, B: 70, arm: 27, r: 12 }) + slash(p, 'M55 23 L45 77') },
+  { name: 'Split slash', note: 'The slash itself has a gap in the middle: the cut, cut.',
+    draw: (p) => brackets(p) + masked(slash(p), '<rect x="0" y="45" width="100" height="10" fill="#000"/>') },
+  { name: 'Double slash', note: 'Two slashes: more than one cut, done for you.',
+    draw: (p) => brackets(p, { arm: 11 }) + slash(p, 'M49 22 L41 78', 6.5) + slash(p, 'M60 22 L52 78', 6.5) },
+  { name: 'Corners', note: 'The brackets become four corner marks, like a viewfinder, with the slash through the middle.',
+    draw: (p) => line('M23 40 V36 Q23 25 34 25 H38', p) + line('M62 25 H66 Q77 25 77 36 V40', p) + line('M23 60 V64 Q23 75 34 75 H38', p) + line('M77 60 V64 Q77 75 66 75 H62', p) + slash(p, 'M56 19 L44 81') },
+  { name: 'Play inside', note: 'The slash swapped for a play button, held between the brackets.',
+    draw: (p) => brackets(p, { arm: 12 }) + line('M43 38 V62 L61 50 Z', p, 'stroke-width="7"') },
+  // More versions of Play inside.
+  { name: 'Play inside, round', note: 'Fully round brackets, like ( ▷ ).',
+    draw: (p) => brackets(p, { L: 20, R: 80, r: 22, arm: 22 }) + line('M44 38 V62 L61 50 Z', p, 'stroke-width="7"') },
+  { name: 'Play inside, square', note: 'Tight corners, like crop marks around the play button.',
+    draw: (p) => brackets(p, { r: 5, arm: 12 }) + line('M43 38 V62 L61 50 Z', p, 'stroke-width="7"') },
+  { name: 'Solid play', note: 'A filled play button between the brackets.',
+    draw: (p) => brackets(p, { arm: 12 }) + `<path d="M44 39 V61 L60 50 Z" fill="${p}" stroke="${p}" stroke-width="7" stroke-linejoin="round"/>` },
+  { name: 'Slash play', note: 'The play button’s back edge leans like the slash in the logo.',
+    draw: (p) => brackets(p, { arm: 12 }) + line('M47 36 L42 64 L63 50 Z', p, 'stroke-width="7"') },
+  { name: 'Big play', note: 'A bigger play button with shorter bracket arms.',
+    draw: (p) => brackets(p, { arm: 8 }) + line('M42 34 V66 L66 50 Z', p, 'stroke-width="7.5"') },
+  { name: 'Play breaks out', note: 'The play button’s tip pokes out through the right bracket.',
+    draw: (p) => masked(brackets(p, { arm: 12 }), '<path d="M70 50 H90" stroke="#000" stroke-width="22"/>') + line('M40 36 V64 L84 50 Z', p, 'stroke-width="7"') },
+  { name: 'Double play', note: 'Two play buttons: fast forward through the dead air.',
+    draw: (p) => brackets(p, { arm: 8 }) + line('M35 40 V60 L48 50 Z', p, 'stroke-width="5.5"') + line('M53 40 V60 L66 50 Z', p, 'stroke-width="5.5"') },
+  { name: 'Play inside, jump', note: 'The right bracket drops a little: a jump cut around the play button.',
+    draw: (p) => brackets(p, { arm: 12, dyL: -4, dyR: 4 }) + line('M43 38 V62 L61 50 Z', p, 'stroke-width="7"') },
+  { name: 'Play inside, vertical', note: 'Taller and narrower brackets, like a vertical video.',
+    draw: (p) => brackets(p, { L: 28, R: 72, T: 17, B: 83, arm: 12, r: 12 }) + line('M43 39 V61 L60 50 Z', p, 'stroke-width="7"') },
+  { name: 'Snip play', note: 'The play button with its tip trimmed flat: the cut, inside the brackets.',
+    draw: (p) => brackets(p, { arm: 12 }) + line('M42 36 V64 L59 55 V45 Z', p, 'stroke-width="7"') },
+];
+
+
+const grad = () => { const id = 'g' + uid++; return { id, def: `<defs><linearGradient id="${id}" x1="15" y1="85" x2="85" y2="15" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7B3FF2"/><stop offset=".45" stop-color="#FF0A78"/><stop offset=".8" stop-color="#FF7A1A"/><stop offset="1" stop-color="#FFC21A"/></linearGradient></defs>` }; };
+const svg = (inner) => `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+const mono = (l) => svg(l.draw('currentColor'));
+const colour = (l) => { const g = grad(); return svg(g.def + l.draw(`url(#${g.id})`)); };
+// The current brand style: #1D1A23 tile, faded silver on the top-left and bottom-right corners, mark shading to soft grey.
+const silver = (l) => { const i = uid++; return svg(`<defs>
+  <clipPath id="c${i}"><rect width="100" height="100" rx="22.5"/></clipPath>
+  <linearGradient id="s${i}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#B9B9C2"/><stop offset="1" stop-color="#E6E6EC"/></linearGradient>
+  <radialGradient id="r${i}"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <mask id="k${i}" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100"><rect width="100" height="100"/><circle cx="10" cy="10" r="34" fill="url(#r${i})"/><circle cx="90" cy="90" r="34" fill="url(#r${i})"/></mask>
+  <linearGradient id="w${i}" gradientUnits="userSpaceOnUse" x1="30" y1="18" x2="70" y2="82"><stop offset="0" stop-color="#fff"/><stop offset=".45" stop-color="#F4F4F7"/><stop offset="1" stop-color="#B4B4BD"/></linearGradient></defs>
+  <g clip-path="url(#c${i})"><rect width="100" height="100" fill="#1D1A23"/><rect x="1" y="1" width="98" height="98" rx="21.5" fill="none" stroke="url(#s${i})" stroke-width="2" mask="url(#k${i})"/></g>
+  ${l.draw(`url(#w${i})`)}`); };
+
+document.getElementById('grid').innerHTML = LOGOS.map((l, i) => `
+  <section class="card">
+    <div class="head"><span class="num">${i ? String(i).padStart(2, "0") : "Now"}</span><span class="name">${i ? l.name : "On the website"}</span></div>
+    <div class="note">${l.note}</div>
+    <div class="row">
+      <div class="tile bare">${silver(l)}</div>
+      <div class="tile dark">${mono(l)}</div>
+      <div class="tile light">${mono(l)}</div>
+      <div class="tile dark">${colour(l)}</div>
+      <div class="minis"><div class="tile bare mini">${silver(l)}</div><div class="tile dark mini">${colour(l)}</div></div>
+    </div>
+    <div class="word"><div class="tile bare">${silver(l)}</div><span>Autocut</span></div>
+  </section>`).join('');
+window.LOGOS = LOGOS; window.mono = mono; window.silver = silver; window.colour = colour;
+</script>
+</body></html>
