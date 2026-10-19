@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, PreAppFont, Wash } from '../components/ui';
+import { Button, PreAppFont } from '../components/ui';
 import { clearDraft } from '../lib/draft';
 import WORDS from '../lib/introWords.json';
 import { column, formatTime, theme } from '../lib/theme';
@@ -21,8 +21,11 @@ const LENGTH = 24.5;
 /** When the edit takes over: the end of the first sentences, once the reading has been seen. */
 const READY_AT = 6.4;
 const ease = Easing.out(Easing.cubic);
-/** The colour the video fades into at the bottom: the wash, where the words sit. */
+/** The colour the video fades into at the bottom, and the plain screen under it where the words sit. */
 const FADE = '#F5F7FF';
+// The fade into it, eased in (smoothstep) over many stops so it has no visible start or bands.
+const FADE_AT = Array.from({ length: 11 }, (_, i) => i / 10);
+const FADE_COLORS = FADE_AT.map((t) => `rgba(245,247,255,${(t * t * (3 - 2 * t)).toFixed(3)})`) as unknown as readonly [string, string, ...string[]];
 
 type Word = { t: string; s: number; e: number };
 
@@ -160,15 +163,15 @@ export default function Welcome() {
   return (
     <PreAppFont>
     <View style={styles.screen}>
-      <Wash soft />
       {/* The take, full width from the top, fading into the wash where the words are. */}
-      <View style={[styles.video, { height: height * 0.8 }]} pointerEvents="none">
+      {/* Down to just behind the headline, so the words sit where the fade has turned light. */}
+      <View style={[styles.video, { height: height - insets.bottom - 230 }]} pointerEvents="none">
         <VideoView player={raw} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
         <Animated.View style={[StyleSheet.absoluteFill, editStyle]}>
           <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
         </Animated.View>
         <LinearGradient colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']} style={[styles.shade, { height: insets.top + 70 }]} />
-        <LinearGradient colors={['rgba(245,247,255,0)', 'rgba(245,247,255,0.6)', FADE]} locations={[0, 0.6, 1]} style={styles.fade} />
+        <LinearGradient colors={FADE_COLORS} locations={FADE_AT as unknown as readonly [number, number, ...number[]]} style={styles.fade} />
       </View>
 
       <View style={[styles.top, { top: insets.top + 8 }]}>
@@ -289,7 +292,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: FADE },
   video: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#1C1C1F', overflow: 'hidden' },
   shade: { position: 'absolute', top: 0, left: 0, right: 0 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '20%' },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 130 },
   top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { minWidth: 70 },
   round: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
