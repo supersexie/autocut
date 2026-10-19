@@ -62,6 +62,9 @@ async function call(path: string, init?: RequestInit) {
   }
   const body = await res.json().catch(() => null);
   if (res.status >= 502 && res.status <= 504) throw new ServerUnreachable(base); // restarting or swamped: try again
+  // The server only knows a cut under the account that made it.
+  if (res.status === 404 && body?.error === 'No cut with that id.')
+    throw new Error('This video was made on a different Autocut account. Sign in with that account to export it, or cut the take again on this one.');
   if (!res.ok) throw new Error(body?.error ?? `Server error (${res.status}).`);
   return body;
 }

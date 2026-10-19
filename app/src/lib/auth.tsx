@@ -7,7 +7,7 @@ import { Platform } from 'react-native';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Billing, PlanId } from './plans';
 import { deleteAccountOnServer } from './api';
-import { clearCuts } from './store';
+import { clearCuts, setCutsOwner } from './store';
 import { supabase } from './supabase';
 
 export type Language = 'en' | 'es';
@@ -106,6 +106,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  // Cuts on this phone belong to the account that made them.
+  useEffect(() => {
+    setCutsOwner(account?.id ?? null);
+  }, [account?.id]);
 
   const value = useMemo<AuthContextValue>(() => {
     const client = () => {

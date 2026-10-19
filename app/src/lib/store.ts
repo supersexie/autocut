@@ -42,6 +42,8 @@ export type CutRecord = {
   edit?: Edit; // the user's edit; created from `clips` the first time the editor opens
   source?: string; // file name of the downloaded source video in the cuts folder
   exports: number;
+  /** The account that made it (the server only lets that account export it). Unset on older cuts. */
+  owner?: string;
   /** When it was last exported (newest first in You). */
   exportedAt?: string;
 };
@@ -121,7 +123,26 @@ const subscribe = (l: () => void) => {
   listeners.add(l);
   return () => listeners.delete(l);
 };
+// The signed-in account. Lists show its cuts (and older ones made before cuts knew their account).
+let owner: string | null = null;
+let visible: CutRecord[] = [];
+let visibleOf: CutRecord[] | null = null;
+const mine = () => {
+  if (visibleOf !== state.cuts) {
+    visible = state.cuts.filter((c) => !c.owner || c.owner === owner);
+    visibleOf = state.cuts;
+  }
+  return visible;
+};
 const emit = () => listeners.forEach((l) => l());
+
+/** Who's signed in (null when nobody is): new cuts are theirs, and lists show only theirs. */
+export function setCutsOwner(id: string | null) {
+  if (id === owner) return;
+  owner = id;
+  visibleOf = null;
+  emit();
+}
 
 let saveTimer: ReturnType<typeof setTimeout> | undefined;
 // Progress ticks arrive often; write the index at most twice a second.
@@ -132,10 +153,11 @@ const persist = () => {
 
 export const cutFile = (name: string) => new File(cutsDir, name);
 export const getCut = (id: string) => state.cuts.find((c) => c.id === id);
-export const getCuts = () => state.cuts;
+export const getCuts = () => mine();
 
 export function addCut(record: CutRecord) {
-  state = { ...state, cuts: [record, ...state.cuts.filter((c) => c.id !== record.id)] };
+  const owned = record.owner || !owner ? record : { ...record, owner };
+  state = { ...state, cuts: [owned, ...state.cuts.filter((c) => c.id !== record.id)] };
   persist();
   emit();
 }
@@ -194,15 +216,17 @@ export function deleteCut(id: string) {
   emit();
 }
 
-/** Removes every cut and its videos from this phone. */
+/** Removes the signed-in account's cuts (and older ones without an account) and their videos from this phone. */
 export function clearCuts() {
-  for (const c of state.cuts) {
+  const gone = mine();
+  for (const c of gone) {
     removeFiles(c);
     deletePreviews(c.id);
   }
-  state = { ...state, cuts: [], folders: [] };
-  indexFile.write('[]');
-  foldersFile.write('[]');
+  const kept = state.cuts.filter((c) => !gone.includes(c));
+  state = { ...state, cuts: kept, folders: kept.length ? state.folders : [] };
+  indexFile.write(JSON.stringify(kept));
+  if (!kept.length) foldersFile.write('[]');
   emit();
 }
 
@@ -252,7 +276,7 @@ export function moveCuts(ids: string[], folderId: string | undefined) {
   persist();
   emit();
 }
-export const useCuts = () => useSyncExternalStore(subscribe, () => state.cuts);
+export const useCuts = () => useSyncExternalStore(subscribe, mine);
 export const useCut = (id: string) => useSyncExternalStore(subscribe, () => getCut(id));
 export const useSettings = () => useSyncExternalStore(subscribe, () => state.settings);
 
