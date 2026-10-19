@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { APP_FONTS } from '../lib/fonts';
 import { useBackgroundUpdates } from '../lib/updates';
 import { ConsentGate } from '../components/ConsentGate';
+import { Launch } from '../components/Launch';
 import { PlanSync } from '../components/PlanSync';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { reportAs, withCrashReports } from '../lib/crashes';
@@ -23,6 +24,7 @@ function RootLayout() {
         <RootNavigator />
         <ConsentGate />
         <PlanSync />
+        <Launch />
       </AuthProvider>
     </GestureHandlerRootView>
   );
@@ -36,10 +38,8 @@ function RootNavigator() {
   }, [account?.id]);
   // Caption and text styles preview in the same fonts the export uses.
   const [fontsLoaded, fontError] = useFonts(APP_FONTS);
+  // The loading screen (components/Launch) covers this until it's ready, and hides the system one.
   const ready = !loading && (fontsLoaded || !!fontError);
-  useEffect(() => {
-    if (ready) SplashScreen.hide();
-  }, [ready]);
   if (!ready) return null;
 
   const signedIn = !!account;
