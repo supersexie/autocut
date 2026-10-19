@@ -5,7 +5,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Defs, LinearGradient as SvgGradient, Rect, Stop } from 'react-native-svg';
-import Animated, { FadeInDown, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
 import { BRAND_FONT, JAKARTA } from '../lib/fonts';
@@ -95,18 +95,15 @@ export function OnbTitle({ children, sub, center }: { children: ReactNode; sub?:
 }
 
 /**
- * One answer: a white card with its icon on a tile like the Autocut logo's. Picked, it takes a blue
- * outline and a check. Cards slide in one after another when the question appears.
+ * One answer: a white card with its icon on a tile like the Autocut logo's. Picked, it takes an outline
+ * like the logo's too (graphite, silver at two corners) and a check. Cards slide in one after another when the question appears.
  */
 export function Choice({ label, icon, bars, selected, onPress, index }: { label: string; icon?: SymbolName; bars?: number; selected: boolean; onPress: () => void; index: number }) {
-  const on = useSharedValue(selected ? 1 : 0);
-  useEffect(() => {
-    on.value = withTiming(selected ? 1 : 0, { duration: 160 });
-  }, [selected, on]);
-  const card = useAnimatedStyle(() => ({ borderColor: interpolateColor(on.value, [0, 1], ['rgba(34,139,229,0)', ICON_BLUE]) }));
+  const [size, setSize] = useState({ w: 0, h: 0 });
   return (
-    <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)}>
-      <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={[styles.choice, card]}>
+    <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
+      <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={styles.choice}>
+        {selected && size.w > 0 && <SilverOutline w={size.w} h={size.h} />}
         {bars != null ? (
           <View style={[styles.tile, selected && { backgroundColor: ICON_BLUE }]}>
             <Bars level={bars} on={selected} />
@@ -115,8 +112,30 @@ export function Choice({ label, icon, bars, selected, onPress, index }: { label:
           icon && <SilverTile icon={icon} />
         )}
         <Text style={styles.choiceLabel}>{label}</Text>
-        {selected && <SymbolView name="checkmark" tintColor={ICON_BLUE} size={15} weight="semibold" />}
+        {selected && <SymbolView name="checkmark" tintColor={GRAPHITE} size={15} weight="semibold" />}
       </PressableScale>
+    </Animated.View>
+  );
+}
+
+const GRAPHITE = '#1D1A23';
+
+/** The picked answer's outline, like the logo: graphite, with silver catching the top-left and bottom-right corners. */
+function SilverOutline({ w, h }: { w: number; h: number }) {
+  return (
+    // Drawn over the card's own (clear) border, so it lines up with the card's edge.
+    <Animated.View entering={FadeIn.duration(160)} pointerEvents="none" style={{ position: 'absolute', top: -1.5, left: -1.5, width: w, height: h }}>
+      <Svg width={w} height={h}>
+        <Defs>
+          <SvgGradient id="edge" x1="0" y1="0" x2={w} y2={h} gradientUnits="userSpaceOnUse">
+            <Stop offset="0" stopColor="#A9A9B4" />
+            <Stop offset="0.16" stopColor={GRAPHITE} />
+            <Stop offset="0.84" stopColor={GRAPHITE} />
+            <Stop offset="1" stopColor="#9A9AA5" />
+          </SvgGradient>
+        </Defs>
+        <Rect x={1} y={1} width={w - 2} height={h - 2} rx={15} fill="none" stroke="url(#edge)" strokeWidth={2} />
+      </Svg>
     </Animated.View>
   );
 }
@@ -245,7 +264,7 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 38 },
   sub: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted },
   choice: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 13,
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: 'transparent', paddingHorizontal: 14, paddingVertical: 13,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
   tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: ICON_TILE, alignItems: 'center', justifyContent: 'center' },
