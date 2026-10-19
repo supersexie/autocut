@@ -160,7 +160,7 @@ function useFace() {
   return (weight: Weight) => (on ? { fontFamily: JAKARTA[weight], fontWeight: 'normal' as const } : null);
 }
 
-/** Full-width pill. Primary is near-black and greys out until it can be used. */
+/** Full-width pill. Primary is near-black and fades until it can be used. */
 export function Button({ title, onPress, kind = 'primary', disabled, loading, icon, style }: ButtonProps) {
   const off = disabled || loading;
   const face = useFace();
@@ -185,7 +185,7 @@ export function Button({ title, onPress, kind = 'primary', disabled, loading, ic
       ) : (
         <>
           {icon}
-          <Text style={[styles.buttonText, kind === 'primary' ? { color: '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, fontFamily: JAKARTA.medium }, face(kind === 'text' ? 'medium' : 'bold')]}>
+          <Text style={[styles.buttonText, kind === 'primary' ? { color: disabled ? 'rgba(255,255,255,0.55)' : '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, fontFamily: JAKARTA.medium }, face(kind === 'text' ? 'medium' : 'bold')]}>
             {title}
           </Text>
         </>
@@ -301,7 +301,7 @@ export function ErrorText({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   button: { minHeight: 56, borderRadius: 28, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22 },
   primary: { backgroundColor: theme.ink },
-  primaryOff: { backgroundColor: theme.disabled },
+  primaryOff: { backgroundColor: 'rgba(17,17,20,0.8)' }, // near the same black, with a dimmed label, until it can be used (not a flat grey)
   outline: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E3E3E8' },
   textButton: { minHeight: 40 },
   buttonText: { fontSize: 16, fontFamily: JAKARTA.semibold },

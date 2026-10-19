@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useAnimatedProps, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useAnimatedProps, useAnimatedStyle, useSharedValue, withTiming, Easing } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Choice, HIGHLIGHT, OnbHeader, OnbScreen, OnbTitle, onbCard, StepSlider, Tip } from '../components/Onboarding';
 import { PlanPicker } from '../components/PlanPicker';
@@ -179,20 +179,20 @@ function WeekStack({ stop }: { stop: (typeof VOLUME_STOPS)[number] }) {
   );
 }
 
-const WATCH = 168;
+const WATCH = 150;
 const WATCH_STROKE = 12;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /**
  * "How long does one video take to edit?" as a stopwatch: one turn is 4 hours. The hand sweeps and
- * the face fills to the answer with a spring; Autocut's few minutes sit as a small blue wedge at 12.
+ * the face fills to the answer; under it, their time against Autocut's, side by side.
  */
 function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; unit: string } }) {
   const r = (WATCH - WATCH_STROKE) / 2;
   const c = 2 * Math.PI * r;
   const share = useSharedValue(Math.min(1, minutes / 240));
   useEffect(() => {
-    share.set(withSpring(Math.min(1, minutes / 240), { damping: 14, stiffness: 120 }));
+    share.set(withTiming(Math.min(1, minutes / 240), { duration: 320, easing: Easing.out(Easing.cubic) }));
   }, [minutes, share]);
   const arc = useAnimatedProps(() => ({ strokeDashoffset: c * (1 - share.value) }));
   const hand = useAnimatedStyle(() => ({ transform: [{ rotate: `${share.value * 360}deg` }] }));
@@ -230,12 +230,25 @@ function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; un
           <Text style={styles.watchUnit}>{label.unit.replace(' a video', '')}</Text>
         </View>
       </View>
-      <View style={styles.watchLegend}>
-        <View style={[styles.legendDot, { backgroundColor: theme.ink }]} />
-        <Text style={styles.legendText}>You, now</Text>
-        <View style={[styles.legendDot, { backgroundColor: theme.blue, marginLeft: 14 }]} />
-        <Text style={styles.legendText}>With Autocut</Text>
+      {/* Autocut's time, side by side with theirs, so the difference is the first thing you see. */}
+      <View style={styles.versus}>
+        <View style={styles.versusSide}>
+          <Text style={styles.versusLabel}>Editing now</Text>
+          <Text style={styles.versusValue}>{label.n} <Text style={styles.versusUnit}>{label.unit.replace(' a video', '')}</Text></Text>
+        </View>
+        <View style={styles.versusArrow}>
+          <SymbolView name="arrow.right" tintColor={theme.faint} size={14} weight="semibold" />
+        </View>
+        <View style={[styles.versusSide, styles.versusOurs]}>
+          <Text style={[styles.versusLabel, { color: theme.blue }]}>With Autocut</Text>
+          <Text style={[styles.versusValue, { color: theme.blue }]}>{AUTOCUT_MINUTES} <Text style={[styles.versusUnit, { color: theme.blue }]}>min</Text></Text>
+        </View>
       </View>
+      {minutes > AUTOCUT_MINUTES && (
+        <Text style={styles.faster}>
+          That’s <Text style={{ color: HIGHLIGHT }}>{Math.round(minutes / AUTOCUT_MINUTES)}× faster</Text> for every video.
+        </Text>
+      )}
     </View>
   );
 }
@@ -281,7 +294,6 @@ function EditTime({ header, draft, onNext }: { header: React.ReactNode; draft: D
           <Stopwatch minutes={minutes} label={label} />
           <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 min" right="4 h or more" />
         </View>
-        <Tip icon="bolt">With Autocut it’s about {AUTOCUT_MINUTES} minutes a video: send the take, check the cut, export.</Tip>
       </Animated.View>
     </OnbScreen>
   );
@@ -672,7 +684,14 @@ const styles = StyleSheet.create({
   watchCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   watchValue: { fontSize: 38, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
   watchUnit: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.muted, marginTop: -2 },
-  watchLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+  versus: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 16, alignSelf: 'stretch' },
+  versusSide: { flex: 1, borderRadius: 14, backgroundColor: '#F4F5F9', paddingVertical: 10, alignItems: 'center', gap: 2 },
+  versusOurs: { backgroundColor: theme.blueTile, borderWidth: 1, borderColor: theme.blueLine },
+  versusArrow: { justifyContent: 'center' },
+  versusLabel: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
+  versusValue: { fontSize: 24, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  versusUnit: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.ink },
+  faster: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted, textAlign: 'center', marginTop: 10 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
