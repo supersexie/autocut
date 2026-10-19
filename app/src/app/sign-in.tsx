@@ -122,7 +122,6 @@ export default function SignIn() {
           keyboardType="email-address"
           textContentType="emailAddress"
           returnKeyType="next"
-          autoFocus
         />
         <Field
           placeholder="Password"

@@ -485,14 +485,13 @@ export function CoverPicker({ clips, sourceUri, value, onDone, onCancel }: { cli
 
   return (
     <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(140)} style={[StyleSheet.absoluteFill, styles.coverScreen, { paddingTop: insets.top + 6, paddingBottom: insets.bottom + 16 }]}>
+      {/* Save is a big button at the bottom, clear of anything floating in the top corner. */}
       <View style={styles.coverHead}>
-        <Pressable onPress={onCancel} hitSlop={10}>
+        <Pressable onPress={onCancel} hitSlop={10} style={{ width: 70 }}>
           <Text style={styles.coverCancel}>Cancel</Text>
         </Pressable>
         <Text style={styles.coverTitle}>Cover</Text>
-        <Pressable onPress={() => onDone(t)} hitSlop={10}>
-          <Text style={styles.coverSave}>Save</Text>
-        </Pressable>
+        <View style={{ width: 70 }} />
       </View>
       <View style={styles.coverStage}>
         <Thumb uri={sourceUri} seconds={source(t)} style={styles.coverFrame} />
@@ -508,6 +507,9 @@ export function CoverPicker({ clips, sourceUri, value, onDone, onCancel }: { cli
           <Thumb uri={sourceUri} seconds={source(t)} style={StyleSheet.absoluteFill} />
         </View>
       </View>
+      <Pressable onPress={() => onDone(t)} style={styles.coverSaveBtn} accessibilityRole="button">
+        <Text style={styles.coverSave}>Use this frame</Text>
+      </Pressable>
     </Animated.View>
   );
 }
@@ -616,7 +618,8 @@ const styles = StyleSheet.create({
   coverHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 44 },
   coverCancel: { fontSize: 16, ...UI_FONT.semibold, color: theme.muted },
   coverTitle: { fontSize: 17, ...UI_FONT.bold, color: theme.ink },
-  coverSave: { fontSize: 16, ...UI_FONT.bold, color: theme.ink },
+  coverSave: { fontSize: 16, ...UI_FONT.bold, color: '#fff' },
+  coverSaveBtn: { height: 52, borderRadius: 26, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', marginTop: 16 },
   coverStage: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 12 },
   coverFrame: { height: '100%', aspectRatio: 9 / 16, borderRadius: 18 },
   coverHint: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', marginBottom: 16, lineHeight: 18 },

@@ -97,8 +97,8 @@ export function ColorPanel(p: {
   onDone: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('adjust');
-  // Opens on Exposure. Auto isn't a slider: tapping it adjusts once.
-  const [slider, setSlider] = useState<AdjustKey>('exposure');
+  // Nothing picked at first; a slider shows once a setting is tapped. Auto isn't a slider: tapping it adjusts once.
+  const [slider, setSlider] = useState<AdjustKey | null>(null);
   const [band, setBand] = useState(HSL_BANDS[0].key);
   const g = p.grade ?? {};
   const set = (next: Grade, live = false) => p.onChange(cleanGrade(next), live);
@@ -176,9 +176,15 @@ export function ColorPanel(p: {
 
         {tab === 'adjust' && (
           <View style={{ gap: 8 }}>
-            <Labelled label={SLIDERS.flatMap((s) => s.items).find((i) => i.key === slider)?.label ?? ''} value={g.adjust?.[slider] ?? 0}>
-              <CenterSlider value={g.adjust?.[slider] ?? 0} oneSided={ONE_SIDED.includes(slider)} onChange={(v, live) => setAdjust(slider, v, live)} onEnd={p.onEnd} />
-            </Labelled>
+            {slider ? (
+              <Labelled label={SLIDERS.flatMap((s) => s.items).find((i) => i.key === slider)?.label ?? ''} value={g.adjust?.[slider] ?? 0}>
+                <CenterSlider value={g.adjust?.[slider] ?? 0} oneSided={ONE_SIDED.includes(slider)} onChange={(v, live) => setAdjust(slider, v, live)} onEnd={p.onEnd} />
+              </Labelled>
+            ) : (
+              <View style={styles.pickHint}>
+                <Text style={styles.pickHintText}>Pick a setting below, or tap Auto.</Text>
+              </View>
+            )}
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 2, paddingHorizontal: 4 }}>
               {SLIDERS.map((grp) => (
                 <View key={grp.group}>
@@ -571,6 +577,9 @@ function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] |
 const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 12, paddingTop: 12, gap: 10, overflow: 'hidden' },
   reset: { fontSize: 13, ...UI_FONT.semibold, color: theme.blue },
+  // The same height as a slider with its label, so nothing jumps when one is picked.
+  pickHint: { height: 48, alignItems: 'center', justifyContent: 'center' },
+  pickHintText: { fontSize: 13, ...UI_FONT.semibold, color: theme.faint },
   scopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
   clipStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   clipLabel: { fontSize: 12, ...UI_FONT.semibold, color: theme.ink },

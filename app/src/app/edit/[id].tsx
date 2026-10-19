@@ -496,7 +496,8 @@ export function Editor({ cut }: { cut: CutRecord }) {
 
       <Preview
         video={playback.video}
-        graded={colorOpen ? (w, h) => <GradedFrame image={frame} grade={clip?.grade} width={w} height={h} split={compare ? w / 2 : 0} /> : undefined}
+        // The graded still only once there's something to show: opening Adjust leaves the video as it is.
+        graded={colorOpen && (clip?.grade || compare) ? (w, h) => <GradedFrame image={frame} grade={clip?.grade} width={w} height={h} split={compare ? w / 2 : 0} /> : undefined}
         aspect={aspect}
         line={line}
         activeWord={activeWord}

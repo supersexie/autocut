@@ -506,29 +506,40 @@ function Curve({ values, show }: { values: number[]; show: (v: number, i: number
   );
 }
 
-const BLOCK_COLS = 6;
-
 /**
- * The day as 24 hour blocks: the hours that go to editing fill in blue, one after another (the time
- * Autocut gives back). A part hour fills part of its block.
+ * The day as one bar, midnight to midnight: the editing time fills in blue from the left (the time
+ * Autocut gives back), with its length in a tag above the end of the fill.
  */
-function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
-  const fill = useProgress(1300, 350);
+function DayBar({ spent, saved }: { spent: number; saved: number }) {
+  const fill = easeOut(useProgress(1300, 350));
   const hours = Math.min(24, spent);
   const freed = Math.min(hours, saved);
   const [w, setW] = useState(0);
-  const size = w ? (w - 5 * 6) / BLOCK_COLS : 0;
+  const fillW = w ? Math.max(12, (hours / 24) * w) * fill : 0; // never thinner than a sliver
+  const TAG = 92;
+  const tagLeft = Math.max(0, Math.min(w - TAG, fillW - TAG / 2));
+  const pointer = Math.max(10, Math.min(TAG - 10, fillW - tagLeft));
   return (
-    <View style={styles.blocksCard}>
-      <View style={styles.blocks} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-        {Array.from({ length: 24 }, (_, h) => {
-          const on = clamp01(hours * easeOut(fill) - h); // how much of this hour is filled
-          return (
-            <View key={h} style={[styles.block, { width: size, height: size * 0.8 }]}>
-              {on > 0 && <View style={[styles.blockFill, { width: `${on * 100}%`, backgroundColor: theme.blue }]} />}
-            </View>
-          );
-        })}
+    <View style={styles.barCard}>
+      <View style={{ height: 34 }}>
+        {w > 0 && (
+          <View style={[styles.barTag, { left: tagLeft, width: TAG, opacity: clamp01(fill * 2) }]}>
+            <Text style={styles.barTagText}>{hm(hours * fill)} a day</Text>
+            <View style={[styles.barTagPointer, { left: pointer - 5 }]} />
+          </View>
+        )}
+      </View>
+      <View style={styles.barTrack} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        {/* Faint marks every six hours. */}
+        {[0.25, 0.5, 0.75].map((k) => (
+          <View key={k} style={[styles.barTick, { left: `${k * 100}%` }]} />
+        ))}
+        <View style={[styles.barFill, { width: fillW }]} />
+      </View>
+      <View style={styles.barHours}>
+        {['12 AM', '6 AM', '12 PM', '6 PM', '12 AM'].map((l, i) => (
+          <Text key={i} style={styles.barHour}>{l}</Text>
+        ))}
       </View>
       <View style={styles.blockLegend}>
         <View style={[styles.legendDot, { backgroundColor: theme.blue }]} />
@@ -541,7 +552,7 @@ function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
 }
 
 /**
- * "X% of every day goes to editing.": the day as hour blocks filling in, then what Autocut gives back
+ * "X% of every day goes to editing.": the day as a bar filling in, then what Autocut gives back
  * over a year and the lowest price it costs.
  */
 function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
@@ -561,7 +572,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
         <Text style={styles.lifeTitle}>
           <Text style={{ color: HIGHLIGHT }}>{pct >= 1 ? `${Math.round(pct * p)}%` : hm(n.spent)}</Text> of every day goes to editing.
         </Text>
-        <DayBlocks spent={n.spent} saved={n.saved} />
+        <DayBar spent={n.spent} saved={n.saved} />
         <Text style={styles.lifeLine}>
           Autocut hands you <Text style={{ color: HIGHLIGHT }}>{days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> a year, from {money(lowest)} a month.
         </Text>
@@ -688,13 +699,18 @@ const styles = StyleSheet.create({
   how: { fontSize: 14, ...UI_FONT.bold, color: theme.blue },
   howText: { fontSize: 13, ...UI_FONT.medium, lineHeight: 19, color: theme.muted, marginTop: 8 },
   amount: { position: 'absolute', width: 110, textAlign: 'center', fontSize: 14, ...UI_FONT.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
-  amountBig: { fontSize: 17, ...UI_FONT.medium },
+  amountBig: { fontSize: 17 },
   axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, ...UI_FONT.medium, color: theme.muted },
   caption: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
-  blocksCard: { ...onbCard, marginTop: 26, gap: 14 },
-  blocks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  block: { borderRadius: 8, backgroundColor: '#EEF0F6', overflow: 'hidden' },
-  blockFill: { position: 'absolute', top: 0, bottom: 0, left: 0 },
+  barCard: { ...onbCard, marginTop: 26, gap: 8, paddingTop: 16 },
+  barTrack: { height: 44, borderRadius: 14, backgroundColor: '#EEF0F6', overflow: 'hidden' },
+  barFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 14, backgroundColor: theme.blue },
+  barTick: { position: 'absolute', top: 12, bottom: 12, width: 1, backgroundColor: 'rgba(17,17,20,0.10)' },
+  barHours: { flexDirection: 'row', justifyContent: 'space-between' },
+  barHour: { fontSize: 11, ...UI_FONT.semibold, color: theme.faint, fontVariant: ['tabular-nums'] },
+  barTag: { position: 'absolute', top: 0, height: 26, borderRadius: 8, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  barTagText: { fontSize: 12, ...UI_FONT.bold, color: '#fff', fontVariant: ['tabular-nums'] },
+  barTagPointer: { position: 'absolute', bottom: -4, width: 10, height: 10, backgroundColor: theme.ink, transform: [{ rotate: '45deg' }], borderRadius: 2 },
   blockLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   lifeTitle: { fontSize: 32, ...UI_FONT.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
   lifeLine: { fontSize: 18, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
