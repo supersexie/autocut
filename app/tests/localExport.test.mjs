@@ -36,7 +36,7 @@ test("the job: local files, looks resolved with the user's changes, overlays and
     overlapAudio: true,
   };
   const body = exportBody(edit, words, { height: 720, fps: 24, bitrate: 8 }, 'music', { o: 'o' });
-  const spec = exportSpec(body, presets, { source: 'file:///src.mp4', output: 'file:///out.mp4', music: 'file:///song.m4a', overlays: { o: 'file:///o.png' }, fonts: { Bangers: 'file:///b.ttf' } });
+  const spec = exportSpec(body, presets, { source: 'file:///src.mp4', output: 'file:///out.mp4', music: 'file:///song.m4a', overlays: { o: 'file:///o.png' }, fonts: { 'Luckiest Guy': 'file:///b.ttf' } });
   assert.equal(spec.height, 720);
   assert.equal(spec.fps, 24);
   assert.equal(spec.clips[1].speed, 2);
@@ -50,5 +50,5 @@ test("the job: local files, looks resolved with the user's changes, overlays and
   assert.deepEqual([spec.captions.x, spec.captions.y], [0.5, 0.76]);
   assert.deepEqual(spec.captions.events.map((e) => e.words.join(' ')), ['Hello world.']);
   // Comic text: capitals, its own font, doubled.
-  assert.deepEqual([spec.texts[0].text, spec.texts[0].style.font, spec.texts[0].style.size, spec.texts[0].align], ['HEY', 'Bangers', 2.5, 'left']);
+  assert.deepEqual([spec.texts[0].text, spec.texts[0].style.font, spec.texts[0].style.size, spec.texts[0].align], ['HEY', 'Luckiest Guy', 2.5, 'left']);
 });

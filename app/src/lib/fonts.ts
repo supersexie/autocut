@@ -12,6 +12,13 @@ export const CAPTION_FONTS = {
   Shrikhand: require('../../assets/fonts/Shrikhand-Regular.ttf'),
   'Playfair Display': require('../../assets/fonts/PlayfairDisplay-BoldItalic.ttf'),
   Poppins: require('../../assets/fonts/Poppins-Bold.ttf'),
+  // CutAI's caption fonts (registered by each file's full name, which the server's libass matches).
+  'Roboto Condensed Bold': require('../../assets/fonts/RobotoCondensed-Bold.ttf'),
+  'Luckiest Guy': require('../../assets/fonts/LuckiestGuy-Regular.ttf'),
+  'Fredoka SemiBold': require('../../assets/fonts/Fredoka-SemiBold.ttf'),
+  Abel: require('../../assets/fonts/Abel-Regular.ttf'),
+  'Zilla Slab Bold Italic': require('../../assets/fonts/ZillaSlab-BoldItalic.ttf'),
+  'Playfair Display Regular': require('../../assets/fonts/PlayfairDisplay-Regular.ttf'),
 };
 
 /** The "Autocut" wordmark's typeface (Bricolage Grotesque ExtraBold), next to the logo in headers. */
@@ -36,4 +43,4 @@ export const APP_FONTS = {
 };
 
 /** Fonts offered for text overlays (the A button in the text editor). */
-export const TEXT_FONTS = ['TikTok Sans Bold', 'Inter ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];
+export const TEXT_FONTS = ['TikTok Sans Bold', 'Playfair Display Regular', 'Abel', 'Zilla Slab Bold Italic', 'Luckiest Guy', 'Fredoka SemiBold', 'Roboto Condensed Bold', 'Montserrat Black', 'Anton'];

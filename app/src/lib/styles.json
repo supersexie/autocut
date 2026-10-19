@@ -4,26 +4,26 @@
     {"id": "classic-outline", "name": "Classic Outline", "group": "Simple", "font": "TikTok Sans Bold", "size": 1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 7, "shadow": 0},
     {"id": "classic-background", "name": "Classic Background", "group": "Simple", "font": "TikTok Sans Bold", "size": 0.92, "color": "#111114", "box": "#FFFFFF", "outlineWidth": 12, "shadow": 0},
     {"id": "dark-box", "name": "Dark Box", "group": "Simple", "font": "TikTok Sans Bold", "size": 0.92, "color": "#FFFFFF", "box": "#111114", "outlineWidth": 12, "shadow": 0},
-    {"id": "keyword", "name": "Keyword", "group": "Word by word", "font": "Anton", "size": 1.1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 5, "shadow": 0, "highlight": {"mode": "color", "color": "#FFD60A"}},
+    {"id": "keyword", "name": "Keyword", "group": "Word by word", "font": "Roboto Condensed Bold", "size": 1.1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 5, "shadow": 0, "highlight": {"mode": "color", "color": "#FFD60A"}},
     {"id": "bold", "name": "Bold", "group": "Word by word", "font": "Montserrat Black", "size": 0.95, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 6, "shadow": 0, "uppercase": true, "highlight": {"mode": "color", "color": "#3DDC4A"}},
     {"id": "word-box", "name": "Word Box", "group": "Word by word", "font": "TikTok Sans Bold", "size": 1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 5, "shadow": 0, "highlight": {"mode": "box", "color": "#F2545B"}},
     {"id": "light-up", "name": "Light Up", "group": "Word by word", "font": "TikTok Sans Bold", "size": 1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 5, "shadow": 0, "highlight": {"mode": "color", "color": "#58C4FF"}},
     {"id": "one-word", "name": "One Word", "group": "Word by word", "font": "Anton", "size": 1.5, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 6, "shadow": 0, "uppercase": true, "highlight": {"mode": "single"}},
-    {"id": "comic", "name": "Comic", "group": "Fun", "font": "Bangers", "size": 1.2, "color": "#FFE14D", "outline": "#000000", "outlineWidth": 6, "shadow": 3, "uppercase": true},
-    {"id": "sticker", "name": "Sticker", "group": "Fun", "font": "Lilita One", "size": 1.15, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 8, "shadow": 0, "uppercase": true, "rotate": -3},
-    {"id": "neon", "name": "Neon", "group": "Fun", "font": "Poppins", "bold": true, "size": 1, "color": "#FF6EF0", "outline": "#FF2BD6", "outlineWidth": 3, "shadow": 0, "glow": 4},
-    {"id": "retro", "name": "Retro", "group": "Fun", "font": "Shrikhand", "size": 1.05, "color": "#F28B2E", "outline": "#3A1D0B", "outlineWidth": 4, "shadow": 4},
-    {"id": "elegant", "name": "Elegant", "group": "Fun", "font": "Playfair Display", "bold": true, "italic": true, "size": 1.05, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 1, "shadow": 2}
+    {"id": "comic", "name": "Comic", "group": "Fun", "font": "Luckiest Guy", "size": 1.2, "color": "#FFE14D", "outline": "#000000", "outlineWidth": 6, "shadow": 3, "uppercase": true},
+    {"id": "sticker", "name": "Sticker", "group": "Fun", "font": "Fredoka SemiBold", "size": 1.15, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 8, "shadow": 0, "uppercase": true, "rotate": -3},
+    {"id": "neon", "name": "Neon", "group": "Fun", "font": "Abel", "size": 1, "color": "#FF6EF0", "outline": "#FF2BD6", "outlineWidth": 3, "shadow": 0, "glow": 4},
+    {"id": "retro", "name": "Retro", "group": "Fun", "font": "Zilla Slab Bold Italic", "size": 1.05, "color": "#F28B2E", "outline": "#3A1D0B", "outlineWidth": 4, "shadow": 4},
+    {"id": "elegant", "name": "Elegant", "group": "Fun", "font": "Playfair Display Regular", "size": 1.05, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 1, "shadow": 2}
   ],
   "texts": [
     {"id": "classic", "name": "Classic", "font": "TikTok Sans Bold", "size": 1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 0, "shadow": 0},
     {"id": "white-box", "name": "White Box", "font": "TikTok Sans Bold", "size": 0.95, "color": "#111114", "box": "#FFFFFF", "outlineWidth": 14, "shadow": 0},
     {"id": "dark-box", "name": "Dark Box", "font": "TikTok Sans Bold", "size": 0.95, "color": "#FFFFFF", "box": "#111114", "outlineWidth": 14, "shadow": 0},
     {"id": "loud", "name": "Loud", "font": "Anton", "size": 1.4, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 6, "shadow": 0, "uppercase": true},
-    {"id": "neon", "name": "Neon", "font": "Poppins", "bold": true, "size": 1, "color": "#FF6EF0", "outline": "#FF2BD6", "outlineWidth": 3, "shadow": 0, "glow": 4},
-    {"id": "elegant", "name": "Elegant", "font": "Playfair Display", "bold": true, "italic": true, "size": 1.1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 1, "shadow": 2},
-    {"id": "sticker", "name": "Sticker", "font": "Lilita One", "size": 1.2, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 8, "shadow": 0, "rotate": -3},
-    {"id": "comic", "name": "Comic", "font": "Bangers", "size": 1.25, "color": "#FFE14D", "outline": "#000000", "outlineWidth": 6, "shadow": 3, "uppercase": true},
-    {"id": "retro", "name": "Retro", "font": "Shrikhand", "size": 1.1, "color": "#F28B2E", "outline": "#3A1D0B", "outlineWidth": 4, "shadow": 4}
+    {"id": "neon", "name": "Neon", "font": "Abel", "size": 1, "color": "#FF6EF0", "outline": "#FF2BD6", "outlineWidth": 3, "shadow": 0, "glow": 4},
+    {"id": "elegant", "name": "Elegant", "font": "Playfair Display Regular", "size": 1.1, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 1, "shadow": 2},
+    {"id": "sticker", "name": "Sticker", "font": "Fredoka SemiBold", "size": 1.2, "color": "#FFFFFF", "outline": "#000000", "outlineWidth": 8, "shadow": 0, "rotate": -3},
+    {"id": "comic", "name": "Comic", "font": "Luckiest Guy", "size": 1.25, "color": "#FFE14D", "outline": "#000000", "outlineWidth": 6, "shadow": 3, "uppercase": true},
+    {"id": "retro", "name": "Retro", "font": "Zilla Slab Bold Italic", "size": 1.1, "color": "#F28B2E", "outline": "#3A1D0B", "outlineWidth": 4, "shadow": 4}
   ]
 }

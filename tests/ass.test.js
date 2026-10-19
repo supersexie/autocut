@@ -6,7 +6,7 @@ const line = { start: 0, end: 1.5, words: [{ text: 'make', start: 0, end: 0.4 },
 const dialogues = (ass) => ass.split('\n').filter((l) => l.startsWith('Dialogue:'));
 
 test('every caption and text style uses a bundled font', () => {
-  const bundled = ['TikTok Sans Bold', 'Inter', 'Inter ExtraBold', 'Inter Black', 'Montserrat ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];
+  const bundled = ['TikTok Sans Bold', 'Inter', 'Inter ExtraBold', 'Inter Black', 'Montserrat ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins', 'Roboto Condensed Bold', 'Luckiest Guy', 'Fredoka SemiBold', 'Abel', 'Zilla Slab Bold Italic', 'Playfair Display Regular'];
   for (const s of [...STYLES.captions, ...STYLES.texts]) assert.ok(bundled.includes(s.font), `${s.id} uses ${s.font}`);
 });
 

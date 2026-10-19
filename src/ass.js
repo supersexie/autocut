@@ -24,6 +24,12 @@ const FONT_FILES = {
   Shrikhand: 'Shrikhand-Regular.ttf',
   'Playfair Display': 'PlayfairDisplay-BoldItalic.ttf',
   Poppins: 'Poppins-Bold.ttf',
+  'Roboto Condensed Bold': 'RobotoCondensed-Bold.ttf',
+  'Luckiest Guy': 'LuckiestGuy-Regular.ttf',
+  'Fredoka SemiBold': 'Fredoka-SemiBold.ttf',
+  Abel: 'Abel-Regular.ttf',
+  'Zilla Slab Bold Italic': 'ZillaSlab-BoldItalic.ttf',
+  'Playfair Display Regular': 'PlayfairDisplay-Regular.ttf',
 };
 const lineRatios = new Map();
 /** (ascender − descender) / units per em, from the font's head and hhea tables. */
