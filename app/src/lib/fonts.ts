@@ -22,8 +22,8 @@ export const CAPTION_FONTS = {
   'Playfair Display Regular': require('../../assets/fonts/PlayfairDisplay-Regular.ttf'),
 };
 
-/** The "Autocut" wordmark's typeface (Bricolage Grotesque ExtraBold), next to the logo in headers. */
-export const BRAND_FONT = 'Bricolage Grotesque ExtraBold';
+/** The "Autocut" wordmark next to the logo in headers: SF Pro Display, heavy (spread into its style). */
+export const BRAND_FONT = { fontFamily: 'System', fontWeight: '800' } as const;
 
 /**
  * The app's typeface: Apple's SF Pro (the system font), spread into a text style. iOS switches to
@@ -36,10 +36,9 @@ export const UI_FONT = {
   extrabold: { fontFamily: 'System', fontWeight: '800' },
 } as const;
 
-/** Everything loaded at launch: the caption fonts and the wordmark's. */
+/** Everything loaded at launch: the caption fonts. */
 export const APP_FONTS = {
   ...CAPTION_FONTS,
-  [BRAND_FONT]: require('../../assets/fonts/BricolageGrotesque-ExtraBold.ttf'),
 };
 
 /** Fonts offered for text overlays (the A button in the text editor). */

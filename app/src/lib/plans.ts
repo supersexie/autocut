@@ -82,9 +82,8 @@ export function recommendedPlan(editorCost?: string, perWeek?: string, perDay?: 
 
 export const DAYS_A_MONTH = 365 / 12;
 
-/** Setup's "How many videos are you currently posting?" slider, from 1 a week to 10 or more a day. */
+/** Setup's "How many videos do you post a day?" slider, from 1 to 10 or more (the week follows from it). */
 export const VOLUME_STOPS = [
-  ...[1, 2, 3, 4, 5, 6].map((n) => ({ n, unit: 'a week', perDay: n / 7 })),
   ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ n, unit: 'a day', perDay: n })),
   { n: 10, unit: 'or more a day', perDay: 10 },
 ];

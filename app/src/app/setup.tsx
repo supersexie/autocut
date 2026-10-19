@@ -126,22 +126,16 @@ export default function Setup() {
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const MAX_STACK = 10;
 
-/** How many videos land on each day of the week for a slider stop: spread out when it's under one a day. */
-function weekOf(stop: (typeof VOLUME_STOPS)[number]) {
-  if (stop.unit === 'a week') {
-    const on = new Set(Array.from({ length: stop.n }, (_, k) => Math.floor(((k + 0.5) * 7) / stop.n)));
-    return DAYS.map((_, d) => (on.has(d) ? 1 : 0));
-  }
-  return DAYS.map(() => Math.min(MAX_STACK, stop.n));
-}
+/** How many videos land on each day of the week (the same every day, up to a column's worth). */
+const weekOf = (stop: (typeof VOLUME_STOPS)[number]) => DAYS.map(() => Math.min(MAX_STACK, stop.n));
 
 /**
- * "How often do you post?" as a week: a column for each day, with a little video tile for each post
- * that fades in (or out) as the slider moves. More than ten a day shows a "+".
+ * "How many videos do you post a day?" shown as their week: a column for each day, with a little
+ * video tile for each post that lands on top (or leaves) as the slider moves. Ten or more shows a "+".
  */
 function WeekStack({ stop }: { stop: (typeof VOLUME_STOPS)[number] }) {
   const week = weekOf(stop);
-  const total = stop.unit === 'a week' ? stop.n : stop.n * 7;
+  const total = stop.n * 7;
   return (
     <View>
       <View style={styles.valueRow}>
@@ -149,23 +143,24 @@ function WeekStack({ stop }: { stop: (typeof VOLUME_STOPS)[number] }) {
           {stop.n}
           {stop.unit === 'or more a day' ? '+' : ''}
         </Animated.Text>
-        <Text style={styles.unit}>{stop.unit === 'a week' ? (stop.n === 1 ? 'video a week' : 'videos a week') : 'a day'}</Text>
+        <Text style={styles.unit}>{stop.n === 1 ? 'video a day' : 'videos a day'}</Text>
       </View>
       <View style={styles.week}>
         {week.map((count, d) => (
           <View key={d} style={styles.dayCol}>
+            {/* Built from the bottom up: a new video lands on top of the column. */}
             <View style={styles.dayStack}>
-              {stop.unit === 'or more a day' && <Animated.Text entering={FadeIn.duration(180)} style={styles.more}>+</Animated.Text>}
               {Array.from({ length: count }, (_, k) => (
                 <Animated.View
                   key={k}
-                  entering={FadeIn.duration(180).delay(d * 20 + k * 12)}
+                  entering={FadeInDown.duration(200).delay(d * 20)}
                   exiting={FadeOut.duration(120)}
-                  style={[styles.tile, { opacity: 0.55 + 0.45 * ((k + 1) / Math.max(1, count)) }]}
+                  style={[styles.tile, { opacity: 0.6 + 0.4 * ((k + 1) / MAX_STACK) }]}
                 >
                   <View style={styles.tilePlay} />
                 </Animated.View>
               ))}
+              {stop.unit === 'or more a day' && <Animated.Text entering={FadeIn.duration(180)} style={styles.more}>+</Animated.Text>}
             </View>
             <Text style={[styles.dayLabel, count > 0 && { color: theme.ink }]}>{DAYS[d]}</Text>
           </View>
@@ -259,10 +254,10 @@ function Volume({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle sub="A typical week is fine.">How often do you <Text style={{ color: HIGHLIGHT }}>post</Text>?</OnbTitle>
+        <OnbTitle sub="A typical day is fine.">How many videos do you <Text style={{ color: HIGHLIGHT }}>post</Text> a day?</OnbTitle>
         <View style={[onbCard, { paddingTop: 20, paddingBottom: 16, gap: 16 }]}>
           <WeekStack stop={stop} />
-          <StepSlider stops={VOLUME_STOPS.length} index={i} onChange={setI} left="Once a week" right="10+ daily" />
+          <StepSlider stops={VOLUME_STOPS.length} index={i} onChange={setI} left="1 a day" right="10+ a day" />
         </View>
         <Tip icon="square.stack.3d.up">Batch edits take a whole week of takes in one go, so posting more doesn’t mean more editing.</Tip>
       </Animated.View>
@@ -506,73 +501,86 @@ function Curve({ values, show }: { values: number[]; show: (v: number, i: number
   );
 }
 
+const WEEKS = 52;
+const WORK_WEEK = 40; // hours
+
 /**
- * The day as one bar, midnight to midnight: the editing time fills in blue from the left (the time
- * Autocut gives back), with its length in a tag above the end of the fill.
+ * A year as one bar of 52 weeks: the hours spent editing, counted in 40-hour work weeks, light up
+ * one week after another, with a tag riding the end of the lit part.
  */
-function DayBar({ spent, saved }: { spent: number; saved: number }) {
-  const fill = easeOut(useProgress(1300, 350));
-  const hours = Math.min(24, spent);
-  const freed = Math.min(hours, saved);
+function YearBar({ weeks }: { weeks: number }) {
+  const p = useProgress(1700, 350);
+  const shown = Math.min(WEEKS, weeks) * easeOut(p);
+  const lit = Math.floor(shown);
   const [w, setW] = useState(0);
-  const fillW = w ? Math.max(12, (hours / 24) * w) * fill : 0; // never thinner than a sliver
-  const TAG = 92;
-  const tagLeft = Math.max(0, Math.min(w - TAG, fillW - TAG / 2));
-  const pointer = Math.max(10, Math.min(TAG - 10, fillW - tagLeft));
+  const [tagW, setTagW] = useState(0);
+  // A tick every few weeks as they light up, and a thump when it lands.
+  const step = Math.floor(lit / 4);
+  useEffect(() => {
+    if (step > 0) Haptics.selectionAsync();
+  }, [step]);
+  useEffect(() => {
+    if (p >= 1) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  }, [p]);
+  const seg = w ? (w - (WEEKS - 1) * 2) / WEEKS : 0;
+  const edge = Math.max(seg, shown * (seg + 2));
+  const tagLeft = Math.max(0, Math.min(w - tagW, edge - tagW / 2));
+  const pointer = Math.max(10, Math.min(tagW - 10, edge - tagLeft));
   return (
     <View style={styles.barCard}>
       <View style={{ height: 34 }}>
         {w > 0 && (
-          <View style={[styles.barTag, { left: tagLeft, width: TAG, opacity: clamp01(fill * 2) }]}>
-            <Text style={styles.barTagText}>{hm(hours * fill)} a day</Text>
+          <View onLayout={(e) => setTagW(e.nativeEvent.layout.width)} style={[styles.barTag, { left: tagLeft, opacity: tagW ? clamp01(p * 3) : 0 }]}>
+            <Text style={styles.barTagText}>
+              {Math.max(1, Math.round(shown))} week{Math.round(shown) === 1 ? '' : 's'}
+            </Text>
             <View style={[styles.barTagPointer, { left: pointer - 5 }]} />
           </View>
         )}
       </View>
-      <View style={styles.barTrack} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
-        {/* Faint marks every six hours. */}
-        {[0.25, 0.5, 0.75].map((k) => (
-          <View key={k} style={[styles.barTick, { left: `${k * 100}%` }]} />
-        ))}
-        <View style={[styles.barFill, { width: fillW }]} />
+      <View style={styles.weeks} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        {w > 0 &&
+          Array.from({ length: WEEKS }, (_, k) => {
+            const on = clamp01(shown - k); // how much of this week is lit
+            return (
+              <View key={k} style={[styles.weekSeg, { width: seg }]}>
+                {on > 0 && <View style={[styles.weekFill, { height: `${on * 100}%` }]} />}
+              </View>
+            );
+          })}
       </View>
       <View style={styles.barHours}>
-        {['12 AM', '6 AM', '12 PM', '6 PM', '12 AM'].map((l, i) => (
-          <Text key={i} style={styles.barHour}>{l}</Text>
+        {['Jan', 'Apr', 'Jul', 'Oct', 'Dec'].map((l) => (
+          <Text key={l} style={styles.barHour}>{l}</Text>
         ))}
       </View>
       <View style={styles.blockLegend}>
         <View style={[styles.legendDot, { backgroundColor: theme.blue }]} />
-        <Text style={styles.legendText}>
-          Hours editing, freed up by Autocut · <Text style={{ color: theme.blue }}>{hm(freed)}</Text>
-        </Text>
+        <Text style={styles.legendText}>Each bar is a 40-hour work week</Text>
       </View>
     </View>
   );
 }
 
 /**
- * "X% of every day goes to editing.": the day as a bar filling in, then what Autocut gives back
- * over a year and the lowest price it costs.
+ * "N weeks a year go to editing.": the year as 52 work weeks lighting up, then what Autocut gives
+ * back and the lowest price it costs.
  */
 function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
   const n = numbersFor(draft);
-  const p = easeOut(useProgress(1400, 300));
-  const share = Math.min(1, n.spent / 24);
-  const pct = Math.round(share * 100);
+  const p = easeOut(useProgress(1700, 350));
+  const weeks = Math.min(WEEKS, (n.spent * 365) / WORK_WEEK);
   const days = Math.round((n.saved * 365) / 24);
   const lowest = pricePerMonth(PLANS[0], 'yearly');
-  useEffect(() => {
-    const t = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 1750);
-    return () => clearTimeout(t);
-  }, []);
+  const count = Math.max(1, Math.round(weeks * p));
   return (
     <OnbScreen header={header} footer={<Button title="See my plan  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)} style={{ paddingTop: 4 }}>
         <Text style={styles.lifeTitle}>
-          <Text style={{ color: HIGHLIGHT }}>{pct >= 1 ? `${Math.round(pct * p)}%` : hm(n.spent)}</Text> of every day goes to editing.
+          <Text style={{ color: HIGHLIGHT }}>{count} week{count === 1 ? '' : 's'}</Text> a year go to editing.
         </Text>
-        <DayBar spent={n.spent} saved={n.saved} />
+        <Text style={styles.lifeSub}>That’s {Math.round(n.spent * 365).toLocaleString('en-US')} hours, like a full-time job.</Text>
+        <YearBar weeks={weeks} />
         <Text style={styles.lifeLine}>
           Autocut hands you <Text style={{ color: HIGHLIGHT }}>{days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> a year, from {money(lowest)} a month.
         </Text>
@@ -670,7 +678,7 @@ const styles = StyleSheet.create({
   unit: { fontSize: 18, ...UI_FONT.bold, color: theme.ink },
   week: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
   dayCol: { alignItems: 'center', gap: 6, width: 32 },
-  dayStack: { height: 150, justifyContent: 'flex-end', alignItems: 'center', gap: 3 },
+  dayStack: { height: 150, flexDirection: 'column-reverse', justifyContent: 'flex-start', alignItems: 'center', gap: 3 },
   tile: { width: 26, height: 11.5, borderRadius: 4, backgroundColor: theme.blue, alignItems: 'center', justifyContent: 'center' },
   tilePlay: { width: 0, height: 0, borderTopWidth: 3, borderBottomWidth: 3, borderLeftWidth: 5, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: 'rgba(255,255,255,0.9)' },
   more: { fontSize: 14, ...UI_FONT.bold, color: theme.blue },
@@ -703,16 +711,17 @@ const styles = StyleSheet.create({
   axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, ...UI_FONT.medium, color: theme.muted },
   caption: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
   barCard: { ...onbCard, marginTop: 26, gap: 8, paddingTop: 16 },
-  barTrack: { height: 44, borderRadius: 14, backgroundColor: '#EEF0F6', overflow: 'hidden' },
-  barFill: { position: 'absolute', top: 0, bottom: 0, left: 0, borderRadius: 14, backgroundColor: theme.blue },
-  barTick: { position: 'absolute', top: 12, bottom: 12, width: 1, backgroundColor: 'rgba(17,17,20,0.10)' },
   barHours: { flexDirection: 'row', justifyContent: 'space-between' },
   barHour: { fontSize: 11, ...UI_FONT.semibold, color: theme.faint, fontVariant: ['tabular-nums'] },
-  barTag: { position: 'absolute', top: 0, height: 26, borderRadius: 8, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  barTag: { position: 'absolute', top: 0, height: 26, borderRadius: 8, paddingHorizontal: 10, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   barTagText: { fontSize: 12, ...UI_FONT.bold, color: '#fff', fontVariant: ['tabular-nums'] },
   barTagPointer: { position: 'absolute', bottom: -4, width: 10, height: 10, backgroundColor: theme.ink, transform: [{ rotate: '45deg' }], borderRadius: 2 },
   blockLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   lifeTitle: { fontSize: 32, ...UI_FONT.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  lifeSub: { fontSize: 15, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', marginTop: 8 },
+  weeks: { height: 64, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
+  weekSeg: { height: '100%', borderRadius: 3, backgroundColor: '#EEF0F6', overflow: 'hidden', justifyContent: 'flex-end' },
+  weekFill: { width: '100%', borderRadius: 3, backgroundColor: theme.blue },
   lifeLine: { fontSize: 18, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
   card: { ...onbCard, gap: 12, marginTop: 24 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },

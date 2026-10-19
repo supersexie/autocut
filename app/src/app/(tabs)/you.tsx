@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { ExportedVideos } from '../../components/ExportedVideos';
 import { Card, listStyles, Meter, RoundButton } from '../../components/list';
 import { TAB_BAR_HEIGHT } from '../../components/tabBar';
 import { Button, Wash } from '../../components/ui';
@@ -87,6 +88,8 @@ export default function YouScreen() {
             </View>
           </View>
         </Card>
+
+        <ExportedVideos cuts={cuts} />
 
         {cuts.length === 0 && (
           <View style={styles.empty}>

@@ -42,6 +42,8 @@ export type CutRecord = {
   edit?: Edit; // the user's edit; created from `clips` the first time the editor opens
   source?: string; // file name of the downloaded source video in the cuts folder
   exports: number;
+  /** When it was last exported (newest first in You). */
+  exportedAt?: string;
 };
 
 export type Settings = {

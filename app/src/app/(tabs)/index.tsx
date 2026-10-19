@@ -495,7 +495,7 @@ const styles = StyleSheet.create({
   top: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   pillCentre: { position: 'absolute', left: 0, right: 0, top: 0, alignItems: 'center' },
-  brandText: { color: '#fff', fontSize: 17, fontFamily: BRAND_FONT },
+  brandText: { color: '#fff', fontSize: 17, ...BRAND_FONT },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.cut },
   pillText: { color: '#fff', fontSize: 13, ...UI_FONT.semibold, fontVariant: ['tabular-nums'] },

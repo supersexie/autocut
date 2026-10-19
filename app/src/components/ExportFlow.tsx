@@ -253,7 +253,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
         assetId = (await MediaLibrary.Asset.create(cutFile(file).uri)).id;
         saved = true;
       }
-      updateCut(cut.id, { exports: (getCut(cut.id)?.exports ?? 0) + 1 });
+      updateCut(cut.id, { exports: (getCut(cut.id)?.exports ?? 0) + 1, exportedAt: new Date().toISOString() });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setPhase({ kind: 'done', file, saved, assetId });
     } catch (e) {

@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   side: { width: 80 },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(17,17,20,0.06)', alignItems: 'center', justifyContent: 'center' },
   brand: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  brandText: { fontSize: 21, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.4 },
+  brandText: { fontSize: 21, ...BRAND_FONT, color: theme.ink, letterSpacing: -0.4 },
   segments: { flexDirection: 'row', gap: 6, marginTop: 10 },
   segment: { flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(17,17,20,0.1)', overflow: 'hidden' },
   segmentFill: { height: 5, borderRadius: 3, backgroundColor: theme.ink },

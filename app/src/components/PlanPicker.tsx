@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, height: 44 },
   brand: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  brandText: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
+  brandText: { fontSize: 19, ...BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   switch: { fontSize: 15, ...UI_FONT.semibold, color: theme.blue },
   title: { fontSize: 31, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', letterSpacing: -0.9, marginTop: 10 },
   sub: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },

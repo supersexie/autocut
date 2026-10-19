@@ -880,7 +880,7 @@ const styles = StyleSheet.create({
   meta: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
+  brand: { fontSize: 19, ...BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
   exportBtn: { width: 82, height: 30, alignItems: 'flex-end', justifyContent: 'center' },
   exportText: { fontSize: 17, ...UI_FONT.bold, color: theme.blue },
