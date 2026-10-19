@@ -48,6 +48,8 @@ export type Settings = {
   removeFillers: boolean;
   removeRetakes: boolean;
   captions: boolean;
+  /** New cuts blend each clip's sound into the next (Pro and Ultimate). */
+  overlapAudio: boolean;
   /** Keep iOS's default of flipping front-camera videos like a mirror. */
   /** Keep selfie (front camera) videos mirrored, like the camera preview. Off = as others see you. */
   mirrorSelfie: boolean;
@@ -62,7 +64,7 @@ export type Settings = {
 
 export type Folder = { id: string; name: string; createdAt: string };
 
-const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, mirrorSelfie: false, tourDone: false, cameraTourDone: false, ratingAsked: false, serverUrl: '', saveFolder: '' };
+const DEFAULT_SETTINGS: Settings = { maxGap: 0.3, removeFillers: true, removeRetakes: true, captions: true, overlapAudio: true, mirrorSelfie: false, tourDone: false, cameraTourDone: false, ratingAsked: false, serverUrl: '', saveFolder: '' };
 
 export const cutsDir = new Directory(Paths.document, 'cuts');
 /** The editor's stitched previews (see previewOf in api.ts), named `<cut id>-<key>.mp4`. */
@@ -255,6 +257,7 @@ export const editOf = (c: CutRecord): Edit =>
     clips: c.clips.map(([s, e]) => makeClip(s, e)),
     muted: false,
     captions: { ...DEFAULT_CAPTIONS, enabled: state.settings.captions },
+    overlapAudio: state.settings.overlapAudio !== false,
     texts: [],
   };
 

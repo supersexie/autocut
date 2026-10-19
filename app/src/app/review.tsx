@@ -10,7 +10,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Thumb } from '../components/Thumb';
 import { Button, Wash } from '../components/ui';
 import { startCut, type Take } from '../lib/jobs';
-import { useUsage } from '../lib/usage';
+import { askToUpgrade, useUsage } from '../lib/usage';
+import { OVERLAP } from '../lib/plans';
 import { updateSettings, useSettings } from '../lib/store';
 import { COLUMN, formatTime, theme } from '../lib/theme';
 import { CuttingView } from './cut/[id]';
@@ -24,6 +25,7 @@ const seek = (p: VideoPlayer, t: number) => {
 export default function Review() {
   const insets = useSafeAreaInsets();
   const usage = useUsage();
+  const overlapLocked = !usage.allows(OVERLAP);
   const { width: screenW } = useWindowDimensions();
   const params = useLocalSearchParams<{ takes: string }>();
   const takes = useMemo<Take[]>(() => {
@@ -180,8 +182,21 @@ export default function Review() {
 
       <View style={styles.options}>
         <View style={styles.optionRow}>
-          <Text style={styles.optionText}>Captions</Text>
-          <Switch value={settings.captions} onValueChange={(captions) => updateSettings({ captions })} trackColor={{ true: theme.ink }} />
+          {/* Captions are on by default (Cutting options can turn them off); this is the one most people change. */}
+          <Text style={styles.optionText}>Overlap audio</Text>
+          <Pressable
+            onPress={overlapLocked ? () => askToUpgrade('Overlap audio is on Pro and Ultimate', 'Upgrade to blend the sound across every cut.') : undefined}
+            disabled={!overlapLocked}
+          >
+            <View pointerEvents={overlapLocked ? 'none' : 'auto'}>
+              <Switch
+                value={settings.overlapAudio !== false && !overlapLocked}
+                onValueChange={(overlapAudio) => updateSettings({ overlapAudio })}
+                disabled={overlapLocked}
+                trackColor={{ true: theme.blue }}
+              />
+            </View>
+          </Pressable>
         </View>
         <Pressable style={styles.more} onPress={() => router.push('/cut-options')} hitSlop={8}>
           <SymbolView name="ellipsis" tintColor={theme.muted} size={14} />

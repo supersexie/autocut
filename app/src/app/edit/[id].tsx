@@ -13,7 +13,7 @@ import { pickSong, useMusic } from '../../components/editor/music';
 import { CoverPicker, Preview, ReorderStrip, TextComposer, Tour, type TextDraft, type TourStep } from '../../components/editor/Overlays';
 import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
-import { Button, Logo, PressableScale, type SymbolName } from '../../components/ui';
+import { Button, Logo, PressableScale, Wash, WASH, type SymbolName } from '../../components/ui';
 import {
   CAPTION_X, CAPTION_Y, captionLines, fitToLength, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
   restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
@@ -399,6 +399,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <Wash />
       <View style={styles.top}>
         <Pressable onPress={() => router.back()} hitSlop={12} accessibilityLabel="Back" style={{ width: 82 }}>
           <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
@@ -768,7 +769,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: theme.bg },
+  screen: { flex: 1, backgroundColor: WASH[1] }, // with the blue wash behind
   meta: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
