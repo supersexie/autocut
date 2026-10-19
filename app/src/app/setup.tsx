@@ -501,88 +501,92 @@ function Curve({ values, show }: { values: number[]; show: (v: number, i: number
   );
 }
 
-const WEEKS = 52;
-const WORK_WEEK = 40; // hours
+const MONTH_DAYS = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+const MONTH_LETTERS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
 
 /**
- * A year as one bar of 52 weeks: the hours spent editing, counted in 40-hour work weeks, light up
- * one week after another, with a tag riding the end of the lit part.
+ * The year as 12 month bars: the hours spent editing, counted as full days (24 hours each), fill
+ * the months from January on, with a tag riding the edge of the filled part.
  */
-function YearBar({ weeks }: { weeks: number }) {
+function YearBar({ days }: { days: number }) {
   const p = useProgress(1700, 350);
-  const shown = Math.min(WEEKS, weeks) * easeOut(p);
-  const lit = Math.floor(shown);
+  const shown = Math.min(365, days) * easeOut(p);
   const [w, setW] = useState(0);
   const [tagW, setTagW] = useState(0);
-  // A tick every few weeks as they light up, and a thump when it lands.
-  const step = Math.floor(lit / 4);
+  // A tick as each month fills, and a thump when it lands.
+  // How full each month is: the days before it come first.
+  const fills = MONTH_DAYS.map((d, k) => clamp01((shown - MONTH_DAYS.slice(0, k).reduce((a, b) => a + b, 0)) / d));
+  const full = fills.filter((f) => f >= 1).length;
   useEffect(() => {
-    if (step > 0) Haptics.selectionAsync();
-  }, [step]);
+    if (full > 0) Haptics.selectionAsync();
+  }, [full]);
   useEffect(() => {
     if (p >= 1) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   }, [p]);
-  const seg = w ? (w - (WEEKS - 1) * 2) / WEEKS : 0;
-  const edge = Math.max(seg, shown * (seg + 2));
+  const GAP = 6;
+  const bar = w ? (w - GAP * 11) / 12 : 0;
+  const current = Math.min(11, fills.findIndex((f) => f < 1) === -1 ? 11 : fills.findIndex((f) => f < 1));
+  const edge = current * (bar + GAP) + bar / 2;
   const tagLeft = Math.max(0, Math.min(w - tagW, edge - tagW / 2));
   const pointer = Math.max(10, Math.min(tagW - 10, edge - tagLeft));
+  const n = Math.max(1, Math.round(shown));
   return (
     <View style={styles.barCard}>
       <View style={{ height: 34 }}>
         {w > 0 && (
           <View onLayout={(e) => setTagW(e.nativeEvent.layout.width)} style={[styles.barTag, { left: tagLeft, opacity: tagW ? clamp01(p * 3) : 0 }]}>
             <Text style={styles.barTagText}>
-              {Math.max(1, Math.round(shown))} week{Math.round(shown) === 1 ? '' : 's'}
+              {n} day{n === 1 ? '' : 's'}
             </Text>
             <View style={[styles.barTagPointer, { left: pointer - 5 }]} />
           </View>
         )}
       </View>
-      <View style={styles.weeks} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+      <View style={[styles.months, { gap: GAP }]} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
         {w > 0 &&
-          Array.from({ length: WEEKS }, (_, k) => {
-            const on = clamp01(shown - k); // how much of this week is lit
-            return (
-              <View key={k} style={[styles.weekSeg, { width: seg }]}>
-                {on > 0 && <View style={[styles.weekFill, { height: `${on * 100}%` }]} />}
-              </View>
-            );
-          })}
+          fills.map((f, k) => (
+            <View key={k} style={[styles.monthBar, { width: bar }]}>
+              {f > 0 && <View style={[styles.monthFill, { height: `${f * 100}%` }]} />}
+            </View>
+          ))}
       </View>
-      <View style={styles.barHours}>
-        {['Jan', 'Apr', 'Jul', 'Oct', 'Dec'].map((l) => (
-          <Text key={l} style={styles.barHour}>{l}</Text>
+      <View style={[styles.monthLetters, { gap: GAP }]}>
+        {MONTH_LETTERS.map((l, k) => (
+          <Text key={k} style={[styles.barHour, { width: bar, textAlign: 'center' }]}>
+            {l}
+          </Text>
         ))}
       </View>
       <View style={styles.blockLegend}>
         <View style={[styles.legendDot, { backgroundColor: theme.blue }]} />
-        <Text style={styles.legendText}>Each bar is a 40-hour work week</Text>
+        <Text style={styles.legendText}>Your editing time, as full 24-hour days</Text>
       </View>
     </View>
   );
 }
 
 /**
- * "N weeks a year go to editing.": the year as 52 work weeks lighting up, then what Autocut gives
- * back and the lowest price it costs.
+ * "N days a year go to editing.": the year's months filling with the editing time (as whole days),
+ * then what Autocut gives back and the lowest price it costs.
  */
 function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
   const n = numbersFor(draft);
   const p = easeOut(useProgress(1700, 350));
-  const weeks = Math.min(WEEKS, (n.spent * 365) / WORK_WEEK);
-  const days = Math.round((n.saved * 365) / 24);
+  const hours = n.spent * 365;
+  const days = Math.min(365, hours / 24);
+  const back = Math.round((n.saved * 365) / 24);
   const lowest = pricePerMonth(PLANS[0], 'yearly');
-  const count = Math.max(1, Math.round(weeks * p));
+  const count = Math.max(1, Math.round(days * p));
   return (
     <OnbScreen header={header} footer={<Button title="See my plan  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)} style={{ paddingTop: 4 }}>
         <Text style={styles.lifeTitle}>
-          <Text style={{ color: HIGHLIGHT }}>{count} week{count === 1 ? '' : 's'}</Text> a year go to editing.
+          <Text style={{ color: HIGHLIGHT }}>{count} day{count === 1 ? '' : 's'}</Text> a year go to editing.
         </Text>
-        <Text style={styles.lifeSub}>That’s {Math.round(n.spent * 365).toLocaleString('en-US')} hours, like a full-time job.</Text>
-        <YearBar weeks={weeks} />
+        <Text style={styles.lifeSub}>That’s {Math.round(hours).toLocaleString('en-US')} hours, around the clock.</Text>
+        <YearBar days={days} />
         <Text style={styles.lifeLine}>
-          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> a year, from {money(lowest)} a month.
+          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{back >= 1 ? `${back} day${back === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> of it back, from {money(lowest)} a month.
         </Text>
       </Animated.View>
     </OnbScreen>
@@ -711,7 +715,6 @@ const styles = StyleSheet.create({
   axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, ...UI_FONT.medium, color: theme.muted },
   caption: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
   barCard: { ...onbCard, marginTop: 26, gap: 8, paddingTop: 16 },
-  barHours: { flexDirection: 'row', justifyContent: 'space-between' },
   barHour: { fontSize: 11, ...UI_FONT.semibold, color: theme.faint, fontVariant: ['tabular-nums'] },
   barTag: { position: 'absolute', top: 0, height: 26, borderRadius: 8, paddingHorizontal: 10, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   barTagText: { fontSize: 12, ...UI_FONT.bold, color: '#fff', fontVariant: ['tabular-nums'] },
@@ -719,9 +722,10 @@ const styles = StyleSheet.create({
   blockLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   lifeTitle: { fontSize: 32, ...UI_FONT.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
   lifeSub: { fontSize: 15, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', marginTop: 8 },
-  weeks: { height: 64, flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  weekSeg: { height: '100%', borderRadius: 3, backgroundColor: '#EEF0F6', overflow: 'hidden', justifyContent: 'flex-end' },
-  weekFill: { width: '100%', borderRadius: 3, backgroundColor: theme.blue },
+  months: { height: 96, flexDirection: 'row', alignItems: 'flex-end' },
+  monthBar: { height: '100%', borderRadius: 8, backgroundColor: '#EEF0F6', overflow: 'hidden', justifyContent: 'flex-end' },
+  monthFill: { width: '100%', borderRadius: 8, backgroundColor: theme.blue },
+  monthLetters: { flexDirection: 'row' },
   lifeLine: { fontSize: 18, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
   card: { ...onbCard, gap: 12, marginTop: 24 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },
