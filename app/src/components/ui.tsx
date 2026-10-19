@@ -1,6 +1,6 @@
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ComponentProps, type ReactNode } from 'react';
 import {
   ActivityIndicator, Image, KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type PressableProps, type StyleProp, type TextInputProps, type ViewStyle,
@@ -8,6 +8,7 @@ import {
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming, type AnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop as SvgStop } from 'react-native-svg';
+import { JAKARTA } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
 export type SymbolName = ComponentProps<typeof SymbolView>['name'];
@@ -145,9 +146,24 @@ type ButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
+// Before people are inside the app (welcome, setup, sign-in, the first plan screen) text is set in
+// Plus Jakarta Sans, like CutAI's onboarding. Those screens wrap themselves in <PreAppFont>, and the
+// shared pieces below (buttons, fields, titles, segmented controls, errors) follow it.
+const PreApp = createContext(false);
+export function PreAppFont({ children }: { children: ReactNode }) {
+  return <PreApp.Provider value>{children}</PreApp.Provider>;
+}
+type Weight = keyof typeof JAKARTA;
+/** The font for a weight, in Plus Jakarta Sans on the pre-app screens (nothing changes elsewhere). */
+function useFace() {
+  const on = useContext(PreApp);
+  return (weight: Weight) => (on ? { fontFamily: JAKARTA[weight], fontWeight: 'normal' as const } : null);
+}
+
 /** Full-width pill. Primary is near-black and greys out until it can be used. */
 export function Button({ title, onPress, kind = 'primary', disabled, loading, icon, style }: ButtonProps) {
   const off = disabled || loading;
+  const face = useFace();
   return (
     <PressableScale
       onPress={onPress}
@@ -169,7 +185,7 @@ export function Button({ title, onPress, kind = 'primary', disabled, loading, ic
       ) : (
         <>
           {icon}
-          <Text style={[styles.buttonText, kind === 'primary' ? { color: '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, fontWeight: '500' }]}>
+          <Text style={[styles.buttonText, kind === 'primary' ? { color: '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, fontWeight: '500' }, face(kind === 'text' ? 'medium' : 'bold')]}>
             {title}
           </Text>
         </>
@@ -211,12 +227,13 @@ export function Option({ label, detail, icon, selected, onPress, multi }: { labe
 }
 
 export function Field({ label, prefix, ...input }: TextInputProps & { label?: string; prefix?: string }) {
+  const face = useFace();
   return (
     <View style={{ gap: 6 }}>
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && <Text style={[styles.label, face('medium')]}>{label}</Text>}
       <View style={styles.inputWrap}>
-        {prefix && <Text style={styles.prefix}>{prefix}</Text>}
-        <TextInput placeholderTextColor={theme.faint} style={styles.input} {...input} />
+        {prefix && <Text style={[styles.prefix, face('medium')]}>{prefix}</Text>}
+        <TextInput placeholderTextColor={theme.faint} style={[styles.input, face('medium')]} {...input} />
       </View>
     </View>
   );
@@ -232,6 +249,7 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
   }, [index, at]);
   const segment = (width - 8) / options.length;
   const thumb = useAnimatedStyle(() => ({ width: segment, transform: [{ translateX: at.value * segment }] }));
+  const face = useFace();
   return (
     <View style={styles.segmented} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
       {width > 0 && <Animated.View style={[styles.thumb, thumb]} />}
@@ -243,9 +261,9 @@ export function Segmented<T extends string>({ options, value, onChange }: { opti
           accessibilityState={{ selected: o.value === value }}
           style={styles.segment}
         >
-          <Text style={[styles.segmentText, o.value === value && { color: theme.ink }]}>
+          <Text style={[styles.segmentText, face('semibold'), o.value === value && { color: theme.ink }]}>
             {o.label}
-            {o.badge && <Text style={styles.segmentBadge}>{`  ${o.badge}`}</Text>}
+            {o.badge && <Text style={[styles.segmentBadge, face('bold')]}>{`  ${o.badge}`}</Text>}
           </Text>
         </Pressable>
       ))}
@@ -272,16 +290,18 @@ export function StepHeader({ progress, onBack, right }: { progress?: number; onB
 }
 
 export function Title({ children, sub }: { children: ReactNode; sub?: string }) {
+  const face = useFace();
   return (
     <View style={{ gap: 8, marginBottom: 26 }}>
-      <Text style={styles.title}>{children}</Text>
-      {sub && <Text style={styles.sub}>{sub}</Text>}
+      <Text style={[styles.title, face('bold')]}>{children}</Text>
+      {sub && <Text style={[styles.sub, face('medium')]}>{sub}</Text>}
     </View>
   );
 }
 
 export function ErrorText({ children }: { children: ReactNode }) {
-  return children ? <Text style={styles.error}>{children}</Text> : null;
+  const face = useFace();
+  return children ? <Text style={[styles.error, face('medium')]}>{children}</Text> : null;
 }
 
 const styles = StyleSheet.create({

@@ -3,10 +3,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { agreed, ConsentChecks, type Agreement } from '../components/ConsentChecks';
-import { AppleLogo, Backdrop, Button, ErrorText, Field, GoogleLogo, StepHeader, Title } from '../components/ui';
+import { AppleLogo, Backdrop, Button, ErrorText, Field, GoogleLogo, StepHeader, Title, PreAppFont } from '../components/ui';
 import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
 import { holdAgreement, TERMS_VERSION } from '../lib/consent';
 import { theme } from '../lib/theme';
+import { JAKARTA } from '../lib/fonts';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -87,6 +88,7 @@ export default function SignIn() {
   const social = providers.apple || providers.google;
 
   return (
+    <PreAppFont>
     <Backdrop>
       <StepHeader />
       <Title sub={signingUp ? 'Use at least 6 characters for your password.' : 'Welcome back.'}>
@@ -166,17 +168,18 @@ export default function SignIn() {
         )}
       </View>
     </Backdrop>
+    </PreAppFont>
   );
 }
 
 const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   rule: { flex: 1, height: 1, backgroundColor: theme.line },
-  or: { fontSize: 13, color: theme.faint },
-  link: { fontSize: 14, color: theme.ink, fontWeight: '700' },
-  notice: { fontSize: 14, color: theme.ink, lineHeight: 20, backgroundColor: theme.card, padding: 14, borderRadius: 14 },
+  or: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.faint },
+  link: { fontSize: 14, color: theme.ink, fontFamily: JAKARTA.bold },
+  notice: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 20, backgroundColor: theme.card, padding: 14, borderRadius: 14 },
   footer: { marginTop: 'auto', paddingTop: 28, gap: 14, alignItems: 'center' },
-  switch: { fontSize: 14, color: theme.muted },
+  switch: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
   devBox: { alignSelf: 'stretch', borderRadius: 14, backgroundColor: '#FFF7E0', padding: 12, gap: 4 },
-  devText: { fontSize: 13, color: '#7A5B00', textAlign: 'center' },
+  devText: { fontSize: 13, fontFamily: JAKARTA.medium, color: '#7A5B00', textAlign: 'center' },
 });

@@ -7,7 +7,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Svg, { Defs, LinearGradient as SvgGradient, Rect, Stop } from 'react-native-svg';
 import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Logo, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
+import { Logo, PreAppFont, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
 import { BRAND_FONT, JAKARTA } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
@@ -22,6 +22,7 @@ export const HIGHLIGHT = theme.blue;
 export function OnbScreen({ header, children, footer, scroll = true }: { header: ReactNode; children: ReactNode; footer?: ReactNode; scroll?: boolean }) {
   const insets = useSafeAreaInsets();
   return (
+    <PreAppFont>
     <View style={{ flex: 1, backgroundColor: SOFT_WASH[1] }}>
       <Wash soft />
       <View style={{ paddingTop: insets.top + 4, paddingHorizontal: 22 }}>
@@ -42,6 +43,7 @@ export function OnbScreen({ header, children, footer, scroll = true }: { header:
         </View>
       )}
     </View>
+    </PreAppFont>
   );
 }
 

@@ -2,10 +2,11 @@ import * as Linking from 'expo-linking';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Text } from 'react-native';
-import { Backdrop, Button } from '../components/ui';
+import { Backdrop, Button, PreAppFont } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { theme } from '../lib/theme';
+import { JAKARTA } from '../lib/fonts';
 
 const CONFIRMED = 'Your email is confirmed. Sign in with your email and password to continue.';
 
@@ -43,15 +44,17 @@ export default function AuthCallback() {
   if (account) return <Redirect href={account.profile.onboarded ? '/' : '/paywall'} />;
 
   return (
+    <PreAppFont>
     <Backdrop>
       {message ? (
         <>
-          <Text style={{ fontSize: 16, color: theme.ink, textAlign: 'center', marginTop: 120, lineHeight: 22, marginHorizontal: 12 }}>{message}</Text>
+          <Text style={{ fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink, textAlign: 'center', marginTop: 120, lineHeight: 22, marginHorizontal: 12 }}>{message}</Text>
           <Button kind="text" title="Go to sign in" onPress={() => router.replace('/sign-in')} />
         </>
       ) : (
         <ActivityIndicator style={{ marginTop: 160 }} color={theme.accent} />
       )}
     </Backdrop>
+    </PreAppFont>
   );
 }

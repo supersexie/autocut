@@ -5,6 +5,7 @@ import { syncConsent, takeAgreement, TERMS_VERSION } from '../lib/consent';
 import { theme } from '../lib/theme';
 import { agreed, ConsentChecks, type Agreement } from './ConsentChecks';
 import { Button, ErrorText } from './ui';
+import { JAKARTA } from '../lib/fonts';
 
 /**
  * Makes sure every signed-in account has agreed to the current terms. Agreements made at sign-up
@@ -62,6 +63,6 @@ export function ConsentGate() {
 const styles = StyleSheet.create({
   dim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.35)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: '#fff', borderTopLeftRadius: 28, borderTopRightRadius: 28, padding: 24, paddingBottom: 40, gap: 16 },
-  title: { fontSize: 22, fontWeight: '800', color: theme.ink, letterSpacing: -0.4 },
-  body: { fontSize: 15, lineHeight: 21, color: theme.muted },
+  title: { fontSize: 22, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.4 },
+  body: { fontSize: 15, fontFamily: JAKARTA.medium, lineHeight: 21, color: theme.muted },
 });

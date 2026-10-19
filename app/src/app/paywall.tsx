@@ -10,6 +10,7 @@ import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draf
 import { updateSettings } from '../lib/store';
 import { PAYMENTS_ON } from '../lib/billing';
 import { theme } from '../lib/theme';
+import { JAKARTA } from '../lib/fonts';
 
 type Step = 'plan' | 'name' | 'handle' | 'ready' | 'help';
 
@@ -169,17 +170,17 @@ export default function Paywall() {
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, color: theme.muted, fontWeight: '500' },
-  small: { fontSize: 14, color: theme.muted },
-  link: { color: theme.ink, fontWeight: '700' },
-  hint: { fontSize: 12, color: theme.muted, textAlign: 'center' },
+  label: { fontSize: 13, color: theme.muted, fontFamily: JAKARTA.medium },
+  small: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
+  link: { color: theme.ink, fontFamily: JAKARTA.bold },
+  hint: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 22, paddingBottom: 40 },
-  ready: { fontSize: 30, fontWeight: '800', color: theme.ink, textAlign: 'center', letterSpacing: -0.8, lineHeight: 35 },
+  ready: { fontSize: 30, fontFamily: JAKARTA.extrabold, color: theme.ink, textAlign: 'center', letterSpacing: -0.8, lineHeight: 35 },
   note: {
     flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 14, maxWidth: 340,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
-  noteText: { flex: 1, fontSize: 14, color: theme.muted, lineHeight: 19 },
+  noteText: { flex: 1, fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 19 },
   own: { alignSelf: 'center', paddingVertical: 10 },
-  ownText: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  ownText: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
 });

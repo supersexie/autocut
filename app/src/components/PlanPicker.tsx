@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HIGHLIGHT, OnbScreen } from './Onboarding';
-import { Button, ErrorText, Logo, PressableScale, Segmented, Wash } from './ui';
+import { Button, ErrorText, Logo, PreAppFont, PressableScale, Segmented, Wash } from './ui';
 import { openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { applePrices, buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type ApplePrice, type Ways } from '../lib/billing';
@@ -201,7 +201,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
     );
   }
 
-  return (
+  const page = (
     <View style={[styles.screen, { paddingTop: insets.top + 6 }]}>
       <Wash soft />
       <View style={styles.top}>
@@ -231,6 +231,8 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
       </View>
     </View>
   );
+  // Choosing a first plan comes before the app, so it's in the onboarding's font; changing plan doesn't.
+  return changing ? page : <PreAppFont>{page}</PreAppFont>;
 }
 
 const styles = StyleSheet.create({

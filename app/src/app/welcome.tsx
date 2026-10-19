@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { Easing, FadeIn, FadeInDown, FadeOut, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Button, Wash } from '../components/ui';
+import { Button, PreAppFont, Wash } from '../components/ui';
 import { clearDraft } from '../lib/draft';
 import WORDS from '../lib/introWords.json';
 import { column, formatTime, theme } from '../lib/theme';
@@ -158,6 +158,7 @@ export default function Welcome() {
   const doing = STEPS.find((st) => progress < st.until) ?? STEPS[STEPS.length - 1];
 
   return (
+    <PreAppFont>
     <View style={styles.screen}>
       <Wash soft />
       {/* The take, full width from the top, fading into the wash where the words are. */}
@@ -249,6 +250,7 @@ export default function Welcome() {
         )}
       </View>
     </View>
+    </PreAppFont>
   );
 }
 
