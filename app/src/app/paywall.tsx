@@ -1,7 +1,7 @@
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { OnbHeader, OnbScreen, OnbTitle } from '../components/Onboarding';
 import { PlanPicker } from '../components/PlanPicker';
 import { Button, ErrorText, Field, Logo, Segmented } from '../components/ui';
@@ -134,7 +134,7 @@ export default function Paywall() {
     return (
       <OnbScreen header={header} footer={<Button title="Start creating" onPress={next} />}>
         <View style={styles.center}>
-          <Animated.View entering={ZoomIn.springify().damping(14).delay(100)}>
+          <Animated.View entering={FadeIn.duration(400).delay(100)}>
             <Logo size={96} />
           </Animated.View>
           <Animated.Text entering={FadeInDown.delay(300).duration(400)} style={styles.ready}>
