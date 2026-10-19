@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { agreed, ConsentChecks, type Agreement } from '../components/ConsentChecks';
 import { AppleLogo, Backdrop, Button, ErrorText, Field, GoogleLogo, StepHeader, Title, PreAppFont } from '../components/ui';
+import { openLegal } from '../lib/api';
 import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
 import { holdAgreement, TERMS_VERSION } from '../lib/consent';
 import { theme } from '../lib/theme';
@@ -141,7 +142,21 @@ export default function SignIn() {
         <ErrorText>{error}</ErrorText>
         {notice && <Text style={styles.notice}>{notice}</Text>}
         <Button title={signingUp ? 'Create account' : 'Sign in'} onPress={submit} disabled={!canSubmit} loading={busy === 'email'} style={{ marginTop: 6 }} />
-        {signingUp && <ConsentChecks value={agreement} onChange={agree} highlight={nudge && !agreed(agreement)} />}
+        {signingUp ? (
+          <ConsentChecks value={agreement} onChange={agree} highlight={nudge && !agreed(agreement)} />
+        ) : (
+          <Text style={styles.terms}>
+            By continuing, you agree to our{' '}
+            <Text style={styles.termsLink} onPress={() => openLegal('terms')}>
+              Terms of Service
+            </Text>{' '}
+            and{' '}
+            <Text style={styles.termsLink} onPress={() => openLegal('privacy')}>
+              Privacy Policy
+            </Text>
+            .
+          </Text>
+        )}
       </View>
 
       <View style={styles.footer}>
@@ -175,6 +190,8 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   rule: { flex: 1, height: 1, backgroundColor: theme.line },
+  terms: { fontSize: 13, fontFamily: JAKARTA.medium, lineHeight: 18, color: theme.muted, textAlign: 'center' },
+  termsLink: { color: theme.ink, fontFamily: JAKARTA.bold },
   or: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.faint },
   link: { fontSize: 14, color: theme.ink, fontFamily: JAKARTA.bold },
   notice: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 20, backgroundColor: theme.card, padding: 14, borderRadius: 14 },
