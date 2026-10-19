@@ -10,7 +10,7 @@ import { column, theme } from '../lib/theme';
 /** A highlighted word in a title ("Pro fits how you post.", "15 months"). */
 export const HIGHLIGHT = '#8E8E95';
 
-/** A setup screen: grey wash, the header, scrolling content and a footer above the home indicator. */
+/** A setup screen: blue wash, the header, scrolling content and a footer above the home indicator. */
 export function OnbScreen({ header, children, footer, scroll = true }: { header: ReactNode; children: ReactNode; footer?: ReactNode; scroll?: boolean }) {
   const insets = useSafeAreaInsets();
   return (

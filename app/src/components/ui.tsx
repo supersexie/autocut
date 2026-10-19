@@ -41,22 +41,23 @@ export function PressableScale({ scaleTo = 0.97, style, onPressIn, onPressOut, .
   );
 }
 
-/** The soft grey wash behind the app's screens (CutAI's blue, in Cal AI greys). */
-export const WASH = ['#FCFCFD', '#E9E9ED', '#D1D1D8'] as const;
+/** The soft blue wash behind the app's screens: the same tint as the website's hero panel. */
+export const WASH = ['#E3E8FC', '#EBEEFD', '#F2F4FE'] as const;
 
 /** The wash, filling its parent. Put it first inside a screen's root view. */
 export function Wash() {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={WASH} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
-      {/* A soft shade from the right and a light band from the top, like CutAI's sky. */}
-      <LinearGradient colors={['rgba(150,150,162,0)', 'rgba(150,150,162,0.18)']} start={{ x: 0.3, y: 0.4 }} end={{ x: 1, y: 0.55 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(255,255,255,0.85)', 'rgba(255,255,255,0)']} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 0.35 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={WASH} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
+      {/* Like the website's panel: a soft white glow at the top left and bottom right, a little lavender at the top right. */}
+      <LinearGradient colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.1 }} end={{ x: 0.6, y: 0.45 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(205,214,250,0.5)', 'rgba(205,214,250,0)']} start={{ x: 1, y: 0 }} end={{ x: 0.55, y: 0.3 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.55)']} start={{ x: 0.4, y: 0.55 }} end={{ x: 1, y: 0.9 }} style={StyleSheet.absoluteFill} />
     </View>
   );
 }
 
-/** A screen on the grey wash with an optional footer pinned above the home indicator; a centred column on iPad. */
+/** A screen on the blue wash with an optional footer pinned above the home indicator; a centred column on iPad. */
 export function Backdrop({ children, scroll = true, footer }: { children: ReactNode; scroll?: boolean; footer?: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
