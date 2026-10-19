@@ -20,17 +20,17 @@ import { JAKARTA } from '../lib/fonts';
 type Answer = { value: string; label: string; icon: SymbolName };
 
 const WHO: Answer[] = [
-  { value: 'shop', label: 'TikTok Shop creator', icon: 'bag' },
+  { value: 'shop', label: 'TikTok Shop seller', icon: 'bag' },
   { value: 'ugc', label: 'UGC creator', icon: 'video' },
   { value: 'influencer', label: 'Influencer', icon: 'star' },
-  { value: 'me', label: 'Just me', icon: 'person' },
+  { value: 'me', label: 'Just for me', icon: 'person' },
 ];
 
 const GOAL: Answer[] = [
-  { value: 'more', label: 'Post more videos', icon: 'chart.line.uptrend.xyaxis' },
-  { value: 'time', label: 'Save time', icon: 'clock' },
-  { value: 'freedom', label: 'Have more freedom', icon: 'sun.max' },
-  { value: 'editor', label: 'Fire my editor', icon: 'person.badge.minus' },
+  { value: 'more', label: 'Help me post more', icon: 'chart.line.uptrend.xyaxis' },
+  { value: 'time', label: 'Give me my time back', icon: 'clock' },
+  { value: 'freedom', label: 'Free up my days', icon: 'sun.max' },
+  { value: 'editor', label: 'Replace my editor', icon: 'person.badge.minus' },
 ];
 
 // Like CutAI: two questions, two sliders, then what that adds up to, then the plan and an account.
@@ -111,7 +111,9 @@ export default function Setup() {
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={next} disabled={!draft[key]} />}>
       <Animated.View key={step} entering={FadeIn.duration(260)} exiting={FadeOut.duration(140)}>
-        <OnbTitle>{step === 'who' ? <>Who are <Text style={{ color: HIGHLIGHT }}>you</Text>?</> : <>What’s your <Text style={{ color: HIGHLIGHT }}>goal</Text>?</>}</OnbTitle>
+        <OnbTitle sub={step === 'who' ? 'So Autocut cuts the way your videos need.' : 'Pick the one that matters most.'}>
+          {step === 'who' ? <>What kind of <Text style={{ color: HIGHLIGHT }}>creator</Text> are you?</> : <>What should Autocut do <Text style={{ color: HIGHLIGHT }}>for you</Text>?</>}
+        </OnbTitle>
         <View style={{ gap: 12 }}>
           {(step === 'who' ? WHO : GOAL).map((o, i) => (
             <Choice key={o.value} index={i} label={o.label} icon={o.icon} selected={draft[key] === o.value} onPress={() => pick({ [key]: o.value })} />
@@ -147,9 +149,9 @@ function Volume({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle>How many <Text style={{ color: HIGHLIGHT }}>videos</Text> are you currently posting?</OnbTitle>
+        <OnbTitle sub="A typical week is fine.">How often do you <Text style={{ color: HIGHLIGHT }}>post</Text>?</OnbTitle>
         <SliderCard n={String(stop.n)} unit={stop.unit}>
-          <StepSlider stops={VOLUME_STOPS.length} index={i} onChange={setI} left="1 a week" right="10+ a day" />
+          <StepSlider stops={VOLUME_STOPS.length} index={i} onChange={setI} left="Once a week" right="10+ daily" />
         </SliderCard>
         <Tip icon="square.stack.3d.up">Batch edits take a whole week of takes in one go, so posting more doesn’t mean more editing.</Tip>
       </Animated.View>
@@ -170,9 +172,9 @@ function EditTime({ header, draft, onNext }: { header: React.ReactNode; draft: D
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle>How long do you spend <Text style={{ color: HIGHLIGHT }}>editing</Text>?</OnbTitle>
+        <OnbTitle sub="From raw take to ready to post.">How long does one video take to <Text style={{ color: HIGHLIGHT }}>edit</Text>?</OnbTitle>
         <SliderCard n={label.n} unit={label.unit}>
-          <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 minutes" right="4+ hours" />
+          <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 min" right="4 h or more" />
         </SliderCard>
         <Tip icon="bolt">With Autocut it’s about {AUTOCUT_MINUTES} minutes a video: send the take, check the cut, export.</Tip>
       </Animated.View>
@@ -195,35 +197,35 @@ function Spend({ header, draft, onNext }: { header: React.ReactNode; draft: Draf
     return () => clearTimeout(t);
   }, []);
   return (
-    <OnbScreen header={header} footer={<Button title="See my year  →" onPress={onNext} />}>
+    <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
         <OnbTitle>
-          You spend <Text style={{ color: HIGHLIGHT }}>{hm(daily ? n.spent : n.spent * 7)} a {daily ? 'day' : 'week'}</Text> editing.
+          That’s <Text style={{ color: HIGHLIGHT }}>{hm(daily ? n.spent : n.spent * 7)} a {daily ? 'day' : 'week'}</Text> in the edit.
         </OnbTitle>
         <View style={{ gap: 12 }}>
           <View style={onbCard}>
             <View style={styles.statHead}>
               <SymbolView name="clock" tintColor={theme.blue} size={15} />
-              <Text style={styles.statLabel}>You get back</Text>
+              <Text style={styles.statLabel}>Time Autocut frees up</Text>
             </View>
             <View style={styles.statRow}>
               <Text style={styles.statBig}>{monthHours >= 1 ? Math.round(monthHours * p).toLocaleString('en-US') : Math.round(monthHours * 60 * p)}</Text>
-              <Text style={styles.statUnit}>{monthHours >= 1 ? 'hours' : 'minutes'} a month with Autocut</Text>
+              <Text style={styles.statUnit}>{monthHours >= 1 ? 'hours' : 'minutes'} every month</Text>
             </View>
           </View>
           <View style={onbCard}>
             <View style={styles.statHead}>
               <SymbolView name="dollarsign.circle" tintColor={theme.blue} size={15} />
-              <Text style={styles.statLabel}>You save</Text>
+              <Text style={styles.statLabel}>Money you keep</Text>
             </View>
             <View style={styles.statRow}>
               <Text style={styles.statBig}>{money(Math.round(n.savedMoney * p))}</Text>
-              <Text style={styles.statUnit}>a month vs. hiring an editor</Text>
+              <Text style={styles.statUnit}>a month, compared with paying an editor</Text>
             </View>
           </View>
         </View>
         <Pressable onPress={() => setHow((h) => !h)} hitSlop={8} style={styles.howRow} accessibilityRole="button" accessibilityState={{ expanded: how }}>
-          <Text style={styles.how}>How we calculated this</Text>
+          <Text style={styles.how}>Where these numbers come from</Text>
           <SymbolView name={how ? 'chevron.up' : 'chevron.down'} tintColor={theme.blue} size={12} weight="semibold" />
         </Pressable>
         {how && (
@@ -307,14 +309,14 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   const values = [year / 365, year / 52, year / 12, year];
   const show = (v: number) => (mode === 'time' ? (v === values[0] ? hm(v) : bigHours(v)) : money(Math.round(v)));
   return (
-    <OnbScreen header={header} footer={<Button title="Show me the real cost  →" onPress={onNext} />}>
+    <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle>It <Text style={{ color: HIGHLIGHT }}>adds up</Text>.</OnbTitle>
+        <OnbTitle>Watch it <Text style={{ color: HIGHLIGHT }}>stack up</Text>.</OnbTitle>
         <View style={{ alignSelf: 'center', width: 200, marginTop: -6, marginBottom: 6 }}>
           <Segmented value={mode} onChange={(m) => { Haptics.selectionAsync(); setMode(m); }} options={[{ value: 'time', label: 'Time' }, { value: 'money', label: 'Money' }]} />
         </View>
         <Curve key={mode} values={values} show={show} />
-        <Text style={styles.caption}>{mode === 'time' ? 'The time you get back with Autocut.' : 'What you save vs. hiring an editor.'}</Text>
+        <Text style={styles.caption}>{mode === 'time' ? 'Time freed up with Autocut, over a year.' : 'Money kept compared with an editor, over a year.'}</Text>
         <Tip icon="calendar">That’s {hm(n.saved)} back every day, for about {Math.round(n.videosAMonth)} videos a month.</Tip>
       </Animated.View>
     </OnbScreen>
@@ -418,7 +420,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
     <OnbScreen header={header} footer={<Button title="See my plan  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)} style={{ paddingTop: 4 }}>
         <Text style={styles.lifeTitle}>
-          Editing takes <Text style={{ color: HIGHLIGHT }}>{pct >= 1 ? `${Math.round(pct * p)}%` : hm(n.spent)}</Text> of your day.
+          <Text style={{ color: HIGHLIGHT }}>{pct >= 1 ? `${Math.round(pct * p)}%` : hm(n.spent)}</Text> of every day goes to editing.
         </Text>
         <View style={styles.ring}>
           <Svg width={RING} height={RING}>
@@ -436,11 +438,11 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
           </Svg>
           <View style={styles.ringCenter} pointerEvents="none">
             <Text style={styles.ringBig}>{hm(n.saved)}</Text>
-            <Text style={styles.ringSmall}>back every day</Text>
+            <Text style={styles.ringSmall}>freed up daily</Text>
           </View>
         </View>
         <Text style={styles.lifeLine}>
-          Get <Text style={{ color: HIGHLIGHT }}>{days >= 1 ? `${days} full day${days === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> of your year back for as low as {money(lowest)} a month.
+          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> a year, from {money(lowest)} a month.
         </Text>
       </Animated.View>
     </OnbScreen>
