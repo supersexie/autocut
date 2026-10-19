@@ -111,7 +111,7 @@ export default function Setup() {
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={next} disabled={!draft[key]} />}>
       <Animated.View key={step} entering={FadeIn.duration(260)} exiting={FadeOut.duration(140)}>
-        <OnbTitle>{step === 'who' ? 'Who are you?' : 'What’s your goal?'}</OnbTitle>
+        <OnbTitle>{step === 'who' ? <>Who are <Text style={{ color: HIGHLIGHT }}>you</Text>?</> : <>What’s your <Text style={{ color: HIGHLIGHT }}>goal</Text>?</>}</OnbTitle>
         <View style={{ gap: 12 }}>
           {(step === 'who' ? WHO : GOAL).map((o, i) => (
             <Choice key={o.value} index={i} label={o.label} icon={o.icon} selected={draft[key] === o.value} onPress={() => pick({ [key]: o.value })} />
@@ -147,7 +147,7 @@ function Volume({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle>How many videos are you currently posting?</OnbTitle>
+        <OnbTitle>How many <Text style={{ color: HIGHLIGHT }}>videos</Text> are you currently posting?</OnbTitle>
         <SliderCard n={String(stop.n)} unit={stop.unit}>
           <StepSlider stops={VOLUME_STOPS.length} index={i} onChange={setI} left="1 a week" right="10+ a day" />
         </SliderCard>
@@ -170,7 +170,7 @@ function EditTime({ header, draft, onNext }: { header: React.ReactNode; draft: D
   return (
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle>How long do you spend editing?</OnbTitle>
+        <OnbTitle>How long do you spend <Text style={{ color: HIGHLIGHT }}>editing</Text>?</OnbTitle>
         <SliderCard n={label.n} unit={label.unit}>
           <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 minutes" right="4+ hours" />
         </SliderCard>
@@ -198,7 +198,7 @@ function Spend({ header, draft, onNext }: { header: React.ReactNode; draft: Draf
     <OnbScreen header={header} footer={<Button title="See my year  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
         <OnbTitle>
-          You spend {hm(daily ? n.spent : n.spent * 7)} a {daily ? 'day' : 'week'} editing.
+          You spend <Text style={{ color: HIGHLIGHT }}>{hm(daily ? n.spent : n.spent * 7)} a {daily ? 'day' : 'week'}</Text> editing.
         </OnbTitle>
         <View style={{ gap: 12 }}>
           <View style={onbCard}>
@@ -309,7 +309,7 @@ function AddsUp({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
   return (
     <OnbScreen header={header} footer={<Button title="Show me the real cost  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle>It adds up.</OnbTitle>
+        <OnbTitle>It <Text style={{ color: HIGHLIGHT }}>adds up</Text>.</OnbTitle>
         <View style={{ alignSelf: 'center', width: 200, marginTop: -6, marginBottom: 6 }}>
           <Segmented value={mode} onChange={(m) => { Haptics.selectionAsync(); setMode(m); }} options={[{ value: 'time', label: 'Time' }, { value: 'money', label: 'Money' }]} />
         </View>
@@ -508,7 +508,7 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
       }
     >
       <Animated.View entering={FadeIn.duration(260)}>
-        <OnbTitle sub="Create your account to keep it.">Your plan is ready</OnbTitle>
+        <OnbTitle sub="Create your account to keep it.">Your plan is <Text style={{ color: HIGHLIGHT }}>ready</Text></OnbTitle>
         <View style={styles.card}>
           {points.map((pt) => (
             <View key={pt.text} style={styles.point}>
