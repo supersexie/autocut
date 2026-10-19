@@ -204,7 +204,7 @@ export default function Welcome() {
       <View style={[styles.bottom, column(), { paddingBottom: insets.bottom + 10 }]}>
         {phase === 'intro' ? (
           <Animated.View key="intro" exiting={FadeOut.duration(180)} style={{ gap: 10 }}>
-            <Text style={styles.headline}>Raw take in.{'\n'}Tight cut out.</Text>
+            <Text style={styles.headline}>Raw take in.{'\n'}Tight <Text style={{ color: theme.blue }}>cut</Text> out.</Text>
             <Text style={styles.sub}>Autocut cuts the dead air, ums and retakes, and captions every word. You just film.</Text>
             <Button title="See it happen" icon={<SymbolView name="play.fill" tintColor="#fff" size={14} />} onPress={seeIt} style={{ marginTop: 8 }} />
             <Text style={styles.signIn}>
