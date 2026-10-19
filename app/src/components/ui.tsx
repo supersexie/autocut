@@ -86,15 +86,11 @@ export function Backdrop({ children, scroll = true, footer }: { children: ReactN
   );
 }
 
-const MARK = require('../../assets/logo-mark.png');
+const TILE = require('../../assets/logo-tile.png');
 
-/** The Autocut mark (two trim handles with a cut between them) on its dark tile. */
+/** The Autocut logo: the mark (two trim handles with a cut between them) on its silver-edged dark tile. */
 export function Logo({ size = 56 }: { size?: number }) {
-  return (
-    <View style={[styles.logo, { width: size, height: size, borderRadius: size * 0.225 }]}>
-      <Image source={MARK} style={{ width: size, height: size }} accessibilityLabel="Autocut" />
-    </View>
-  );
+  return <Image source={TILE} style={{ width: size, height: size }} accessibilityLabel="Autocut" />;
 }
 
 const GOOGLE = require('../../assets/google-logo.png');
@@ -259,7 +255,6 @@ export function ErrorText({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  logo: { backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   button: { minHeight: 56, borderRadius: 28, flexDirection: 'row', gap: 10, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 22 },
   primary: { backgroundColor: theme.ink },
   primaryOff: { backgroundColor: theme.disabled },
