@@ -7,6 +7,7 @@
     "@react-native-community/datetimepicker": "9.1.0",
     "@react-native-community/slider": "5.2.0",
     "@sentry/react-native": "~7.11.0",
+    "@shopify/react-native-skia": "2.6.2",
     "@supabase/supabase-js": "^2.117.3",
     "eslint-config-expo": "~57.0.2",
     "expo": "~57.0.30",
@@ -63,5 +64,8 @@
     "lint": "expo lint",
     "test": "node --test tests/*.test.mjs"
   },
-  "private": true
+  "private": true,
+  "allowScripts": {
+    "@shopify/react-native-skia@2.6.2": true
+  }
 }

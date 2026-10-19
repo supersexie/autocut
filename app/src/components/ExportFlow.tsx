@@ -14,6 +14,7 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { cancelPhoneExport, exportOnPhone, hasPhoneExport } from '../../modules/autocut-export';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
 import { CAPTION_FONTS, JAKARTA } from '../lib/fonts';
+import { nativeGrade } from '../lib/gradeFiles';
 import { exportSpec } from '../lib/localExport';
 import { reportError } from '../lib/crashes';
 import { CAPTION_STYLES, TEXT_STYLES } from './editor/StyledText';
@@ -152,6 +153,7 @@ export function ExportFlow({ cut, edit, aspect, onClose }: { cut: CutRecord; edi
         music: chosen.music ? cutFile(chosen.music.file).uri : undefined,
         overlays: Object.fromEntries(overlays.map((o) => [o.id, cutFile(o.file).uri])),
         fonts: await loadFontFiles(),
+        grade: nativeGrade,
       });
       await exportOnPhone(spec, (p) => show(p));
       return name;

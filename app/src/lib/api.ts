@@ -177,11 +177,11 @@ export async function startRender(id: string, body: object) {
 export async function previewOf(
   cutId: string,
   serverId: string,
-  clips: { start: number; end: number; speed: number; volume: number }[],
+  clips: { start: number; end: number; speed: number; volume: number; grade?: object }[],
   alive: () => boolean
 ) {
   // `cutId` names the files on the phone; `serverId` is the same cut on the server.
-  const body = JSON.stringify({ clips: clips.map(({ start, end, speed, volume }) => ({ start, end, speed, volume })) });
+  const body = JSON.stringify({ clips: clips.map(({ start, end, speed, volume, grade }) => ({ start, end, speed, volume, grade })) });
   let { key, stage } = await call(`/cuts/${serverId}/preview`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
   if (!previewsDir.exists) previewsDir.create({ intermediates: true });
   const file = new File(previewsDir, `${cutId}-${key}.mp4`);

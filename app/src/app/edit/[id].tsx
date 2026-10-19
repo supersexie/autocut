@@ -7,6 +7,8 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, Style
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
+import { ColorPanel, type ColorScope } from '../../components/editor/ColorPanel';
+import { GradedFrame, pixelsOf, useFrameAt } from '../../components/editor/GradedFrame';
 import { CaptionsPanel, FormatPanel, LineEditor, MusicPanel, OverlayVolumePanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
 import { pickOverlay } from '../../components/editor/overlayMedia';
 import { pickSong, useMusic } from '../../components/editor/music';
@@ -19,7 +21,8 @@ import {
   restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
 } from '../../lib/edit';
 import { getWaveform } from '../../lib/api';
-import { cutFile, editOf, saveEdit, updateCut, useCut, type CutRecord } from '../../lib/store';
+import { autoGrade, cleanGrade, frameStats, matchGrade, type Grade } from '../../lib/grade.mjs';
+import { cutFile, editOf, getSettings, saveEdit, updateCut, updateSettings, useCut, useSettings, type CutRecord } from '../../lib/store';
 import { useTours } from '../../lib/tours';
 import { BRAND_FONT, JAKARTA } from '../../lib/fonts';
 import { OVERLAP } from '../../lib/plans';
@@ -40,7 +43,7 @@ export default function EditScreen() {
   return <Editor cut={cut} />;
 }
 
-type PanelId = 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'music' | 'textStyle' | 'textSize' | 'overlayVolume' | null;
+type PanelId = 'color' | 'captions' | 'captionStyle' | 'format' | 'volume' | 'speed' | 'music' | 'textStyle' | 'textSize' | 'overlayVolume' | null;
 type History = { past: Edit[]; present: Edit; future: Edit[] };
 const mmss = (t: number) => `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const BOTTOM_H = 330;
@@ -70,6 +73,10 @@ export function Editor({ cut }: { cut: CutRecord }) {
   const [composer, setComposer] = useState<(TextDraft & { id?: string }) | null>(null);
   const [reorderFrom, setReorderFrom] = useState<number | null>(null);
   const [fullscreen, setFullscreen] = useState(false);
+  // The Adjust tool: whether its changes go to every clip or just the one at the playhead, and the before/after view.
+  const [colorScope, setColorScope] = useState<ColorScope>('all');
+  const [compare, setCompare] = useState(false);
+  const looks = useSettings().looks ?? [];
   const [restoring, setRestoring] = useState(false);
   const [choosingCover, setChoosingCover] = useState(false);
   // The keyframe a pinch is shaping right now.
@@ -282,7 +289,62 @@ export function Editor({ cut }: { cut: CutRecord }) {
   // ---- Toolbar: plain data, with one handler that does the work.
   const selected = locate(clips, Math.min(time, total - 0.01))[0];
   const clip = clips[selected];
-  type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'volume' | 'speed' | 'restore'
+
+  // ---- Colour (the Adjust tool). Changes go to every clip, or just this one; a slider drag is one undo step.
+  const colorOpen = panel === 'color';
+  const frame = useFrameAt(sourceUri, locate(clips, Math.min(time, total - 0.01))[1], colorOpen);
+  function applyGrade(g: Grade | undefined, live = false) {
+    const change = (list: ClipEdit[]) => (colorScope === 'all' ? list.map((c) => ({ ...c, grade: g })) : list.map((c, k) => (k === selected ? { ...c, grade: g } : c)));
+    if (live) liveEdit((e) => ({ ...e, clips: change(e.clips) }));
+    else {
+      placeEnd();
+      setClips(change(clips));
+    }
+  }
+  function autoColor() {
+    const px = pixelsOf(frame);
+    if (!px) return;
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    applyGrade(cleanGrade({ ...clip?.grade, adjust: { ...clip?.grade?.adjust, ...autoGrade(frameStats(px, 16)) } }));
+  }
+  async function matchColor() {
+    const others = clips.map((c, i) => ({ c, i })).filter(({ i }) => i !== selected);
+    if (!others.length) return;
+    const pick = await new Promise<number | null>((done) =>
+      Alert.alert('Match this clip to…', 'Its light and colour change to look like the clip you pick.', [
+        ...others.slice(0, 6).map(({ i }) => ({ text: `Clip ${i + 1}`, onPress: () => done(i) })),
+        { text: 'Cancel', style: 'cancel' as const, onPress: () => done(null) },
+      ])
+    );
+    if (pick === null) return;
+    try {
+      const ref = clips[pick];
+      const thumb = await VideoThumbnails.getThumbnailAsync(sourceUri, { time: Math.round(((ref.start + ref.end) / 2) * 1000), quality: 0.6 });
+      const { Skia } = await import('@shopify/react-native-skia');
+      const refPx = pixelsOf(Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(thumb.uri)));
+      const px = pixelsOf(frame);
+      if (!refPx || !px) return;
+      const m = matchGrade(frameStats(px, 16), frameStats(refPx, 16));
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      // Matching is for this clip only.
+      setColorScope('clip');
+      const g = cleanGrade({ ...clip?.grade, adjust: { ...clip?.grade?.adjust, ...m } });
+      setClips(clips.map((c, k) => (k === selected ? { ...c, grade: g } : c)));
+    } catch {
+      Alert.alert('Couldn’t match those clips', 'Try again in a moment.');
+    }
+  }
+  function saveLook() {
+    const g = cleanGrade(clip?.grade);
+    if (!g) return;
+    const keep = (name: string) => {
+      const list = getSettings().looks ?? [];
+      updateSettings({ looks: [{ id: `${Date.now()}`, name: name.trim().slice(0, 18) || `Look ${list.length + 1}`, grade: g }, ...list].slice(0, 12) });
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    };
+    Alert.prompt('Save this look', 'It shows up first in Filters, ready for your next videos.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Save', onPress: (name?: string) => keep(name ?? '') }], 'plain-text', `Look ${looks.length + 1}`);
+  }
+  type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'adjust' | 'volume' | 'speed' | 'restore'
     | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete'
     | 'overlay' | 'overlaySplit' | 'overlayDuplicate' | 'overlayMute' | 'overlayVolume' | 'overlayFront' | 'overlayDelete'
     | 'captionEdit' | 'captionSplit' | 'captionDelete' | 'captionStyle' | 'captionAll';
@@ -294,6 +356,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
     { id: 'text', icon: 'textformat', label: 'Text' },
     { id: 'captions', icon: 'captions.bubble', label: 'Captions' },
     { id: 'overlay', icon: 'photo.on.rectangle', label: 'Overlay' },
+    { id: 'adjust', icon: 'slider.horizontal.3', label: 'Adjust' },
     { id: 'volume', icon: 'speaker.wave.2', label: 'Volume' },
     { id: 'speed', icon: 'gauge.with.dots.needle.67percent', label: 'Speed' },
     { id: 'restore', icon: 'arrow.uturn.backward.circle', label: 'Restore' },
@@ -350,6 +413,10 @@ export function Editor({ cut }: { cut: CutRecord }) {
     else if (tool === 'delete') setClips(removeClip(clips, selected));
     else if (tool === 'text') setComposer({ text: '', style: 'classic' });
     else if (tool === 'captions') setPanel('captions');
+    else if (tool === 'adjust') {
+      playback.pause();
+      setPanel('color');
+    }
     else if (tool === 'volume') setPanel('volume');
     else if (tool === 'speed') setPanel('speed');
     else if (tool === 'restore') setRestoring(true);
@@ -424,6 +491,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
 
       <Preview
         video={playback.video}
+        graded={colorOpen ? (w, h) => <GradedFrame image={frame} grade={clip?.grade} width={w} height={h} split={compare ? w / 2 : 0} /> : undefined}
         aspect={aspect}
         line={line}
         activeWord={activeWord}
@@ -640,6 +708,29 @@ export function Editor({ cut }: { cut: CutRecord }) {
           <StylePicker kind="texts" value={text.style} onPick={(style) => updateText(text.id, { style, box: undefined, outline: undefined, color: undefined, font: undefined })} onClose={() => setPanel(null)} onDone={() => setPanel(null)} />
         )}
         {panel === 'textSize' && text && <SizePanel scale={text.scale} onChange={(scale) => updateText(text.id, { scale })} onDone={() => setPanel(null)} />}
+        {colorOpen && clip && (
+          <ColorPanel
+            grade={clip.grade}
+            scope={colorScope}
+            onScope={setColorScope}
+            clipLabel={`Clip ${selected + 1} of ${clips.length}`}
+            onClipStep={clips.length > 1 ? (by) => playback.seek(clipOffset(clips, (selected + by + clips.length) % clips.length) + 0.02) : undefined}
+            onChange={applyGrade}
+            onEnd={placeEnd}
+            compare={compare}
+            onCompare={() => setCompare((c) => !c)}
+            onAuto={autoColor}
+            canMatch={clips.length > 1}
+            onMatch={matchColor}
+            looks={looks}
+            onSaveLook={saveLook}
+            frame={frame}
+            onDone={() => {
+              setPanel(null);
+              setCompare(false);
+            }}
+          />
+        )}
         {panel === 'volume' && clip && (
           <VolumePanel
             volume={clip.volume}

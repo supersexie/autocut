@@ -1,8 +1,10 @@
 // Pure editing operations. Clips are kept source ranges in play order, each with its own
 // speed and volume; everything shown to the user is on the "output" timeline (after speed).
+import type { Grade } from './grade.mjs';
 import type { Cut, Word } from './store';
 
-export type ClipEdit = { start: number; end: number; speed: number; volume: number };
+/** `grade`: the clip's colour from the Adjust tool (see grade.mjs); undefined = as filmed. */
+export type ClipEdit = { start: number; end: number; speed: number; volume: number; grade?: Grade };
 export type Caps = 'none' | 'upper' | 'lower' | 'title';
 export type CaptionSettings = {
   enabled: boolean;
@@ -252,7 +254,8 @@ export function restoreCut(clips: ClipEdit[], cut: Cut): ClipEdit[] {
   const i = clips.findIndex(touching);
   if (i === -1) {
     const at = clips.findIndex((c) => c.start > cut.start);
-    const clip = makeClip(cut.start, cut.end);
+    // A put-back stretch takes the colour of the clip before it (or the first one).
+    const clip = { ...makeClip(cut.start, cut.end), grade: (clips[at - 1] ?? clips[0])?.grade };
     return at === -1 ? [...clips, clip] : [...clips.slice(0, at), clip, ...clips.slice(at)];
   }
   let j = i;
@@ -352,7 +355,10 @@ export function exportBody(
   /** Overlay id → its upload id. */
   overlayUploads: Record<string, string> = {}
 ) {
-  const cover = edit.cover === undefined ? [] : [{ start: locate(edit.clips, edit.cover)[1], speed: 1, volume: 0 }].map((c) => ({ ...c, end: c.start + COVER_FRAME }));
+  const cover =
+    edit.cover === undefined
+      ? []
+      : [{ start: locate(edit.clips, edit.cover)[1], speed: 1, volume: 0, grade: edit.clips[locate(edit.clips, edit.cover)[0]]?.grade }].map((c) => ({ ...c, end: c.start + COVER_FRAME }));
   const shift = cover.length ? COVER_FRAME : 0;
   const later = <T extends { start: number; end: number }>(x: T) => ({ ...x, start: x.start + shift, end: x.end + shift });
   return {

@@ -1,6 +1,7 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import { useSyncExternalStore } from 'react';
 import { DEFAULT_CAPTIONS, makeClip, totalDuration, type Edit } from './edit';
+import type { Grade } from './grade.mjs';
 
 export type CutReason = 'dead air' | 'filler' | 'stutter' | 'retake';
 export type Cut = { start: number; end: number; reason: CutReason; text: string };
@@ -60,7 +61,11 @@ export type Settings = {
   serverUrl: string; // empty = use the Mac running the dev server
   /** Folder new cuts are filed in, chosen on the camera; empty = the main Cuts page. */
   saveFolder: string;
+  /** Colour looks saved from the Adjust tool, newest first. */
+  looks?: SavedLook[];
 };
+
+export type SavedLook = { id: string; name: string; grade: Grade };
 
 export type Folder = { id: string; name: string; createdAt: string };
 

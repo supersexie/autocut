@@ -60,6 +60,7 @@ final class EditExporter {
     // sound), so no gaps or overlaps build up from rounding.
     struct Placed {
       let start: Double, end: Double, speed: Double, volume: Double
+      let grade: ExportSpec.Grade?
       let atTime: CMTime, lengthTime: CMTime
       var at: Double { atTime.seconds }
       var length: Double { lengthTime.seconds }
@@ -74,7 +75,7 @@ final class EditExporter {
       try picture.insertTimeRange(range, of: video, at: at)
       let length = speed == 1 ? range.duration : time((e - s) / speed)
       if speed != 1 { picture.scaleTimeRange(CMTimeRange(start: at, duration: range.duration), toDuration: length) }
-      placed.append(Placed(start: s, end: e, speed: speed, volume: c.volume ?? 1, atTime: at, lengthTime: length))
+      placed.append(Placed(start: s, end: e, speed: speed, volume: c.volume ?? 1, grade: c.grade, atTime: at, lengthTime: length))
     }
     guard !placed.isEmpty else { throw ExportFailure(message: "There's nothing left in this edit to export.") }
     let total = picture.timeRange.end.seconds
@@ -203,8 +204,15 @@ final class EditExporter {
       ))
     }
 
+    // Each graded clip's colour, by where it sits in the output.
+    let grades: [RenderPlan.Graded] = placed.compactMap { c in
+      guard let g = c.grade, let grading = Grading(lut: g.lut, size: g.size, sharpen: g.sharpen ?? 0, clarity: g.clarity ?? 0,
+                                                   vignette: g.vignette ?? 0, grain: g.grain ?? 0) else { return nil }
+      return .init(start: c.at, end: c.at + c.length, grading: grading)
+    }
+
     let plan = RenderPlan(size: size, mainTrackID: picture.trackID, mainOrientation: orientation(of: transform),
-                          keyframes: spec.keyframes ?? [], layers: layers, writings: writings)
+                          keyframes: spec.keyframes ?? [], layers: layers, writings: writings, grades: grades)
     let composition = AVMutableVideoComposition()
     composition.customVideoCompositorClass = EditCompositor.self
     composition.renderSize = size

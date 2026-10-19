@@ -1,3 +1,4 @@
+import { cleanGrade, gradeKey } from '../app/src/lib/grade.mjs';
 import { createHash } from 'node:crypto';
 
 // Checks and clamps what the app sends for previews and exports. Shared by the API (which checks
@@ -12,6 +13,8 @@ export function parseClips(raw, duration) {
       end: Math.min(duration, Number(c.end)),
       speed: Math.min(10, Math.max(0.25, Number(c.speed) || 1)),
       volume: Math.min(2, Math.max(0, c.volume === undefined ? 1 : Number(c.volume))),
+      // Colour (the Adjust tool): checked and trimmed to what's known; left off when it changes nothing.
+      ...(cleanGrade(c.grade) ? { grade: cleanGrade(c.grade) } : {}),
     }))
     .filter((c) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end - c.start >= 0.05);
 }
@@ -21,7 +24,7 @@ export function parseClips(raw, duration) {
 export const PREVIEW_KEY = /^[0-9a-f]{16}$/;
 export const previewKey = (clips) =>
   createHash('sha1')
-    .update(JSON.stringify(clips.map((c) => [c.start, c.end, c.speed, c.volume].map((n) => Math.round(n * 1000)))))
+    .update(JSON.stringify(clips.map((c) => [...[c.start, c.end, c.speed, c.volume].map((n) => Math.round(n * 1000)), ...(c.grade ? [gradeKey(c.grade)] : [])])))
     .digest('hex')
     .slice(0, 16);
 

@@ -1,7 +1,9 @@
 import { requireNativeView, requireOptionalNativeModule } from 'expo';
 import { Platform, type ViewProps } from 'react-native';
 
-export type CompositionClip = { start: number; end: number; speed: number; volume: number };
+/** A clip's colour grade: its LUT file (Float32 RGBA, size³) and effects, 0..1 (src/lib/gradeFiles.ts). */
+export type CompositionGrade = { lut: string; size: number; sharpen: number; clarity: number; vignette: number; grain: number };
+export type CompositionClip = { start: number; end: number; speed: number; volume: number; grade?: CompositionGrade };
 
 export type CompositionPlayerProps = ViewProps & {
   /** file:// URI of the source video. */

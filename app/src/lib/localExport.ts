@@ -1,6 +1,7 @@
 // The phone export's job: the same edit the server renders (exportBody), turned into what the
 // native exporter (modules/autocut-export) needs: local files, looks resolved, and captions split
 // into what's on screen when (one per word for word-by-word styles), exactly as src/ass.js does.
+import type { Grade } from './grade.mjs';
 import { withLook, type StylePreset } from './look.ts';
 
 type BodyWord = { text: string; start: number; end: number };
@@ -9,7 +10,7 @@ type Look = { box?: boolean; outline?: boolean; color?: string; font?: string; a
 
 /** The parts of exportBody(...) the phone export reads. */
 export type ExportBody = {
-  clips: { start: number; end: number; speed?: number; volume?: number }[];
+  clips: { start: number; end: number; speed?: number; volume?: number; grade?: Grade }[];
   overlapAudio?: boolean;
   captions?: { style: string; box?: boolean; outline?: boolean; color?: string; x?: number; y?: number; scale?: number; lines: BodyLine[] };
   texts: ({ text: string; style: string; start: number; end: number; x: number; y: number; scale: number } & Look)[];
@@ -80,12 +81,13 @@ export function captionEvents(lines: BodyLine[], p: StylePreset): CaptionEvent[]
 
 /**
  * The native exporter's job. `files` gives local file URIs: the source, where to write, the song,
- * each overlay by its upload id, and each caption font by family.
+ * each overlay by its upload id, and each caption font by family. `grade` turns a clip's grade into
+ * its LUT file and effects (nativeGrade in gradeFiles.ts).
  */
 export function exportSpec(
   body: ExportBody,
   presets: { captions: StylePreset[]; texts: StylePreset[] },
-  files: { source: string; output: string; music?: string; overlays: Record<string, string>; fonts: Record<string, string> }
+  files: { source: string; output: string; music?: string; overlays: Record<string, string>; fonts: Record<string, string>; grade?: (g: Grade | undefined) => object | undefined }
 ) {
   const caps = body.captions;
   let captions;
@@ -102,7 +104,7 @@ export function exportSpec(
     output: files.output,
     height: body.height ?? 1080,
     fps: body.fps ?? 30,
-    clips: body.clips.map((c) => ({ start: c.start, end: c.end, speed: c.speed ?? 1, volume: c.volume ?? 1 })),
+    clips: body.clips.map((c) => ({ start: c.start, end: c.end, speed: c.speed ?? 1, volume: c.volume ?? 1, ...(c.grade && files.grade ? { grade: files.grade(c.grade) } : {}) })),
     overlap: body.overlapAudio !== false,
     music: body.music && files.music ? { file: files.music, volume: body.music.volume } : undefined,
     keyframes: body.keyframes,

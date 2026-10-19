@@ -24,6 +24,8 @@ type PreviewProps = {
   /** Two players over the same video: one plays, the other waits at the next clip (see the editor). */
   /** The player's video (see playback.tsx), sized to fill the frame. */
   video: React.ReactNode;
+  /** Drawn over the video at the frame's size (the Adjust tool's coloured still), zoomed and moved with it. */
+  graded?: (width: number, height: number) => React.ReactNode;
   aspect: number; // width / height of the video
   line?: CaptionLine;
   activeWord: number;
@@ -169,6 +171,7 @@ export function Preview(p: PreviewProps) {
               style={[StyleSheet.absoluteFill, { transform: [{ translateX: p.framing.x * fw }, { translateY: p.framing.y * fh }, { scale: p.framing.scale }] }]}
             >
               {p.video}
+              {p.graded?.(fw, fh)}
             </View>
             {p.overlays.map((o) => (
               <OverlayItem

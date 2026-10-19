@@ -10,6 +10,16 @@ struct ExportSpec: Decodable {
     var end: Double
     var speed: Double?
     var volume: Double?
+    var grade: Grade?
+  }
+  /// A clip's colour grade: its LUT file (Float32 RGBA, size³, red fastest) and effects, 0...1.
+  struct Grade: Decodable {
+    var lut: String
+    var size: Int
+    var sharpen: Double?
+    var clarity: Double?
+    var vignette: Double?
+    var grain: Double?
   }
   struct Music: Decodable {
     var file: String

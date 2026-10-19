@@ -19,6 +19,12 @@ final class RenderPlan {
     /// Where the block goes, given its size: the block's centre, top-down in pixels.
     let place: (CGSize) -> CGPoint
   }
+  /// A clip's colour grade, for its stretch of the output.
+  struct Graded {
+    let start: Double
+    let end: Double
+    let grading: Grading
+  }
 
   let size: CGSize
   let mainTrackID: CMPersistentTrackID
@@ -26,17 +32,24 @@ final class RenderPlan {
   let keyframes: [ExportSpec.Keyframe]
   let layers: [Layer]
   let writings: [Writing]
+  let grades: [Graded]
   private var drawn: [Int: TextImage.Rendered?] = [:]
   private var drawnOrder: [Int] = []
   private let lock = NSLock()
 
-  init(size: CGSize, mainTrackID: CMPersistentTrackID, mainOrientation: CGImagePropertyOrientation, keyframes: [ExportSpec.Keyframe], layers: [Layer], writings: [Writing]) {
+  init(size: CGSize, mainTrackID: CMPersistentTrackID, mainOrientation: CGImagePropertyOrientation, keyframes: [ExportSpec.Keyframe], layers: [Layer], writings: [Writing], grades: [Graded] = []) {
     self.size = size
     self.mainTrackID = mainTrackID
     self.mainOrientation = mainOrientation
     self.keyframes = keyframes
     self.layers = layers
     self.writings = writings
+    self.grades = grades
+  }
+
+  /// The grade of the clip on screen at output time `t`.
+  func grading(at t: Double) -> Grading? {
+    grades.first { t >= $0.start && t < $0.end }?.grading
   }
 
   /// A caption's picture, drawn once and kept while it's likely to be needed again (a few at a time).
@@ -99,7 +112,7 @@ func orientation(of t: CGAffineTransform) -> CGImagePropertyOrientation {
   }
 }
 
-/// Draws each frame: the picture (zoomed and moved by the keyframes), the overlays, then the
+/// Draws each frame: the picture (graded, then zoomed and moved by the keyframes), the overlays, then the
 /// captions and text: the same order as the server's render.
 final class EditCompositor: NSObject, AVVideoCompositing {
   private static let pixelFormat: [String: Any] = [
@@ -149,6 +162,7 @@ final class EditCompositor: NSObject, AVVideoCompositing {
       var img = upright(buffer, plan.mainOrientation)
       let fit = CGAffineTransform(scaleX: W / img.extent.width, y: H / img.extent.height)
       img = img.transformed(by: fit)
+      if let grading = plan.grading(at: t) { img = grading.apply(img, t: t, managed: false) }
       let f = plan.framing(at: t)
       if f.scale != 1 || f.x != 0 || f.y != 0 {
         // Top-down, the picture moves right by x·W and down by y·H; Core Image is bottom-up.

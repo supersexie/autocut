@@ -8,6 +8,7 @@ app/src/*
 !app/src/lib
 app/src/lib/*
 !app/src/lib/styles.json
+!app/src/lib/grade.mjs
 tests
 .git
 *.md

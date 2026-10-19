@@ -4,6 +4,7 @@ import UIKit
 
 /// Plays an edit as one continuous video. The clips are stitched into an AVMutableComposition
 /// (with each clip's speed and volume), so playback runs straight through the cuts with no seeking.
+/// Graded clips are coloured as they play by a Core Image video composition.
 /// All times in and out of this view are output times: seconds into the edited video.
 final class AutocutPlayerView: ExpoView {
   let onTime = EventDispatcher()
@@ -19,12 +20,17 @@ final class AutocutPlayerView: ExpoView {
     let audio: AVAssetTrack?
     let audioRange: CMTimeRange
     let transform: CGAffineTransform
+    /// Upright frame size and frames per second, for the colour composition.
+    let size: CGSize
+    let fps: Float
   }
   private var sourceURI: String?
   private var source: Source?
   private var loadID = UUID()
   private var clips: [ClipRecord] = []
   private var duration = 0.0
+  /// Where each clip sits in the current composition (output seconds).
+  private var placed: [(start: Double, end: Double, clip: ClipRecord)] = []
 
   /// The output time the user asked for last; kept across rebuilds of the composition.
   private var wanted = 0.0
@@ -85,11 +91,15 @@ final class AutocutPlayerView: ExpoView {
       guard let video = try? await asset.loadTracks(withMediaType: .video).first,
             let videoRange = try? await video.load(.timeRange) else { return }
       let transform = (try? await video.load(.preferredTransform)) ?? .identity
+      let natural = (try? await video.load(.naturalSize)) ?? .zero
+      let upright = CGRect(origin: .zero, size: natural).applying(transform).size
+      let fps = (try? await video.load(.nominalFrameRate)) ?? 30
       let audio = try? await asset.loadTracks(withMediaType: .audio).first
       var audioRange = CMTimeRange.zero
       if let audio, let range = try? await audio.load(.timeRange) { audioRange = range }
       guard let self, self.loadID == id else { return }
-      self.source = Source(video: video, videoRange: videoRange, audio: audio, audioRange: audioRange, transform: transform)
+      self.source = Source(video: video, videoRange: videoRange, audio: audio, audioRange: audioRange, transform: transform,
+                           size: CGSize(width: abs(upright.width), height: abs(upright.height)), fps: fps)
       self.rebuild()
     }
   }
@@ -97,6 +107,8 @@ final class AutocutPlayerView: ExpoView {
   func setClips(_ next: [ClipRecord]) {
     guard next != clips else { return }
     clips = next
+    // A grade change rebuilds too: AVFoundation won't swap a Core Image composition on an item
+    // that's already playing (it fails with -12784), and a rebuild keeps the place anyway.
     rebuild()
   }
 
@@ -143,6 +155,7 @@ final class AutocutPlayerView: ExpoView {
     let volumes = audioTrack.map { AVMutableAudioMixInputParameters(track: $0) }
 
     var cursor = CMTime.zero
+    var spots: [(start: Double, end: Double, clip: ClipRecord)] = []
     for clip in clips {
       let range = CMTimeRange(
         start: CMTime(seconds: clip.start, preferredTimescale: 600),
@@ -169,11 +182,14 @@ final class AutocutPlayerView: ExpoView {
         length = scaled
       }
       volumes?.setVolume(Float(min(1, max(0, clip.volume))), at: cursor)
+      spots.append((cursor.seconds, (cursor + length).seconds, clip))
       cursor = cursor + length
     }
     duration = cursor.seconds
+    placed = spots
 
     let item = AVPlayerItem(asset: composition)
+    item.videoComposition = colouring(composition, source)
     item.audioTimePitchAlgorithm = .spectral // speed changes keep the voice's pitch
     if let volumes {
       let mix = AVMutableAudioMix()
@@ -196,6 +212,28 @@ final class AutocutPlayerView: ExpoView {
     pendingSeek = nil
     seek(to: min(wanted, max(0, duration - 0.01)))
     if wasPlaying { player.play() }
+  }
+
+  /// A video composition that grades each clip as it plays, or nil when no clip is graded.
+  private func colouring(_ composition: AVComposition, _ source: Source) -> AVVideoComposition? {
+    let grades: [(start: Double, end: Double, grading: Grading)] = placed.compactMap { p in
+      guard let g = p.clip.grade, let grading = Grading(lut: g.lut, size: g.size, sharpen: g.sharpen, clarity: g.clarity,
+                                                        vignette: g.vignette, grain: g.grain) else { return nil }
+      return (p.start, p.end, grading)
+    }
+    guard !grades.isEmpty, source.size.width > 0 else { return nil }
+    let colour = AVMutableVideoComposition(asset: composition) { request in
+      let t = request.compositionTime.seconds
+      let img = request.sourceImage
+      guard let grading = grades.first(where: { t >= $0.start && t < $0.end })?.grading else {
+        return request.finish(with: img, context: nil)
+      }
+      request.finish(with: grading.apply(img, t: t, managed: true), context: nil)
+    }
+    // A stitched composition doesn't know these itself; without them the item won't play.
+    colour.renderSize = source.size
+    colour.frameDuration = CMTime(value: 1, timescale: CMTimeScale(max(24, min(120, source.fps.rounded()))))
+    return colour
   }
 
   /// Play sound even with the silent switch on, like other video apps.

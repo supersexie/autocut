@@ -52,3 +52,12 @@ test("the job: local files, looks resolved with the user's changes, overlays and
   // Comic text: capitals, its own font, doubled.
   assert.deepEqual([spec.texts[0].text, spec.texts[0].style.font, spec.texts[0].style.size, spec.texts[0].align], ['HEY', 'Luckiest Guy', 2.5, 'left']);
 });
+
+test('graded clips carry their LUT file and effects; ungraded ones carry nothing', () => {
+  const edit = { clips: [{ ...makeClip(0, 2), grade: { adjust: { vignette: 40 } } }, makeClip(3, 4)], captions: DEFAULT_CAPTIONS, texts: [], keyframes: [], overlays: [] };
+  const body = exportBody(edit, [], { height: 1080, fps: 30, bitrate: 8 });
+  const spec = exportSpec(body, presets, { source: 's', output: 'o', overlays: {}, fonts: {}, grade: (g) => ({ lut: 'file:///g.lut', size: 25, vignette: g.adjust.vignette / 100 }) });
+  const clips = spec.clips.filter((c) => c.volume > 0);
+  assert.deepEqual(clips[0].grade, { lut: 'file:///g.lut', size: 25, vignette: 0.4 });
+  assert.equal('grade' in clips[1], false);
+});

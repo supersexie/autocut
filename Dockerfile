@@ -17,6 +17,8 @@ COPY legal ./legal
 # The database tables (used as-is when DATABASE_URL isn't set: one server with a local database).
 COPY supabase ./supabase
 COPY app/src/lib/styles.json ./app/src/lib/styles.json
+# The colour grading (Adjust) shared with the app.
+COPY app/src/lib/grade.mjs ./app/src/lib/grade.mjs
 COPY scripts/warm-model.js ./scripts/warm-model.js
 # Bake the Whisper model into the image.
 RUN node scripts/warm-model.js

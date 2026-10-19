@@ -1,4 +1,7 @@
 import { spawn } from 'node:child_process';
+import { rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { cube, effects, gradeKey } from '../app/src/lib/grade.mjs';
 import ffmpegStatic from 'ffmpeg-static';
 
 // FFMPEG_PATH: an ffmpeg built with GPU encoding (the GPU worker image); otherwise the bundled one.
@@ -210,11 +213,12 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   // export never finishes (seen with four pieces, two of them very short).
   const sound = lap ? 1 : 0;
   const voices = [];
+  const luts = []; // .cube files written for the clips' colour, removed once the render is done
   list.forEach(({ start: s, end: e, speed = 1, volume = 1 }, i) => {
     const out = (e - s) / speed;
     const at = total; // where this piece starts in the output
     total += out;
-    parts.push(`[0:v]trim=start=${s.toFixed(3)}:end=${e.toFixed(3)},setpts=(PTS-STARTPTS)/${speed}[v${i}]`);
+    parts.push(`[0:v]trim=start=${s.toFixed(3)}:end=${e.toFixed(3)},setpts=(PTS-STARTPTS)/${speed}${gradeFilters(list[i].grade, output, luts)}[v${i}]`);
     if (lap) {
       // Reach into the source on either side (not before the start or past the end of the edit).
       const before = i > 0 ? Math.min(lap, at) : 0;
@@ -323,13 +327,39 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
     vOut = '[vs]';
   }
   const video = fast ? videoArgs({ crf: 28, gop: 15, fast: true }) : videoArgs({ crf: 18, bitrate });
-  await run([
-    '-y', '-i', input,
-    ...extra,
-    '-filter_complex', parts.join(';'),
-    '-map', vOut, '-map', '[ac]',
-    ...video, '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac', '-b:a', fast ? '96k' : '192k', '-movflags', '+faststart',
-    output,
-  ], { total, onProgress });
+  try {
+    await run([
+      '-y', '-i', input,
+      ...extra,
+      '-filter_complex', parts.join(';'),
+      '-map', vOut, '-map', '[ac]',
+      ...video, '-pix_fmt', 'yuv420p',
+      '-c:a', 'aac', '-b:a', fast ? '96k' : '192k', '-movflags', '+faststart',
+      output,
+    ], { total, onProgress });
+  } finally {
+    for (const f of luts) rmSync(f, { force: true });
+  }
+}
+
+/**
+ * A clip's colour (the editor's Adjust tool) as filters to add after its trim: its LUT from the
+ * grade (written once per grade next to the output) and the effects a LUT can't do. Same grade
+ * engine as the app (app/src/lib/grade.mjs), so the export matches the editor.
+ */
+export function gradeFilters(grade, output, luts = []) {
+  if (!grade) return '';
+  const out = [];
+  const file = path.join(path.dirname(output), `grade-${gradeKey(grade)}.cube`);
+  if (!luts.includes(file)) {
+    writeFileSync(file, cube(grade));
+    luts.push(file);
+  }
+  out.push(`lut3d=file=${file.replace(/\\/g, '/').replace(/:/g, '\\:')}:interp=tetrahedral`);
+  const fx = effects(grade);
+  if (fx.clarity > 0) out.push(`unsharp=lx=13:ly=13:la=${(fx.clarity * 0.9).toFixed(2)}:cx=13:cy=13:ca=0`);
+  if (fx.sharpen > 0) out.push(`unsharp=lx=5:ly=5:la=${(fx.sharpen * 1.4).toFixed(2)}:cx=5:cy=5:ca=0`);
+  if (fx.vignette > 0) out.push(`vignette=angle=${(0.15 + fx.vignette * 0.75).toFixed(3)}`);
+  if (fx.grain > 0) out.push(`noise=alls=${Math.round(fx.grain * 20)}:allf=t`);
+  return ',' + out.join(',');
 }
