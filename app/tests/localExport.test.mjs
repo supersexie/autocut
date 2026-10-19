@@ -46,7 +46,7 @@ test("the job: local files, looks resolved with the user's changes, overlays and
   assert.equal(spec.overlays[0].upload, undefined);
   // Box turned on: a dark box behind the white text; size includes the user's scale.
   assert.equal(spec.captions.style.box, '#111114');
-  assert.equal(spec.captions.style.size, 1.35); // Classic's 0.9 × the user's 1.5
+  assert.equal(spec.captions.style.size, 1.185); // Classic's 0.79 × the user's 1.5
   assert.deepEqual([spec.captions.x, spec.captions.y], [0.5, 0.76]);
   assert.deepEqual(spec.captions.events.map((e) => e.words.join(' ')), ['Hello world.']);
   // Comic text: capitals, its own font, doubled.

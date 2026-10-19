@@ -26,8 +26,8 @@ test('moved and resized captions are pinned where the user put them', () => {
   const ass = buildAss({ width: 1080, height: 1920, captions: { style: 'classic', x: 0.25, y: 0.5, scale: 1.5, lines: [line] } });
   assert.match(dialogues(ass)[0], /\{\\an2\\pos\(270,960\)\}make it pop$/);
   // Fontsize is the font's whole line height in libass: TikTok Sans's is 1.3 em, so the text's em
-  // comes out at 8.5% of the width × Classic's 0.9 × 1.5, as in the editor.
-  assert.equal(ass.split('\n').find((l) => l.startsWith('Style: Caption')).split(',')[2], String(Math.round(1080 * 0.085 * 0.9 * 1.5 * 1.3)));
+  // comes out at 8.5% of the width × Classic's 0.79 × 1.5, as in the editor.
+  assert.equal(ass.split('\n').find((l) => l.startsWith('Style: Caption')).split(',')[2], String(Math.round(1080 * 0.085 * 0.79 * 1.5 * 1.3)));
   // Word-by-word styles too, on every event.
   const words = dialogues(buildAss({ width: 1080, height: 1920, captions: { style: 'word-box', y: 0.6, lines: [line] } }));
   assert.ok(words.every((d) => d.includes('\\an2\\pos(540,1152)')));
