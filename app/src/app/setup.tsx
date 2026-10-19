@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useAnimatedProps, useAnimatedStyle, useSharedValue, withSpring, ZoomIn, ZoomOut } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useAnimatedProps, useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Choice, HIGHLIGHT, OnbHeader, OnbScreen, OnbTitle, onbCard, StepSlider, Tip } from '../components/Onboarding';
 import { PlanPicker } from '../components/PlanPicker';
@@ -138,7 +138,7 @@ function weekOf(stop: (typeof VOLUME_STOPS)[number]) {
 
 /**
  * "How often do you post?" as a week: a column for each day, with a little video tile for each post
- * that springs in (or drops out) as the slider moves. More than ten a day shows a "+".
+ * that fades in (or out) as the slider moves. More than ten a day shows a "+".
  */
 function WeekStack({ stop }: { stop: (typeof VOLUME_STOPS)[number] }) {
   const week = weekOf(stop);
@@ -156,12 +156,12 @@ function WeekStack({ stop }: { stop: (typeof VOLUME_STOPS)[number] }) {
         {week.map((count, d) => (
           <View key={d} style={styles.dayCol}>
             <View style={styles.dayStack}>
-              {stop.unit === 'or more a day' && <Animated.Text entering={ZoomIn.springify()} style={styles.more}>+</Animated.Text>}
+              {stop.unit === 'or more a day' && <Animated.Text entering={FadeIn.duration(180)} style={styles.more}>+</Animated.Text>}
               {Array.from({ length: count }, (_, k) => (
                 <Animated.View
                   key={k}
-                  entering={ZoomIn.springify().damping(13).delay(d * 25 + k * 18)}
-                  exiting={ZoomOut.duration(140)}
+                  entering={FadeIn.duration(180).delay(d * 20 + k * 12)}
+                  exiting={FadeOut.duration(120)}
                   style={[styles.tile, { opacity: 0.55 + 0.45 * ((k + 1) / Math.max(1, count)) }]}
                 >
                   <View style={styles.tilePlay} />
@@ -503,15 +503,16 @@ function Curve({ values, show }: { values: number[]; show: (v: number, i: number
 const BLOCK_COLS = 6;
 
 /**
- * The day as 24 hour blocks. The hours that go to editing fill in dark one after another, then the
- * ones Autocut frees up flip to blue. A part hour fills part of its block.
+ * The day as 24 hour blocks. The hours that go to editing fill in dark one after another, then they
+ * flip to blue: the time Autocut gives back. A part hour fills part of its block.
  */
 function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
   const fill = useProgress(1100, 350); // dark blocks filling
   const flip = useProgress(900, 1650); // then the freed ones turning blue
   const hours = Math.min(24, spent);
   const freed = Math.min(hours, saved);
-  const kept = hours - freed; // what's left of editing with Autocut
+  // Every editing hour turns blue: what's left with Autocut (a few minutes a video) is too small to show.
+  const kept = 0;
   const [w, setW] = useState(0);
   const size = w ? (w - 5 * 6) / BLOCK_COLS : 0;
   return (
@@ -519,7 +520,7 @@ function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
       <View style={styles.blocks} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
         {Array.from({ length: 24 }, (_, h) => {
           const edit = clamp01(hours * easeOut(fill) - h); // how much of this hour is editing
-          const blue = h >= kept ? clamp01((freed * easeOut(flip) - (h - kept)) * 1) : 0;
+          const blue = clamp01(hours * easeOut(flip) - (h - kept));
           return (
             <View key={h} style={[styles.block, { width: size, height: size * 0.8 }]}>
               {edit > 0 && <View style={[styles.blockFill, { width: `${edit * 100}%`, backgroundColor: theme.ink }]} />}
