@@ -481,17 +481,20 @@ export function Editor({ cut }: { cut: CutRecord }) {
           <Logo size={24} />
           <Text style={styles.brand}>Autocut</Text>
         </View>
-        <Pressable
-          ref={exportRef}
-          onPress={() => {
-            playback.pause();
-            setExporting(true);
-          }}
-          hitSlop={10}
-          style={styles.exportBtn}
-        >
-          <Text style={styles.exportText}>Export</Text>
-        </Pressable>
+        {/* A slot as wide as the back button keeps the name centred; the tour spotlights just the word. */}
+        <View style={styles.exportBtn}>
+          <Pressable
+            ref={exportRef}
+            onPress={() => {
+              playback.pause();
+              setExporting(true);
+            }}
+            hitSlop={10}
+            style={styles.exportTap}
+          >
+            <Text style={styles.exportText}>Export</Text>
+          </Pressable>
+        </View>
       </View>
 
       <Preview
@@ -883,6 +886,7 @@ const styles = StyleSheet.create({
   brand: { fontSize: 19, ...BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
   exportBtn: { width: 82, height: 30, alignItems: 'flex-end', justifyContent: 'center' },
+  exportTap: { paddingHorizontal: 2, paddingVertical: 4 },
   exportText: { fontSize: 17, ...UI_FONT.bold, color: theme.blue },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
   bottom: { height: BOTTOM_H, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
