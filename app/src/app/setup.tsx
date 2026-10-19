@@ -586,7 +586,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
         <Text style={styles.lifeSub}>That’s {Math.round(hours).toLocaleString('en-US')} hours, around the clock.</Text>
         <YearBar days={days} />
         <Text style={styles.lifeLine}>
-          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{back >= 1 ? `${back} day${back === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> of it back, from {money(lowest)} a month.
+          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{back >= 1 ? `${back} day${back === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> of it back, from {money(lowest)} a month billed yearly.
         </Text>
       </Animated.View>
     </OnbScreen>
