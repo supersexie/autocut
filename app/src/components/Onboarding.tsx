@@ -93,7 +93,7 @@ export function OnbTitle({ children, sub, center }: { children: ReactNode; sub?:
 }
 
 /**
- * One answer: a white card with a blue icon on a pale blue tile. Picked, it takes a dark outline, a
+ * One answer: a white card with a blue icon on a pale blue tile. Picked, it takes a blue outline, a
  * solid blue tile and a check. Cards slide in one after another when the question appears.
  */
 export function Choice({ label, icon, bars, selected, onPress, index }: { label: string; icon?: SymbolName; bars?: number; selected: boolean; onPress: () => void; index: number }) {
@@ -101,7 +101,7 @@ export function Choice({ label, icon, bars, selected, onPress, index }: { label:
   useEffect(() => {
     on.value = withTiming(selected ? 1 : 0, { duration: 160 });
   }, [selected, on]);
-  const card = useAnimatedStyle(() => ({ borderColor: interpolateColor(on.value, [0, 1], ['rgba(17,17,20,0)', theme.ink]) }));
+  const card = useAnimatedStyle(() => ({ borderColor: interpolateColor(on.value, [0, 1], ['rgba(34,139,229,0)', ICON_BLUE]) }));
   return (
     <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)}>
       <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={[styles.choice, card]}>
@@ -109,7 +109,7 @@ export function Choice({ label, icon, bars, selected, onPress, index }: { label:
           {bars != null ? <Bars level={bars} on={selected} /> : icon && <SymbolView name={icon} tintColor={selected ? '#fff' : ICON_BLUE} size={18} />}
         </View>
         <Text style={styles.choiceLabel}>{label}</Text>
-        {selected && <SymbolView name="checkmark" tintColor={theme.ink} size={15} weight="semibold" />}
+        {selected && <SymbolView name="checkmark" tintColor={ICON_BLUE} size={15} weight="semibold" />}
       </PressableScale>
     </Animated.View>
   );
