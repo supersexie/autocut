@@ -85,7 +85,7 @@ export function PillTabBar({ state, descriptors, navigation }: Props) {
             }}
             style={styles.tab}
           >
-            <SymbolView name={TAB_ICONS[r.name] ?? 'circle'} tintColor={color} size={22} />
+            <SymbolView name={TAB_ICONS[r.name] ?? 'circle'} tintColor={color} size={22} weight="semibold" />
             <Animated.Text style={[styles.label, { color }]}>{label}</Animated.Text>
           </Pressable>
         );
@@ -101,5 +101,5 @@ const styles = StyleSheet.create({
   },
   pill: { position: 'absolute', left: 0, top: PAD, bottom: PAD, borderRadius: 26 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%' },
-  label: { fontSize: 10, ...UI_FONT.semibold },
+  label: { fontSize: 10, ...UI_FONT.bold },
 });

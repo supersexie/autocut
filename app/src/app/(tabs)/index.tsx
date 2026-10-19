@@ -312,7 +312,7 @@ export default function CreateScreen() {
       </GestureDetector>
       {zoom > 0.01 && (
         <Pressable onPress={() => setZoom(0)} hitSlop={8} style={[styles.zoomPill, { top: insets.top + frameH * 0.5 - 16, right: frameX + 16 }]} accessibilityLabel="Reset zoom">
-          <SymbolView name="minus.magnifyingglass" tintColor="#fff" size={14} />
+          <SymbolView name="minus.magnifyingglass" tintColor="#fff" size={14} weight="bold" />
           <Text style={styles.zoomText}>1×</Text>
         </Pressable>
       )}
@@ -350,7 +350,7 @@ export default function CreateScreen() {
           <View style={styles.side}>
             {mode === 'idle' && !takes.length ? (
               <PressableScale onPress={() => setSheet('folder')} style={styles.folder} accessibilityLabel="Where new videos are saved">
-                <SymbolView name="folder.fill" tintColor={theme.ink} size={16} />
+                <SymbolView name="folder.fill" tintColor={theme.ink} size={16} weight="bold" />
                 <Text style={styles.folderText} numberOfLines={1}>
                   {folderName(saveFolder) ?? 'Cuts'}
                 </Text>
@@ -378,7 +378,7 @@ export default function CreateScreen() {
             {mode === 'idle' && !takes.length && (
               <View ref={importRef} collapsable={false}>
                 <PressableScale onPress={() => setSheet('add')} scaleTo={0.92} style={styles.importButton} accessibilityLabel="Add a video from Photos">
-                  <SymbolView name="photo.on.rectangle.angled" tintColor={theme.ink} size={22} />
+                  <SymbolView name="photo.on.rectangle.angled" tintColor={theme.ink} size={22} weight="bold" />
                 </PressableScale>
               </View>
             )}
@@ -480,7 +480,7 @@ function RoundIcon({ name, label, onPress, disabled, big }: { name: React.Compon
       scaleTo={0.9}
       style={[styles.round, { width: size, height: size, borderRadius: size / 2, opacity: disabled ? 0.4 : 1 }]}
     >
-      <SymbolView name={name} tintColor="#fff" size={big ? 22 : 18} />
+      <SymbolView name={name} tintColor="#fff" size={big ? 22 : 18} weight="bold" />
     </PressableScale>
   );
 }
@@ -498,16 +498,16 @@ const styles = StyleSheet.create({
   brandText: { color: '#fff', fontSize: 17, ...BRAND_FONT },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.cut },
-  pillText: { color: '#fff', fontSize: 13, ...UI_FONT.semibold, fontVariant: ['tabular-nums'] },
+  pillText: { color: '#fff', fontSize: 13, ...UI_FONT.bold, fontVariant: ['tabular-nums'] },
   round: { backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', alignItems: 'center', gap: 16 },
   lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: LENGTH_PAD },
   folder: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', maxWidth: 150, backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
-  folderText: { fontSize: 15, ...UI_FONT.semibold, color: theme.ink, flexShrink: 1 },
+  folderText: { fontSize: 15, ...UI_FONT.bold, color: theme.ink, flexShrink: 1 },
   importButton: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   length: { width: LENGTH_W, alignItems: 'center', paddingVertical: 7, borderRadius: 999 },
   lengthOn: { backgroundColor: '#fff' },
-  lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, ...UI_FONT.bold },
+  lengthText: { color: 'rgba(255,255,255,0.85)', fontSize: 13, ...UI_FONT.extrabold },
   controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, width: '100%' },
   side: { flex: 1 },
   shutter: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },
