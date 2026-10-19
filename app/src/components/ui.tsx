@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react';
@@ -8,6 +7,7 @@ import {
 } from 'react-native';
 import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, withTiming, type AnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop as SvgStop } from 'react-native-svg';
 import { column, theme } from '../lib/theme';
 
 export type SymbolName = ComponentProps<typeof SymbolView>['name'];
@@ -47,15 +47,41 @@ export const WASH = ['#E3E8FC', '#EBEEFD', '#F2F4FE'] as const;
 /** A paler blue for the welcome and setup screens, where the video and numbers should lead. */
 export const SOFT_WASH = ['#F0F3FE', '#F4F6FF', '#F8F9FF'] as const;
 
-/** The wash, filling its parent. Put it first inside a screen's root view. `soft`: the paler one, for onboarding. */
+/**
+ * The wash, filling its parent. Put it first inside a screen's root view. Drawn like the website's hero
+ * panel (site/index.html, .hero::before): the blue running top to bottom, a white glow up on the left
+ * and a smaller one down on the right, and a touch of lavender at the top right. `soft`: the paler
+ * blue, for onboarding.
+ */
 export function Wash({ soft = false }: { soft?: boolean }) {
+  const [top, mid, bottom] = soft ? SOFT_WASH : WASH;
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={soft ? SOFT_WASH : WASH} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
-      {/* Like the website's panel: a soft white glow at the top left and bottom right, a little lavender at the top right. */}
-      <LinearGradient colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.1 }} end={{ x: 0.6, y: 0.45 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={[soft ? 'rgba(205,214,250,0.28)' : 'rgba(205,214,250,0.5)', 'rgba(205,214,250,0)']} start={{ x: 1, y: 0 }} end={{ x: 0.55, y: 0.3 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.55)']} start={{ x: 0.4, y: 0.55 }} end={{ x: 1, y: 0.9 }} style={StyleSheet.absoluteFill} />
+      <Svg width="100%" height="100%">
+        <Defs>
+          <SvgLinear id="washBase" x1="0" y1="0" x2="0" y2="1">
+            <SvgStop offset="0" stopColor={top} />
+            <SvgStop offset="0.55" stopColor={mid} />
+            <SvgStop offset="1" stopColor={bottom} />
+          </SvgLinear>
+          <RadialGradient id="washGlowA" cx="18%" cy="28%" rx="55%" ry="45%" fx="18%" fy="28%">
+            <SvgStop offset="0" stopColor="#FFFFFF" stopOpacity={0.75} />
+            <SvgStop offset="0.7" stopColor="#FFFFFF" stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="washGlowB" cx="82%" cy="72%" rx="45%" ry="40%" fx="82%" fy="72%">
+            <SvgStop offset="0" stopColor="#FFFFFF" stopOpacity={0.6} />
+            <SvgStop offset="0.7" stopColor="#FFFFFF" stopOpacity={0} />
+          </RadialGradient>
+          <RadialGradient id="washLavender" cx="70%" cy="18%" rx="40%" ry="35%" fx="70%" fy="18%">
+            <SvgStop offset="0" stopColor="#CDD6FA" stopOpacity={soft ? 0.3 : 0.55} />
+            <SvgStop offset="0.7" stopColor="#CDD6FA" stopOpacity={0} />
+          </RadialGradient>
+        </Defs>
+        <Rect width="100%" height="100%" fill="url(#washBase)" />
+        <Rect width="100%" height="100%" fill="url(#washGlowA)" />
+        <Rect width="100%" height="100%" fill="url(#washGlowB)" />
+        <Rect width="100%" height="100%" fill="url(#washLavender)" />
+      </Svg>
     </View>
   );
 }
