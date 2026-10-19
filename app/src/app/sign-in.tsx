@@ -1,6 +1,7 @@
+import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 import { agreed, ConsentChecks, type Agreement } from '../components/ConsentChecks';
 import { AppleLogo, Backdrop, Button, ErrorText, Field, GoogleLogo, StepHeader, Title } from '../components/ui';
 import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
@@ -61,11 +62,28 @@ export default function SignIn() {
     });
 
   const canSubmit = email.includes('@') && password.length >= 6 && !blocked;
-  const social_ = (kind: 'apple' | 'google', action: () => Promise<void>) =>
-    run(kind, async () => {
+  // The buttons always look ready. Tapped before the Terms are agreed: point at the box instead.
+  const [nudge, setNudge] = useState(false);
+  const social_ = (kind: 'apple' | 'google', action: () => Promise<void>) => {
+    if (blocked) {
+      Keyboard.dismiss();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setNudge(true);
+      setError('Tick the box below to agree to the Terms first.');
+      return;
+    }
+    return run(kind, async () => {
       holdAgreement(signingUp ? terms : null);
       await action();
     });
+  };
+  const agree = (a: Agreement) => {
+    setAgreement(a);
+    if (agreed(a) && nudge) {
+      setNudge(false);
+      setError(null);
+    }
+  };
   const social = providers.apple || providers.google;
 
   return (
@@ -78,10 +96,10 @@ export default function SignIn() {
       {social && (
         <View style={{ gap: 12, marginBottom: 18 }}>
           {providers.apple && (
-            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} disabled={blocked} onPress={() => social_('apple', auth.signInWithApple)} />
+            <Button title="Continue with Apple" icon={<AppleLogo />} loading={busy === 'apple'} onPress={() => social_('apple', auth.signInWithApple)} />
           )}
           {providers.google && (
-            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} disabled={blocked} onPress={() => social_('google', auth.signInWithGoogle)} />
+            <Button kind="outline" title="Continue with Google" icon={<GoogleLogo />} loading={busy === 'google'} onPress={() => social_('google', auth.signInWithGoogle)} />
           )}
           <View style={styles.divider}>
             <View style={styles.rule} />
@@ -121,7 +139,7 @@ export default function SignIn() {
         <ErrorText>{error}</ErrorText>
         {notice && <Text style={styles.notice}>{notice}</Text>}
         <Button title={signingUp ? 'Create account' : 'Sign in'} onPress={submit} disabled={!canSubmit} loading={busy === 'email'} style={{ marginTop: 6 }} />
-        {signingUp && <ConsentChecks value={agreement} onChange={setAgreement} />}
+        {signingUp && <ConsentChecks value={agreement} onChange={agree} highlight={nudge && !agreed(agreement)} />}
       </View>
 
       <View style={styles.footer}>

@@ -15,7 +15,8 @@ export const agreed = (a: Agreement) => a.terms;
  * the Terms of Service and Privacy Policy". AI use isn't asked here: it's off until turned on in
  * Settings, unless AI_CONSENT_REQUIRED makes it part of this same agreement.
  */
-export function ConsentChecks({ value, onChange }: { value: Agreement; onChange: (a: Agreement) => void }) {
+/** `highlight`: outlines the box in red, after a Continue button was tapped before agreeing. */
+export function ConsentChecks({ value, onChange, highlight = false }: { value: Agreement; onChange: (a: Agreement) => void; highlight?: boolean }) {
   const flip = () => {
     Haptics.selectionAsync();
     const terms = !value.terms;
@@ -23,7 +24,7 @@ export function ConsentChecks({ value, onChange }: { value: Agreement; onChange:
   };
   return (
     <Pressable onPress={flip} style={styles.row} hitSlop={8} accessibilityRole="checkbox" accessibilityState={{ checked: value.terms }} accessibilityLabel="Agree to the Terms of Service and Privacy Policy">
-      <View style={[styles.box, value.terms && styles.boxOn]}>{value.terms && <SymbolView name="checkmark" tintColor="#fff" size={12} weight="bold" />}</View>
+      <View style={[styles.box, highlight && styles.boxNudge, value.terms && styles.boxOn]}>{value.terms && <SymbolView name="checkmark" tintColor="#fff" size={12} weight="bold" />}</View>
       <Text style={styles.text}>
         I agree to the{' '}
         <Text style={styles.link} onPress={() => openLegal('terms')}>
@@ -43,6 +44,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', gap: 10, alignItems: 'center', alignSelf: 'center' },
   box: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: theme.faint, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  boxNudge: { borderColor: theme.danger, borderWidth: 2 },
   text: { flexShrink: 1, fontSize: 13, lineHeight: 18, color: theme.muted },
   link: { color: theme.ink, fontWeight: '700' },
 });
