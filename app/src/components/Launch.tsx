@@ -9,7 +9,7 @@ import { APP_FONTS } from '../lib/fonts';
 
 // Keep these in step with "expo-splash-screen" in app.json, so the hand-over from the system's
 // launch screen to this one doesn't move: same colour, same mark, same size, in the middle.
-const BG = '#E9EDFD';
+const BG = '#D3DCFB';
 const MARK_SIZE = 120;
 const MARK = require('../../assets/splash-icon.png');
 const WORDMARK = require('../../assets/wordmark.png');
