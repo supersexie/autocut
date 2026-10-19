@@ -46,7 +46,7 @@ export function ConsentGate() {
     <Modal visible transparent animationType="fade">
       <View style={styles.dim}>
         <View style={styles.sheet}>
-          <Text style={styles.title}>{profile?.termsVersion ? 'We’ve updated our terms' : 'One more thing'}</Text>
+          <Text style={styles.title}>{profile?.termsVersion ? <>We’ve updated our <Text style={{ color: theme.blue }}>terms</Text></> : <>One more <Text style={{ color: theme.blue }}>thing</Text></>}</Text>
           <Text style={styles.body}>
             Autocut now keeps your videos until you delete your account, so they’re there whenever you want to edit again. Please review and agree to keep going.
           </Text>

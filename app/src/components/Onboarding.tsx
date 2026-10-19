@@ -201,9 +201,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: 'transparent', paddingHorizontal: 14, paddingVertical: 13,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
-  tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: 'rgba(61,107,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  choiceOn: { borderColor: 'rgba(61,107,255,0.4)' },
-  tileOn: { backgroundColor: 'rgba(61,107,255,0.16)' },
+  tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
+  choiceOn: { borderColor: theme.blueLine },
+  tileOn: { backgroundColor: theme.blueTileOn },
   choiceLabel: { flex: 1, fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.2 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 18 },
   bar: { width: 3.5, borderRadius: 1.5 },
@@ -220,6 +220,6 @@ const styles = StyleSheet.create({
   tipCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 16, padding: 14, marginTop: 16,
   },
-  tipIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(61,107,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  tipIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
   tipText: { flex: 1, fontSize: 14, fontFamily: JAKARTA.medium, lineHeight: 19, color: theme.ink },
 });

@@ -21,7 +21,7 @@ import {
 import { getWaveform } from '../../lib/api';
 import { cutFile, editOf, saveEdit, updateCut, useCut, type CutRecord } from '../../lib/store';
 import { useTours } from '../../lib/tours';
-import { BRAND_FONT } from '../../lib/fonts';
+import { BRAND_FONT, JAKARTA } from '../../lib/fonts';
 import { OVERLAP } from '../../lib/plans';
 import { useUsage } from '../../lib/usage';
 import { theme } from '../../lib/theme';
@@ -769,33 +769,33 @@ export function Editor({ cut }: { cut: CutRecord }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
-  meta: { fontSize: 13, color: theme.muted },
+  meta: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
   exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, width: 82, height: 30, borderRadius: 9, backgroundColor: theme.ink },
-  exportText: { fontSize: 13, fontWeight: '700', color: '#fff' },
+  exportText: { fontSize: 13, fontFamily: JAKARTA.bold, color: '#fff' },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
   bottom: { height: BOTTOM_H, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
-  clock: { fontSize: 11, color: theme.muted, fontVariant: ['tabular-nums'] },
+  clock: { fontSize: 11, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   preparing: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  preparingText: { fontSize: 11, color: theme.muted, fontWeight: '500' },
+  preparingText: { fontSize: 11, color: theme.muted, fontFamily: JAKARTA.medium },
   toolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line, paddingTop: 8, marginTop: 'auto' },
   toolBack: { paddingHorizontal: 14 },
   tools: { gap: 6, paddingHorizontal: 8 },
   toolsCentered: { flexGrow: 1, justifyContent: 'center' },
   tool: { alignItems: 'center', gap: 4, minWidth: 58, paddingVertical: 2 },
-  toolText: { fontSize: 10, color: theme.ink, fontWeight: '500' },
+  toolText: { fontSize: 10, color: theme.ink, fontFamily: JAKARTA.medium },
   sheet: { flex: 1, backgroundColor: '#fff' },
   sheetHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingBottom: 4 },
-  sheetTitle: { fontSize: 17, fontWeight: '700', color: theme.ink },
-  sheetSub: { fontSize: 13, color: theme.muted, paddingHorizontal: 20, paddingBottom: 10 },
-  sheetDone: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  sheetTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
+  sheetSub: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, paddingHorizontal: 20, paddingBottom: 10 },
+  sheetDone: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
   sep: { height: 1, backgroundColor: theme.line, marginHorizontal: 20 },
   cutRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
-  cutReason: { fontSize: 15, fontWeight: '600', color: theme.cut },
-  cutText: { fontSize: 14, color: theme.muted },
-  restore: { fontSize: 14, fontWeight: '700', color: theme.ink },
+  cutReason: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.cut },
+  cutText: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
+  restore: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.ink },
 });

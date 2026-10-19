@@ -11,7 +11,10 @@ export const theme = {
   tint: 'rgba(17,17,20,0.06)', // soft fill behind icons and selected tracks
   disabled: '#C7C7CC',
   cut: '#F2545B',
-  blue: '#3D6BFF', // highlights in setup: charts, the ring, sliders, a word in a title (the website's blue)
+  blue: '#3D6BFF', // highlights: charts, the ring, sliders, icons, a word in a title (the website's blue)
+  blueTile: 'rgba(61,107,255,0.1)', // the pale tile behind a blue icon
+  blueTileOn: 'rgba(61,107,255,0.16)', // …when its card is picked
+  blueLine: 'rgba(61,107,255,0.4)', // the thin line round a picked card
   ok: '#2FB463',
   danger: '#D93B3B',
 };

@@ -7,6 +7,7 @@ import Animated, { Easing, interpolateColor, useAnimatedStyle, useSharedValue, w
 import { theme } from '../lib/theme';
 import { TAB_BAR_HEIGHT, tabBarStyle } from './tabBar';
 import type { SymbolName } from './ui';
+import { JAKARTA } from '../lib/fonts';
 
 type Props = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
@@ -100,5 +101,5 @@ const styles = StyleSheet.create({
   },
   pill: { position: 'absolute', left: 0, top: PAD, bottom: PAD, borderRadius: 26 },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, height: '100%' },
-  label: { fontSize: 10, fontWeight: '600' },
+  label: { fontSize: 10, fontFamily: JAKARTA.semibold },
 });

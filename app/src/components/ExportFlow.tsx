@@ -13,7 +13,7 @@ import { Asset } from 'expo-asset';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { cancelPhoneExport, exportOnPhone, hasPhoneExport } from '../../modules/autocut-export';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
-import { CAPTION_FONTS } from '../lib/fonts';
+import { CAPTION_FONTS, JAKARTA } from '../lib/fonts';
 import { exportSpec } from '../lib/localExport';
 import { reportError } from '../lib/crashes';
 import { CAPTION_STYLES, TEXT_STYLES } from './editor/StyledText';
@@ -426,26 +426,26 @@ const styles = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: '#DCDCE0', marginBottom: 6 },
   sheetHead: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   sheetThumb: { width: 48, height: 72, borderRadius: 8 },
-  sheetTitle: { fontSize: 16, fontWeight: '700', color: theme.ink },
-  sheetMeta: { fontSize: 12, color: theme.muted, fontVariant: ['tabular-nums'] },
+  sheetTitle: { fontSize: 16, fontFamily: JAKARTA.bold, color: theme.ink },
+  sheetMeta: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   note: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: theme.card, borderRadius: 12, padding: 12 },
-  noteText: { flex: 1, fontSize: 13, color: theme.ink, lineHeight: 18 },
+  noteText: { flex: 1, fontSize: 13, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 18 },
   rows: { borderRadius: 14, borderWidth: 1, borderColor: theme.line },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: theme.line },
-  rowLabel: { fontSize: 15, color: theme.ink },
-  rowValue: { fontSize: 15, color: theme.muted, fontVariant: ['tabular-nums'] },
+  rowLabel: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink },
+  rowValue: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   full: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 20 },
-  bigTitle: { fontSize: 18, fontWeight: '600', color: theme.ink, textAlign: 'center' },
-  sub: { fontSize: 13, color: theme.muted, textAlign: 'center', lineHeight: 18 },
+  bigTitle: { fontSize: 18, fontFamily: JAKARTA.semibold, color: theme.ink, textAlign: 'center' },
+  sub: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 18 },
   done: { flex: 1, backgroundColor: theme.bg, paddingHorizontal: 20, gap: 14, alignItems: 'center' },
   doneHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },
-  doneTitle: { fontSize: 17, fontWeight: '700', color: theme.ink },
-  doneLink: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  doneTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
+  doneLink: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
   donePlayer: { flex: 1, maxWidth: '100%', borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
   postRow: { flexDirection: 'row', gap: 10 },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   rateCard: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 20, alignItems: 'center', gap: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -4 } },
-  ratePill: { fontSize: 11, fontWeight: '700', color: '#fff', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
-  rateTitle: { fontSize: 17, fontWeight: '700', color: theme.ink, marginTop: 4 },
+  ratePill: { fontSize: 11, fontFamily: JAKARTA.bold, color: '#fff', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
+  rateTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, marginTop: 4 },
   stars: { flexDirection: 'row', gap: 14, marginVertical: 6 },
 });

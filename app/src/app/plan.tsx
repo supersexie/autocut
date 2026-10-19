@@ -11,6 +11,7 @@ import { MANAGE_APPLE_URL, MANAGE_WHOP_URL, PAYMENTS_ON, restore } from '../lib/
 import { FEATURES, planFor } from '../lib/plans';
 import { column, COLUMN, theme } from '../lib/theme';
 import { usageLine, useUsage } from '../lib/usage';
+import { JAKARTA } from '../lib/fonts';
 
 /** "Your plan": the plan, this month's edits, and changing it. */
 export default function PlanScreen() {
@@ -69,7 +70,7 @@ export default function PlanScreen() {
           <Text style={styles.included}>Included</Text>
           {[{ label: plan.edits, has: true }, { label: 'Captions on every word', has: true }, ...FEATURES.map((f) => ({ label: f, has: plan.features.includes(f) }))].map((f) => (
             <View key={f.label} style={styles.feature}>
-              <SymbolView name={f.has ? 'checkmark.circle.fill' : 'lock.fill'} tintColor={f.has ? theme.ink : theme.faint} size={f.has ? 18 : 14} style={{ width: 20 }} />
+              <SymbolView name={f.has ? 'checkmark.circle.fill' : 'lock.fill'} tintColor={f.has ? theme.blue : theme.faint} size={f.has ? 18 : 14} style={{ width: 20 }} />
               <Text style={[styles.featureText, !f.has && { color: theme.faint }]}>{f.label}</Text>
               {!f.has && <Text style={styles.upgrade}>Pro and Ultimate</Text>}
             </View>
@@ -89,13 +90,13 @@ export default function PlanScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
   pad: { padding: 18 },
-  plan: { fontSize: 30, fontWeight: '800', color: theme.ink, letterSpacing: -0.5 },
-  tag: { fontSize: 16, fontWeight: '500', color: theme.muted },
-  line: { fontSize: 16, color: theme.ink, marginTop: 6 },
-  small: { fontSize: 14, color: theme.muted, marginTop: 3 },
-  included: { fontSize: 13, fontWeight: '700', color: theme.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
+  plan: { fontSize: 30, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.5 },
+  tag: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted },
+  line: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink, marginTop: 6 },
+  small: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 3 },
+  included: { fontSize: 13, fontFamily: JAKARTA.bold, color: theme.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  featureText: { flex: 1, fontSize: 15, color: theme.ink },
-  upgrade: { fontSize: 12, fontWeight: '600', color: theme.muted },
-  usage: { fontSize: 17, fontWeight: '600', color: theme.ink, fontVariant: ['tabular-nums'] },
+  featureText: { flex: 1, fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink },
+  upgrade: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
+  usage: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink, fontVariant: ['tabular-nums'] },
 });

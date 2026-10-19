@@ -18,6 +18,7 @@ import { SCHEDULED } from '../../lib/plans';
 import { askToUpgrade, useUsage } from '../../lib/usage';
 import { cutFile, cutProgress, cutStatus, useCuts, whenText, type CutRecord } from '../../lib/store';
 import { COLUMN, formatTime, theme } from '../../lib/theme';
+import { JAKARTA } from '../../lib/fonts';
 
 /** The time now, kept fresh every half minute (so "scheduled" turns into "right away" once it's past). */
 function useNow() {
@@ -116,7 +117,7 @@ export default function BatchScreen() {
           <View style={styles.icon}>
             <SymbolView name="square.stack.3d.down.right" tintColor={theme.ink} size={28} />
           </View>
-          <Text style={styles.title}>Edit up to {MAX_VIDEOS} videos at once</Text>
+          <Text style={styles.title}>Edit up to <Text style={{ color: theme.blue }}>{MAX_VIDEOS} videos</Text> at once</Text>
           <Text style={styles.body}>Add a video and pick its clips, then the next one. Tap Edit all and Autocut cuts them one after another. They land in Cuts when they’re ready.</Text>
         </View>
       ) : (
@@ -320,42 +321,42 @@ function BatchRow({ cut, n, last }: { cut: CutRecord; n: number; last: boolean }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
-  h1: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -0.6, marginTop: 38 },
+  h1: { fontSize: 34, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.6, marginTop: 38 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, paddingHorizontal: 16 },
   icon: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  title: { fontSize: 22, fontWeight: '700', color: theme.ink, textAlign: 'center', letterSpacing: -0.3 },
-  body: { fontSize: 15, color: theme.muted, textAlign: 'center', lineHeight: 21 },
-  summary: { fontSize: 13, color: theme.muted, marginBottom: 10, marginLeft: 4, fontVariant: ['tabular-nums'] },
+  title: { fontSize: 22, fontFamily: JAKARTA.bold, color: theme.ink, textAlign: 'center', letterSpacing: -0.3 },
+  body: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 21 },
+  summary: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginBottom: 10, marginLeft: 4, fontVariant: ['tabular-nums'] },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12 },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
   thumb: { width: 40, height: 60, borderRadius: 8 },
-  rowTitle: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  rowStatus: { fontSize: 13, color: theme.muted, fontVariant: ['tabular-nums'] },
+  rowTitle: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
+  rowStatus: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   track: { height: 3, borderRadius: 2, backgroundColor: theme.line, overflow: 'hidden', marginTop: 3 },
   fill: { height: 3, borderRadius: 2, backgroundColor: theme.ink },
   video: { backgroundColor: '#fff', borderRadius: 20, paddingTop: 14, paddingBottom: 14 },
   videoHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14 },
-  videoTitle: { fontSize: 17, fontWeight: '700', color: theme.ink, letterSpacing: -0.2 },
-  videoSub: { fontSize: 13, color: theme.muted, marginTop: 2, fontVariant: ['tabular-nums'] },
+  videoTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.2 },
+  videoSub: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2, fontVariant: ['tabular-nums'] },
   chip: { backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  chipText: { fontSize: 13, fontWeight: '600', color: theme.ink },
+  chipText: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.ink },
   trash: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
   strip: { gap: 8, paddingHorizontal: 14, paddingTop: 12 },
   clip: { width: CLIP_W, height: CLIP_H, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.card },
   clipNumber: { position: 'absolute', top: 5, left: 5, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  clipNumberText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  clipNumberText: { color: '#fff', fontSize: 11, fontFamily: JAKARTA.bold },
   addClip: { width: CLIP_W, height: CLIP_H, borderRadius: 10, borderWidth: 2, borderStyle: 'dashed', borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
   addVideo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 54, borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', borderColor: '#C7C7CC' },
-  addVideoText: { fontSize: 16, fontWeight: '600', color: theme.ink },
+  addVideoText: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
   when: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: 14, marginTop: 12, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
-  whenText: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.ink },
-  whenChange: { fontSize: 14, color: theme.muted },
+  whenText: { flex: 1, fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
+  whenChange: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
   whenButton: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   proPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 7, paddingVertical: 3 },
-  proText: { color: '#fff', fontSize: 10, fontWeight: '800', letterSpacing: 0.4 },
+  proText: { color: '#fff', fontSize: 10, fontFamily: JAKARTA.extrabold, letterSpacing: 0.4 },
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.3)' },
   sheet: { backgroundColor: '#fff', borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingHorizontal: 20, paddingTop: 8 },
   grabber: { alignSelf: 'center', width: 40, height: 5, borderRadius: 3, backgroundColor: theme.line, marginBottom: 14 },
-  sheetTitle: { fontSize: 20, fontWeight: '700', color: theme.ink, letterSpacing: -0.3 },
-  sheetSub: { fontSize: 14, color: theme.muted, lineHeight: 20, marginTop: 6, marginBottom: 6 },
+  sheetTitle: { fontSize: 20, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.3 },
+  sheetSub: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 20, marginTop: 6, marginBottom: 6 },
 });

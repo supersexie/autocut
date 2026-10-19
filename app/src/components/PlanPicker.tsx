@@ -140,7 +140,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
                   const has = p.features.includes(f);
                   return (
                     <View key={f} style={styles.feature}>
-                      <SymbolView name={has ? 'checkmark.circle.fill' : 'xmark.circle'} tintColor={has ? theme.ink : theme.faint} size={14} />
+                      <SymbolView name={has ? 'checkmark.circle.fill' : 'xmark.circle'} tintColor={has ? theme.blue : theme.faint} size={14} />
                       <Text style={[styles.featureText, !has && { color: theme.faint }]}>{f}</Text>
                     </View>
                   );
@@ -244,12 +244,12 @@ const styles = StyleSheet.create({
   title: { fontSize: 31, fontFamily: JAKARTA.bold, color: theme.ink, textAlign: 'center', letterSpacing: -0.9, marginTop: 10 },
   sub: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },
   plan: { borderRadius: 18, borderWidth: 1.5, borderColor: '#E3E3E8', padding: 16, gap: 10, backgroundColor: '#fff' },
-  planOn: { borderColor: theme.ink, borderWidth: 2 },
+  planOn: { borderColor: theme.blueLine },
   badge: { position: 'absolute', top: -10, alignSelf: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
   badgeText: { color: '#fff', fontSize: 10, fontFamily: JAKARTA.extrabold, letterSpacing: 0.6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
-  radioOn: { backgroundColor: theme.ink, borderColor: theme.ink },
+  radioOn: { backgroundColor: theme.blue, borderColor: theme.blue },
   planName: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
   planEdits: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
   price: { fontSize: 17, fontFamily: JAKARTA.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },

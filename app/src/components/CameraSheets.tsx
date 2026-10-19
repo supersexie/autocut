@@ -5,6 +5,7 @@ import { createFolder, updateSettings, useFolders, useSettings } from '../lib/st
 import { theme } from '../lib/theme';
 import { Sheet } from './Sheet';
 import { PressableScale, type SymbolName } from './ui';
+import { JAKARTA } from '../lib/fonts';
 
 /** "Save new videos to": the main Cuts page or a folder, and making a new folder. */
 export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -65,7 +66,7 @@ export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: (
             ))}
           </View>
           <PressableScale onPress={() => setNaming(true)} scaleTo={0.98} style={styles.newFolder}>
-            <SymbolView name="folder.badge.plus" tintColor={theme.ink} size={20} />
+            <SymbolView name="folder.badge.plus" tintColor={theme.blue} size={20} />
             <Text style={styles.newFolderText}>New folder</Text>
           </PressableScale>
         </>
@@ -77,8 +78,8 @@ export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: (
 function Choice({ icon, label, detail, on, strong, onPress }: { icon: SymbolName; label: string; detail?: string; on: boolean; strong?: boolean; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} scaleTo={0.98} style={styles.choice} accessibilityState={{ selected: on }}>
-      <View style={[styles.choiceIcon, strong && { backgroundColor: theme.ink }]}>
-        <SymbolView name={icon} tintColor={strong ? '#fff' : theme.ink} size={18} />
+      <View style={[styles.choiceIcon, strong && { backgroundColor: theme.blueTileOn }]}>
+        <SymbolView name={icon} tintColor={theme.blue} size={18} />
       </View>
       <View style={{ flex: 1 }}>
         <Text style={styles.choiceLabel} numberOfLines={1}>
@@ -86,7 +87,7 @@ function Choice({ icon, label, detail, on, strong, onPress }: { icon: SymbolName
         </Text>
         {detail && <Text style={styles.choiceDetail}>{detail}</Text>}
       </View>
-      {on && <SymbolView name="checkmark" tintColor={theme.ink} size={18} weight="semibold" />}
+      {on && <SymbolView name="checkmark" tintColor={theme.blue} size={18} weight="semibold" />}
     </PressableScale>
   );
 }
@@ -120,8 +121,8 @@ export function AddVideoSheet({ visible, onClose, onPick }: { visible: boolean; 
 function Option({ icon, label, detail, dark, onPress }: { icon: SymbolName; label: string; detail: string; dark?: boolean; onPress: () => void }) {
   return (
     <PressableScale onPress={onPress} scaleTo={0.98} style={styles.option}>
-      <View style={[styles.optionIcon, dark && { backgroundColor: theme.ink }]}>
-        <SymbolView name={icon} tintColor={dark ? '#fff' : theme.ink} size={22} />
+      <View style={[styles.optionIcon, dark && { backgroundColor: theme.blueTileOn }]}>
+        <SymbolView name={icon} tintColor={theme.blue} size={22} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Text style={styles.optionLabel}>{label}</Text>
@@ -134,19 +135,19 @@ function Option({ icon, label, detail, dark, onPress }: { icon: SymbolName; labe
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, minHeight: 32 },
-  title: { fontSize: 20, fontWeight: '700', color: theme.ink, flex: 1, textAlign: 'center' },
-  link: { fontSize: 16, color: theme.muted, minWidth: 56 },
-  strong: { color: theme.ink, fontWeight: '700', textAlign: 'right' },
+  title: { fontSize: 20, fontFamily: JAKARTA.bold, color: theme.ink, flex: 1, textAlign: 'center' },
+  link: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted, minWidth: 56 },
+  strong: { color: theme.ink, fontFamily: JAKARTA.bold, textAlign: 'right' },
   list: { marginBottom: 16 },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
-  choiceIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
-  choiceLabel: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  choiceDetail: { fontSize: 13, color: theme.muted, marginTop: 2 },
+  choiceIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
+  choiceLabel: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink },
+  choiceDetail: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
   newFolder: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 16, paddingVertical: 15, backgroundColor: theme.card },
-  newFolderText: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  input: { fontSize: 17, color: theme.ink, borderWidth: 2, borderColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
+  newFolderText: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink },
+  input: { fontSize: 17, fontFamily: JAKARTA.medium, color: theme.ink, borderWidth: 2, borderColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.card, borderRadius: 18, padding: 14 },
-  optionIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  optionLabel: { fontSize: 18, fontWeight: '700', color: theme.ink },
-  optionDetail: { fontSize: 14, color: theme.muted },
+  optionIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
+  optionLabel: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
+  optionDetail: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
 });

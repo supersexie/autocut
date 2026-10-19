@@ -9,6 +9,7 @@ import { displayName, initialsOf, useAuth } from '../../lib/auth';
 import { useCuts } from '../../lib/store';
 import { column, COLUMN, theme } from '../../lib/theme';
 import { usageLine, useUsage } from '../../lib/usage';
+import { JAKARTA } from '../../lib/fonts';
 
 const DEVICE = Platform.OS === 'ios' && Platform.isPad ? 'iPad' : 'iPhone';
 
@@ -37,7 +38,7 @@ export default function YouScreen() {
 
         <View style={styles.profile}>
           <View style={[listStyles.avatar, { width: 52, height: 52 }]}>
-            <Text style={[listStyles.avatarText, { fontSize: 18 }]}>{initials}</Text>
+            <Text style={[listStyles.avatarText, { fontSize: 18, fontFamily: JAKARTA.medium }]}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.handle} numberOfLines={1}>
@@ -105,26 +106,26 @@ export default function YouScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
   top: { flexDirection: 'row', justifyContent: 'flex-end', height: 44 },
-  h1: { fontSize: 34, fontWeight: '800', color: theme.ink, letterSpacing: -0.6 },
+  h1: { fontSize: 34, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.6 },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14, marginBottom: 20 },
-  handle: { fontSize: 16, fontWeight: '600', color: theme.ink },
-  sub: { fontSize: 14, color: theme.muted, marginTop: 3 },
+  handle: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
+  sub: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 3 },
   pad: { padding: 16 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  plan: { fontSize: 22, fontWeight: '800', color: theme.ink },
-  tag: { fontSize: 14, fontWeight: '500', color: theme.muted },
+  plan: { fontSize: 22, fontFamily: JAKARTA.extrabold, color: theme.ink },
+  tag: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
   manage: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  link: { fontSize: 15, fontWeight: '600', color: theme.ink },
-  small: { fontSize: 13, color: theme.muted, marginTop: 6 },
+  link: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
+  small: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 6 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.line, marginVertical: 14 },
-  usage: { fontSize: 16, color: theme.ink, fontVariant: ['tabular-nums'] },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: theme.ink },
+  usage: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink, fontVariant: ['tabular-nums'] },
+  cardTitle: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
   stats: { flexDirection: 'row', marginTop: 16 },
-  statValue: { fontSize: 24, fontWeight: '700', color: theme.ink, fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 15, color: theme.ink, marginTop: 2 },
-  statNote: { fontSize: 12, color: theme.muted, marginTop: 2 },
+  statValue: { fontSize: 24, fontFamily: JAKARTA.bold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  statLabel: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink, marginTop: 2 },
+  statNote: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
   empty: { alignItems: 'center', gap: 8, marginTop: 44, paddingHorizontal: 20 },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: theme.ink },
-  emptyBody: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20, marginBottom: 10 },
+  emptyTitle: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
+  emptyBody: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginBottom: 10 },
 });

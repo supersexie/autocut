@@ -14,6 +14,7 @@ import { useUsage } from '../lib/usage';
 import { updateSettings, useSettings } from '../lib/store';
 import { COLUMN, formatTime, theme } from '../lib/theme';
 import { CuttingView } from './cut/[id]';
+import { JAKARTA } from '../lib/fonts';
 
 const seek = (p: VideoPlayer, t: number) => {
   p.currentTime = t;
@@ -240,24 +241,24 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 40 },
   back: { width: 36, height: 36, borderRadius: 18, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   info: { backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 6 },
-  infoText: { fontSize: 12, color: theme.muted, fontWeight: '600', fontVariant: ['tabular-nums'] },
+  infoText: { fontSize: 12, color: theme.muted, fontFamily: JAKARTA.semibold, fontVariant: ['tabular-nums'] },
   previewArea: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 10 },
   preview: { borderRadius: 22, overflow: 'hidden', backgroundColor: '#1C1C1F' },
   playOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   playCircle: { width: 62, height: 62, borderRadius: 31, backgroundColor: 'rgba(0,0,0,0.45)', alignItems: 'center', justifyContent: 'center', paddingLeft: 4 },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 4, height: 30 },
-  meta: { fontSize: 13, color: theme.muted, fontVariant: ['tabular-nums'] },
+  meta: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   takes: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   takeChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999, backgroundColor: theme.card },
   takeChipOn: { backgroundColor: theme.ink },
-  takeText: { fontSize: 12, fontWeight: '600', color: theme.ink, fontVariant: ['tabular-nums'] },
+  takeText: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.ink, fontVariant: ['tabular-nums'] },
   strip: { height: 48, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.card },
   tiles: { flex: 1, flexDirection: 'row' },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 3, borderRadius: 2, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 3, shadowOffset: { width: 0, height: 0 } },
   options: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 12 },
   optionRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  optionText: { fontSize: 14, color: theme.ink, fontWeight: '500' },
+  optionText: { fontSize: 14, color: theme.ink, fontFamily: JAKARTA.medium },
   more: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  moreText: { fontSize: 14, color: theme.muted, fontWeight: '500' },
+  moreText: { fontSize: 14, color: theme.muted, fontFamily: JAKARTA.medium },
   actions: { flexDirection: 'row', gap: 10 },
 });

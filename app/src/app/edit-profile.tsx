@@ -4,6 +4,7 @@ import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { Field, Wash } from '../components/ui';
 import { displayName, useAuth } from '../lib/auth';
 import { theme } from '../lib/theme';
+import { JAKARTA } from '../lib/fonts';
 
 /** Name and TikTok handle, from Settings › Edit. */
 export default function EditProfile() {
@@ -34,7 +35,7 @@ export default function EditProfile() {
         <Pressable onPress={() => router.back()} hitSlop={10}>
           <Text style={styles.cancel}>Cancel</Text>
         </Pressable>
-        <Text style={styles.title}>Edit profile</Text>
+        <Text style={styles.title}>Edit <Text style={{ color: theme.blue }}>profile</Text></Text>
         <Pressable onPress={save} disabled={saving || !firstName.trim()} hitSlop={10}>
           <Text style={[styles.save, (saving || !firstName.trim()) && { color: theme.faint }]}>{saving ? 'Saving…' : 'Save'}</Text>
         </Pressable>
@@ -52,9 +53,9 @@ export default function EditProfile() {
 const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: '#fff' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 10 },
-  title: { fontSize: 17, fontWeight: '600', color: theme.ink },
-  cancel: { fontSize: 16, color: theme.muted },
-  save: { fontSize: 16, fontWeight: '700', color: theme.ink },
+  title: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink },
+  cancel: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted },
+  save: { fontSize: 16, fontFamily: JAKARTA.bold, color: theme.ink },
   body: { padding: 18, gap: 16 },
-  email: { fontSize: 13, color: theme.muted, marginTop: 4 },
+  email: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 4 },
 });

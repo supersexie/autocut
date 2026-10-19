@@ -3,6 +3,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { updateSettings, useSettings } from '../lib/store';
 import { theme } from '../lib/theme';
 import { Card, Footnote, Row } from './list';
+import { JAKARTA } from '../lib/fonts';
 
 /** How Autocut cuts new takes: in Settings, and in "More options" before sending a take. */
 export function CuttingSettings() {
@@ -21,7 +22,7 @@ export function CuttingSettings() {
             step={0.05}
             value={settings.maxGap}
             onSlidingComplete={(v) => updateSettings({ maxGap: Math.round(v * 100) / 100 })}
-            minimumTrackTintColor={theme.ink}
+            minimumTrackTintColor={theme.blue}
           />
         </View>
         <SwitchRow label="Remove ums and uhs" value={settings.removeFillers} onChange={(removeFillers) => updateSettings({ removeFillers })} />
@@ -34,12 +35,12 @@ export function CuttingSettings() {
 }
 
 export function SwitchRow({ label, value, onChange, last }: { label: string; value: boolean; onChange: (v: boolean) => void; last?: boolean }) {
-  return <Row label={label} right={<Switch value={value} onValueChange={onChange} trackColor={{ true: theme.ink }} />} last={last} />;
+  return <Row label={label} right={<Switch value={value} onValueChange={onChange} trackColor={{ true: theme.blue }} />} last={last} />;
 }
 
 const styles = StyleSheet.create({
   slider: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
   between: { flexDirection: 'row', justifyContent: 'space-between' },
-  text: { fontSize: 16, color: theme.ink },
-  value: { fontSize: 15, color: theme.muted, fontVariant: ['tabular-nums'] },
+  text: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink },
+  value: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
 });

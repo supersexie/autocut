@@ -9,6 +9,7 @@ import { Backdrop, Button } from '../../components/ui';
 import { canRetry, retryCut, stopCut } from '../../lib/jobs';
 import { cutFile, deleteCut, useCut, whenText } from '../../lib/store';
 import { theme } from '../../lib/theme';
+import { JAKARTA } from '../../lib/fonts';
 
 const TIPS = [
   'Almost all videos now get edited in around a minute.',
@@ -218,17 +219,17 @@ function Header({ onBack }: { onBack?: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '600', color: theme.ink, textAlign: 'center', letterSpacing: -0.2 },
-  subtitle: { fontSize: 13, color: theme.muted, textAlign: 'center', marginTop: 5, marginHorizontal: 24, lineHeight: 18 },
+  title: { fontSize: 18, fontFamily: JAKARTA.semibold, color: theme.ink, textAlign: 'center', letterSpacing: -0.2 },
+  subtitle: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginTop: 5, marginHorizontal: 24, lineHeight: 18 },
   tip: {
     flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fff', borderRadius: 18, paddingVertical: 16, paddingHorizontal: 14, marginTop: 22,
     shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 14, shadowOffset: { width: 0, height: 4 },
   },
-  tipLabel: { fontSize: 12, fontWeight: '500', color: theme.faint },
-  tipText: { fontSize: 15, color: theme.ink, textAlign: 'center', lineHeight: 21 },
+  tipLabel: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.faint },
+  tipText: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink, textAlign: 'center', lineHeight: 21 },
   stop: { alignSelf: 'center', backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 22, paddingVertical: 11 },
-  stopText: { fontSize: 15, fontWeight: '600', color: theme.ink },
+  stopText: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
   failed: { alignItems: 'center', gap: 10, marginTop: 120, paddingHorizontal: 20 },
-  failedTitle: { fontSize: 18, fontWeight: '700', color: theme.ink },
-  failedBody: { fontSize: 14, color: theme.muted, textAlign: 'center', lineHeight: 20 },
+  failedTitle: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
+  failedBody: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 20 },
 });
