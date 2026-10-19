@@ -131,8 +131,11 @@ export default function Welcome() {
       if (phaseRef.current === 'ready') edited.play();
       else raw.play();
       return () => {
-        raw.pause();
-        edited.pause();
+        // When the screen is closing (not just covered), the players may already be released.
+        try {
+          raw.pause();
+          edited.pause();
+        } catch {}
         setMuted(true);
       };
     }, [raw, edited])

@@ -12,13 +12,14 @@ before pushing to `main`, because that redeploys the live server.
 
 ## How it works (2 minutes)
 
-Autocut sells three plans, each monthly or yearly:
+Autocut sells three plans, each monthly or yearly, at the same prices as CutAI (in India: ₹1,999 / ₹4,999 /
+₹9,900 a month and ₹14,900 / ₹39,900 / ₹69,900 a year; set those by hand for India in App Store Connect):
 
-| Plan | Monthly | Yearly (33% off) | What it includes |
+| Plan | Monthly | Yearly | What it includes |
 |---|---|---|---|
-| Starter | $19.99 | $160.68 ($13.39/mo) | 100 edits a month |
-| Pro | $49.99 | $401.88 ($33.49/mo) | 300 edits, Overlap audio, Scheduled batch edits |
-| Ultimate | $99.99 | $803.88 ($66.99/mo) | Unlimited edits, Overlap audio, Scheduled batch edits |
+| Starter | $19.99 | $149.99 ($12.50/mo) | 100 edits a month |
+| Pro | $49.99 | $399.99 ($33.33/mo) | 300 edits, Overlap audio, Scheduled batch edits |
+| Ultimate | $99.99 | $699.99 ($58.33/mo) | Unlimited edits, Overlap audio, Scheduled batch edits |
 
 People can pay two ways, as Apple's rules allow:
 
@@ -58,13 +59,13 @@ You need access to the Apple Developer account and App Store Connect for Autocut
      | Product ID | Duration | US price |
      |---|---|---|
      | `autocut.starter.monthly` | 1 month | $19.99 |
-     | `autocut.starter.yearly` | 1 year | closest to $160.68 |
+     | `autocut.starter.yearly` | 1 year | $149.99 |
      | `autocut.pro.monthly` | 1 month | $49.99 |
-     | `autocut.pro.yearly` | 1 year | closest to $401.88 |
+     | `autocut.pro.yearly` | 1 year | $399.99 |
      | `autocut.ultimate.monthly` | 1 month | $99.99 |
-     | `autocut.ultimate.yearly` | 1 year | closest to $803.88 |
+     | `autocut.ultimate.yearly` | 1 year | $699.99 |
 
-   - Apple only offers fixed price points. Pick the nearest (e.g. $159.99). The app shows Apple's own price
+   - Apple only offers fixed price points. All six prices above are Apple price points. The app shows Apple's own price
      in each country automatically, so that's fine. If you want the web (Whop) prices to match exactly, tell
      the developer the final Apple prices so `app/src/lib/plans.ts` can be updated.
    - Order the plans in the group from Ultimate (highest) to Starter, so Apple treats moving up as an upgrade.
@@ -110,11 +111,11 @@ The app uses each person's account id as their RevenueCat user id, so purchases 
    | Plan | Price | Period |
    |---|---|---|
    | Starter monthly | $19.99 | Monthly |
-   | Starter yearly | $160.68 | Yearly |
+   | Starter yearly | $149.99 | Yearly |
    | Pro monthly | $49.99 | Monthly |
-   | Pro yearly | $401.88 | Yearly |
+   | Pro yearly | $399.99 | Yearly |
    | Ultimate monthly | $99.99 | Monthly |
-   | Ultimate yearly | $803.88 | Yearly |
+   | Ultimate yearly | $699.99 | Yearly |
 
 3. Note each plan's ID (starts `plan_`, shown in the plan's settings or checkout link). In Railway →
    **autocut** → Variables, add **one** variable listing all six (no spaces; the names on the left exactly as written):

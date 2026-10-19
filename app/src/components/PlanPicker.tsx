@@ -10,7 +10,7 @@ import { openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { applePrices, buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type ApplePrice, type Ways } from '../lib/billing';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
-import { DAYS_A_MONTH, FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
+import { DAYS_A_MONTH, FEATURES, money, planFor, PLANS, priceFor, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
 import { BRAND_FONT, UI_FONT } from '../lib/fonts';
 import { column, COLUMN, midSentence, theme } from '../lib/theme';
 
@@ -35,7 +35,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const chosen = planFor(plan);
-  const monthly = pricePerMonth(chosen.monthly, billing);
+  const per = billing === 'yearly' ? 'a year' : 'a month';
 
   // How this account can pay here (when payments are on): Apple everywhere, Whop on the US store.
   const [ways, setWays] = useState<Ways | null>(null);
@@ -48,6 +48,15 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
     applePrices(account.id).then(setPrices, () => {});
   }, [paying, account]);
   const apple = (id: PlanId, b: Billing) => prices[`${id}_${b}`];
+  // What the plan costs for its period ("$399.99" a year), and yearly plans a month as well.
+  const total = (id: PlanId) => apple(id, billing)?.price ?? money(priceFor(planFor(id), billing));
+  const monthlyOf = (id: PlanId) => apple(id, billing)?.perMonth ?? money(pricePerMonth(planFor(id), billing));
+
+  // Signs out and opens sign-in, to sign in or sign up with a different account.
+  async function switchAccount() {
+    await signOut();
+    setTimeout(() => router.replace('/sign-in'), 50);
+  }
 
   async function start(how: 'apple' | 'web' = 'apple') {
     // Kept with the setup answers; they're saved with the rest when setup finishes.
@@ -119,9 +128,9 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
               scaleTo={0.98}
               style={[styles.plan, on && styles.planOn]}
             >
-              {p.id === best && (
+              {p.pick && (
                 <View style={styles.badge}>
-                  <Text style={styles.badgeText}>BEST FOR YOU</Text>
+                  <Text style={styles.badgeText}>OUR PICK</Text>
                 </View>
               )}
               <View style={styles.row}>
@@ -130,10 +139,13 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
                   <Text style={styles.planName}>{p.name}</Text>
                   <Text style={styles.planEdits}>{p.edits}</Text>
                 </View>
-                <Text style={styles.price}>
-                  {apple(p.id, billing)?.perMonth ?? money(pricePerMonth(p.monthly, billing))}
-                  <Text style={styles.per}> a month</Text>
-                </Text>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.price}>
+                    {total(p.id)}
+                    <Text style={styles.per}> {per}</Text>
+                  </Text>
+                  {billing === 'yearly' && <Text style={styles.perMonth}>{monthlyOf(p.id)} a month</Text>}
+                </View>
               </View>
               <View style={styles.features}>
                 {FEATURES.map((f) => {
@@ -170,10 +182,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
         />
       )}
       <Text style={styles.terms}>
-        {apple(plan, billing)
-          ? `${apple(plan, billing)!.price} ${billing === 'yearly' ? 'a year' : 'a month'}`
-          : `${money(monthly)} a month${billing === 'yearly' ? `, billed ${money(monthly * 12)} yearly` : ''}`}
-        . Renews automatically. Cancel anytime.
+        {total(plan)} {per}. Renews automatically. Cancel anytime.
         {'\n'}
         {PAYMENTS_ON
           ? 'Charged to your Apple ID (or card, on the web) when you confirm. Renews unless cancelled at least 24 hours before the period ends; manage it in your account settings.'
@@ -205,20 +214,23 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
     <View style={[styles.screen, { paddingTop: insets.top + 6 }]}>
       <Wash soft />
       <View style={styles.top}>
-        {changing ? (
-          <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 110 }} accessibilityLabel="Back">
-            <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
-          </Pressable>
-        ) : (
-          <View style={{ width: 110 }} />
-        )}
-        <View style={styles.brand}>
+        {/* The name sits in the middle of the screen; the back button and Switch account at the sides. */}
+        <View style={styles.brand} pointerEvents="none">
           <Logo size={22} />
           <Text style={styles.brandText}>Autocut</Text>
         </View>
-        <Pressable onPress={signOut} hitSlop={10} disabled={changing} style={{ width: 110, alignItems: 'flex-end', opacity: changing ? 0 : 1 }}>
-          <Text style={styles.switch}>Switch account</Text>
-        </Pressable>
+        {changing ? (
+          <Pressable onPress={() => router.back()} hitSlop={10} accessibilityLabel="Back">
+            <SymbolView name="chevron.left" tintColor={theme.ink} size={18} weight="semibold" />
+          </Pressable>
+        ) : (
+          <View />
+        )}
+        {!changing && (
+          <Pressable onPress={switchAccount} hitSlop={10}>
+            <Text style={styles.switch} numberOfLines={1}>Switch account</Text>
+          </Pressable>
+        )}
       </View>
 
       <ScrollView contentContainerStyle={[{ paddingHorizontal: 22, paddingBottom: 16 }, column(COLUMN + 44)]} showsVerticalScrollIndicator={false}>
@@ -238,15 +250,16 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.bg },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, height: 44 },
-  brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  brand: { position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   brandText: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
-  switch: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted },
+  switch: { fontSize: 15, ...UI_FONT.semibold, color: theme.blue },
   title: { fontSize: 31, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', letterSpacing: -0.9, marginTop: 10 },
   sub: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },
   plan: { borderRadius: 18, borderWidth: 1.5, borderColor: '#E3E3E8', padding: 16, gap: 10, backgroundColor: '#fff' },
   planOn: { borderColor: theme.blueLine },
-  badge: { position: 'absolute', top: -10, alignSelf: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { color: '#fff', fontSize: 10, ...UI_FONT.extrabold, letterSpacing: 0.6 },
+  // CutAI's: a blue pill on the card's top edge, dark navy capitals.
+  badge: { position: 'absolute', top: -11, alignSelf: 'center', backgroundColor: theme.blue, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
+  badgeText: { color: '#0A1A33', fontSize: 11, ...UI_FONT.semibold, letterSpacing: 0.4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
   radioOn: { backgroundColor: theme.blue, borderColor: theme.blue },
@@ -254,6 +267,7 @@ const styles = StyleSheet.create({
   planEdits: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
   price: { fontSize: 17, ...UI_FONT.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
   per: { fontSize: 12, ...UI_FONT.medium, color: theme.faint },
+  perMonth: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, marginTop: 2, fontVariant: ['tabular-nums'] },
   features: { flexDirection: 'row', gap: 14, paddingLeft: 34 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   featureText: { fontSize: 12, ...UI_FONT.medium, color: theme.ink },

@@ -2,6 +2,7 @@
 export type PlanId = 'starter' | 'pro' | 'ultimate';
 export type Billing = 'monthly' | 'yearly';
 
+/** What the Yearly tab's badge says it saves (as CutAI's does). */
 export const YEARLY_DISCOUNT = 0.33;
 export const CURRENCY = '$';
 
@@ -13,14 +14,20 @@ export const SCHEDULED = 'Scheduled batch edits';
 export const FEATURES = [OVERLAP, SCHEDULED] as const;
 export type Feature = (typeof FEATURES)[number];
 
-export const PLANS: { id: PlanId; name: string; monthly: number; edits: string; limit: number; features: readonly Feature[]; pick?: boolean }[] = [
-  { id: 'starter', name: 'Starter', monthly: 19.99, edits: '100 AI edits a month', limit: 100, features: [] },
-  { id: 'pro', name: 'Pro', monthly: 49.99, edits: '300 AI edits a month', limit: 300, features: FEATURES, pick: true },
-  { id: 'ultimate', name: 'Ultimate', monthly: 99.99, edits: 'Unlimited AI edits', limit: Infinity, features: FEATURES },
+// The same prices as CutAI's (₹1,999 / ₹4,999 / ₹9,900 a month and ₹14,900 / ₹39,900 / ₹69,900 a
+// year on the Indian App Store). `pick`: the plan marked OUR PICK.
+export const PLANS: { id: PlanId; name: string; monthly: number; yearly: number; edits: string; limit: number; features: readonly Feature[]; pick?: boolean }[] = [
+  { id: 'starter', name: 'Starter', monthly: 19.99, yearly: 149.99, edits: '100 AI edits a month', limit: 100, features: [] },
+  { id: 'pro', name: 'Pro', monthly: 49.99, yearly: 399.99, edits: '300 AI edits a month', limit: 300, features: FEATURES, pick: true },
+  { id: 'ultimate', name: 'Ultimate', monthly: 99.99, yearly: 699.99, edits: 'Unlimited AI edits', limit: Infinity, features: FEATURES },
 ];
 
-export const pricePerMonth = (monthly: number, billing: Billing) =>
-  billing === 'yearly' ? Math.round(monthly * (1 - YEARLY_DISCOUNT) * 100) / 100 : monthly;
+/** What one period costs: a month, or the whole year. */
+export const priceFor = (p: { monthly: number; yearly: number }, billing: Billing) => (billing === 'yearly' ? p.yearly : p.monthly);
+
+/** The price a month (a yearly plan spread over its 12 months). */
+export const pricePerMonth = (p: { monthly: number; yearly: number }, billing: Billing) =>
+  billing === 'yearly' ? Math.round((p.yearly / 12) * 100) / 100 : p.monthly;
 
 export const planFor = (id: PlanId) => PLANS.find((p) => p.id === id)!;
 

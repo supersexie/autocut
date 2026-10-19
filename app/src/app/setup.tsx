@@ -44,7 +44,7 @@ const EDIT_START = EDIT_STOPS.indexOf(30);
 /** What they'd pay for Autocut: the plan that suits them, at its yearly price (the one they start on). */
 function autocutFor(draft: Draft) {
   const plan = planFor(draft.plan ?? recommendedPlan(draft.editorCost, draft.perWeek, draft.perDay));
-  return { plan, monthly: pricePerMonth(plan.monthly, 'yearly'), list: plan.monthly };
+  return { plan, monthly: pricePerMonth(plan, 'yearly'), list: plan.monthly };
 }
 
 /** Everything the result screens show, from the two sliders. */
@@ -195,10 +195,8 @@ function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; un
   }, [minutes, share]);
   const arc = useAnimatedProps(() => ({ strokeDashoffset: c * (1 - share.value) }));
   const hand = useAnimatedStyle(() => ({ transform: [{ rotate: `${share.value * 360}deg` }] }));
-  const ours = AUTOCUT_MINUTES / 60;
   return (
     <View style={{ alignItems: 'center' }}>
-      <View style={styles.crown} />
       <View style={{ width: WATCH, height: WATCH }}>
         <Svg width={WATCH} height={WATCH}>
           <Circle cx={WATCH / 2} cy={WATCH / 2} r={r} stroke="#EEF0F6" strokeWidth={WATCH_STROKE} fill="#fff" />
@@ -215,10 +213,6 @@ function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; un
           <AnimatedCircle
             cx={WATCH / 2} cy={WATCH / 2} r={r} stroke={theme.ink} strokeWidth={WATCH_STROKE} fill="none" strokeLinecap="round"
             strokeDasharray={`${c} ${c}`} animatedProps={arc} transform={`rotate(-90 ${WATCH / 2} ${WATCH / 2})`}
-          />
-          <Circle
-            cx={WATCH / 2} cy={WATCH / 2} r={r} stroke={theme.blue} strokeWidth={WATCH_STROKE} fill="none" strokeLinecap="round"
-            strokeDasharray={`${c * ours} ${c}`} transform={`rotate(-90 ${WATCH / 2} ${WATCH / 2})`}
           />
         </Svg>
         <Animated.View style={[StyleSheet.absoluteFill, hand]} pointerEvents="none">
@@ -556,7 +550,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
   const share = Math.min(1, n.spent / 24);
   const pct = Math.round(share * 100);
   const days = Math.round((n.saved * 365) / 24);
-  const lowest = pricePerMonth(PLANS[0].monthly, 'yearly');
+  const lowest = pricePerMonth(PLANS[0], 'yearly');
   useEffect(() => {
     const t = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 1750);
     return () => clearTimeout(t);
@@ -671,7 +665,6 @@ const styles = StyleSheet.create({
   more: { fontSize: 14, ...UI_FONT.bold, color: theme.blue },
   dayLabel: { fontSize: 12, ...UI_FONT.bold, color: theme.faint },
   weekTotal: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', marginTop: 12 },
-  crown: { width: 22, height: 9, borderRadius: 3, backgroundColor: theme.ink, marginBottom: 3 },
   hand: { position: 'absolute', left: WATCH / 2 - 2, width: 4, borderRadius: 2, backgroundColor: theme.ink },
   watchCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
   watchValue: { fontSize: 38, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
