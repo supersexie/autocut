@@ -2,7 +2,9 @@ import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Svg, { Defs, LinearGradient as SvgGradient, Rect, Stop } from 'react-native-svg';
 import Animated, { FadeInDown, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
@@ -93,8 +95,8 @@ export function OnbTitle({ children, sub, center }: { children: ReactNode; sub?:
 }
 
 /**
- * One answer: a white card with a blue icon on a pale blue tile. Picked, it takes a blue outline, a
- * solid blue tile and a check. Cards slide in one after another when the question appears.
+ * One answer: a white card with its icon on a tile like the Autocut logo's. Picked, it takes a blue
+ * outline and a check. Cards slide in one after another when the question appears.
  */
 export function Choice({ label, icon, bars, selected, onPress, index }: { label: string; icon?: SymbolName; bars?: number; selected: boolean; onPress: () => void; index: number }) {
   const on = useSharedValue(selected ? 1 : 0);
@@ -105,13 +107,51 @@ export function Choice({ label, icon, bars, selected, onPress, index }: { label:
   return (
     <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)}>
       <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={[styles.choice, card]}>
-        <View style={[styles.tile, selected && { backgroundColor: ICON_BLUE }]}>
-          {bars != null ? <Bars level={bars} on={selected} /> : icon && <SymbolView name={icon} tintColor={selected ? '#fff' : ICON_BLUE} size={18} />}
-        </View>
+        {bars != null ? (
+          <View style={[styles.tile, selected && { backgroundColor: ICON_BLUE }]}>
+            <Bars level={bars} on={selected} />
+          </View>
+        ) : (
+          icon && <SilverTile icon={icon} />
+        )}
         <Text style={styles.choiceLabel}>{label}</Text>
         {selected && <SymbolView name="checkmark" tintColor={ICON_BLUE} size={15} weight="semibold" />}
       </PressableScale>
     </Animated.View>
+  );
+}
+
+const TILE = 38;
+
+/**
+ * An answer's icon on a tile like the Autocut logo: the dark #1D1A23 tile, faded silver on the
+ * top-left and bottom-right corners, and the white icon shading to soft grey towards the bottom right
+ * (a soft shade over the tile, since symbols take one colour).
+ */
+function SilverTile({ icon }: { icon: SymbolName }) {
+  return (
+    <View style={styles.silverTile}>
+      <SymbolView name={icon} tintColor="#FFFFFF" size={18} />
+      <LinearGradient
+        pointerEvents="none"
+        colors={['rgba(29,26,35,0)', 'rgba(29,26,35,0)', 'rgba(29,26,35,0.42)']}
+        locations={[0, 0.45, 1]}
+        start={{ x: 0.2, y: 0.1 }}
+        end={{ x: 0.85, y: 0.95 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <Svg pointerEvents="none" width={TILE} height={TILE} style={StyleSheet.absoluteFill}>
+        <Defs>
+          <SvgGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.95" />
+            <Stop offset="0.32" stopColor="#B9B9C2" stopOpacity="0" />
+            <Stop offset="0.68" stopColor="#B9B9C2" stopOpacity="0" />
+            <Stop offset="1" stopColor="#E6E6EC" stopOpacity="0.85" />
+          </SvgGradient>
+        </Defs>
+        <Rect x={0.75} y={0.75} width={TILE - 1.5} height={TILE - 1.5} rx={10.25} fill="none" stroke="url(#rim)" strokeWidth={1.5} />
+      </Svg>
+    </View>
   );
 }
 
@@ -210,6 +250,7 @@ const styles = StyleSheet.create({
   },
   tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: ICON_TILE, alignItems: 'center', justifyContent: 'center' },
   choiceLabel: { flex: 1, fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.2 },
+  silverTile: { width: TILE, height: TILE, borderRadius: 11, backgroundColor: '#1D1A23', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 18 },
   bar: { width: 3.5, borderRadius: 1.5 },
   track: { height: KNOB + 8, justifyContent: 'center' },
