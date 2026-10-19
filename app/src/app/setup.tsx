@@ -3,7 +3,7 @@ import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import Animated, { FadeIn, FadeOut, LinearTransition } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown, FadeOut, LinearTransition, useAnimatedProps, useAnimatedStyle, useSharedValue, withSpring, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import Svg, { Circle, Defs, Line, LinearGradient, Path, Stop } from 'react-native-svg';
 import { Choice, HIGHLIGHT, OnbHeader, OnbScreen, OnbTitle, onbCard, StepSlider, Tip } from '../components/Onboarding';
 import { PlanPicker } from '../components/PlanPicker';
@@ -124,15 +124,118 @@ export default function Setup() {
   );
 }
 
-/** A big number and its unit over a slider, on a white card ("4 a day", "45 minutes a video"). */
-function SliderCard({ n, unit, children }: { n: string; unit: string; children: React.ReactNode }) {
+const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const MAX_STACK = 10;
+
+/** How many videos land on each day of the week for a slider stop: spread out when it's under one a day. */
+function weekOf(stop: (typeof VOLUME_STOPS)[number]) {
+  if (stop.unit === 'a week') {
+    const on = new Set(Array.from({ length: stop.n }, (_, k) => Math.floor(((k + 0.5) * 7) / stop.n)));
+    return DAYS.map((_, d) => (on.has(d) ? 1 : 0));
+  }
+  return DAYS.map(() => Math.min(MAX_STACK, stop.n));
+}
+
+/**
+ * "How often do you post?" as a week: a column for each day, with a little video tile for each post
+ * that springs in (or drops out) as the slider moves. More than ten a day shows a "+".
+ */
+function WeekStack({ stop }: { stop: (typeof VOLUME_STOPS)[number] }) {
+  const week = weekOf(stop);
+  const total = stop.unit === 'a week' ? stop.n : stop.n * 7;
   return (
-    <View style={[onbCard, { paddingTop: 26, paddingBottom: 16 }]}>
+    <View>
       <View style={styles.valueRow}>
-        <Text style={styles.value}>{n}</Text>
-        <Text style={styles.unit}>{unit}</Text>
+        <Animated.Text key={`${stop.n}${stop.unit}`} entering={FadeInDown.duration(220)} style={styles.value}>
+          {stop.n}
+          {stop.unit === 'or more a day' ? '+' : ''}
+        </Animated.Text>
+        <Text style={styles.unit}>{stop.unit === 'a week' ? (stop.n === 1 ? 'video a week' : 'videos a week') : 'a day'}</Text>
       </View>
-      <View style={{ marginTop: 18 }}>{children}</View>
+      <View style={styles.week}>
+        {week.map((count, d) => (
+          <View key={d} style={styles.dayCol}>
+            <View style={styles.dayStack}>
+              {stop.unit === 'or more a day' && <Animated.Text entering={ZoomIn.springify()} style={styles.more}>+</Animated.Text>}
+              {Array.from({ length: count }, (_, k) => (
+                <Animated.View
+                  key={k}
+                  entering={ZoomIn.springify().damping(13).delay(d * 25 + k * 18)}
+                  exiting={ZoomOut.duration(140)}
+                  style={[styles.tile, { opacity: 0.55 + 0.45 * ((k + 1) / Math.max(1, count)) }]}
+                >
+                  <View style={styles.tilePlay} />
+                </Animated.View>
+              ))}
+            </View>
+            <Text style={[styles.dayLabel, count > 0 && { color: theme.ink }]}>{DAYS[d]}</Text>
+          </View>
+        ))}
+      </View>
+      <Text style={styles.weekTotal}>
+        That’s <Text style={{ color: HIGHLIGHT }}>{total}{stop.unit === 'or more a day' ? '+' : ''}</Text> video{total === 1 ? '' : 's'} a week.
+      </Text>
+    </View>
+  );
+}
+
+const WATCH = 168;
+const WATCH_STROKE = 12;
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/**
+ * "How long does one video take to edit?" as a stopwatch: one turn is 4 hours. The hand sweeps and
+ * the face fills to the answer with a spring; Autocut's few minutes sit as a small blue wedge at 12.
+ */
+function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; unit: string } }) {
+  const r = (WATCH - WATCH_STROKE) / 2;
+  const c = 2 * Math.PI * r;
+  const share = useSharedValue(Math.min(1, minutes / 240));
+  useEffect(() => {
+    share.set(withSpring(Math.min(1, minutes / 240), { damping: 14, stiffness: 120 }));
+  }, [minutes, share]);
+  const arc = useAnimatedProps(() => ({ strokeDashoffset: c * (1 - share.value) }));
+  const hand = useAnimatedStyle(() => ({ transform: [{ rotate: `${share.value * 360}deg` }] }));
+  const ours = AUTOCUT_MINUTES / 240;
+  return (
+    <View style={{ alignItems: 'center' }}>
+      <View style={styles.crown} />
+      <View style={{ width: WATCH, height: WATCH }}>
+        <Svg width={WATCH} height={WATCH}>
+          <Circle cx={WATCH / 2} cy={WATCH / 2} r={r} stroke="#EEF0F6" strokeWidth={WATCH_STROKE} fill="#fff" />
+          {Array.from({ length: 24 }, (_, k) => {
+            const a = (k / 24) * 2 * Math.PI;
+            const long = k % 6 === 0;
+            const r1 = r - WATCH_STROKE / 2 - 4, r2 = r1 - (long ? 9 : 4);
+            return (
+              <Line key={k} x1={WATCH / 2 + Math.sin(a) * r1} y1={WATCH / 2 - Math.cos(a) * r1} x2={WATCH / 2 + Math.sin(a) * r2} y2={WATCH / 2 - Math.cos(a) * r2}
+                stroke={long ? 'rgba(17,17,20,0.45)' : 'rgba(17,17,20,0.18)'} strokeWidth={long ? 2 : 1.5} strokeLinecap="round" />
+            );
+          })}
+          <AnimatedCircle
+            cx={WATCH / 2} cy={WATCH / 2} r={r} stroke={theme.ink} strokeWidth={WATCH_STROKE} fill="none" strokeLinecap="round"
+            strokeDasharray={`${c} ${c}`} animatedProps={arc} transform={`rotate(-90 ${WATCH / 2} ${WATCH / 2})`}
+          />
+          <Circle
+            cx={WATCH / 2} cy={WATCH / 2} r={r} stroke={theme.blue} strokeWidth={WATCH_STROKE} fill="none" strokeLinecap="round"
+            strokeDasharray={`${c * ours} ${c}`} transform={`rotate(-90 ${WATCH / 2} ${WATCH / 2})`}
+          />
+        </Svg>
+        <Animated.View style={[StyleSheet.absoluteFill, hand]} pointerEvents="none">
+          {/* A pointer near the rim, so the number in the middle stays clear. */}
+          <View style={[styles.hand, { height: 24, top: WATCH / 2 - (r - 16) }]} />
+        </Animated.View>
+        <View style={styles.watchCenter} pointerEvents="none">
+          <Animated.Text key={label.n} entering={FadeInDown.duration(200)} style={styles.watchValue}>{label.n}</Animated.Text>
+          <Text style={styles.watchUnit}>{label.unit.replace(' a video', '')}</Text>
+        </View>
+      </View>
+      <View style={styles.watchLegend}>
+        <View style={[styles.legendDot, { backgroundColor: theme.ink }]} />
+        <Text style={styles.legendText}>You, now</Text>
+        <View style={[styles.legendDot, { backgroundColor: theme.blue, marginLeft: 14 }]} />
+        <Text style={styles.legendText}>With Autocut</Text>
+      </View>
     </View>
   );
 }
@@ -150,9 +253,10 @@ function Volume({ header, draft, onNext }: { header: React.ReactNode; draft: Dra
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
         <OnbTitle sub="A typical week is fine.">How often do you <Text style={{ color: HIGHLIGHT }}>post</Text>?</OnbTitle>
-        <SliderCard n={String(stop.n)} unit={stop.unit}>
+        <View style={[onbCard, { paddingTop: 20, paddingBottom: 16, gap: 16 }]}>
+          <WeekStack stop={stop} />
           <StepSlider stops={VOLUME_STOPS.length} index={i} onChange={setI} left="Once a week" right="10+ daily" />
-        </SliderCard>
+        </View>
         <Tip icon="square.stack.3d.up">Batch edits take a whole week of takes in one go, so posting more doesn’t mean more editing.</Tip>
       </Animated.View>
     </OnbScreen>
@@ -173,9 +277,10 @@ function EditTime({ header, draft, onNext }: { header: React.ReactNode; draft: D
     <OnbScreen header={header} footer={<Button title="Next  →" onPress={onNext} />}>
       <Animated.View entering={FadeIn.duration(260)}>
         <OnbTitle sub="From raw take to ready to post.">How long does one video take to <Text style={{ color: HIGHLIGHT }}>edit</Text>?</OnbTitle>
-        <SliderCard n={label.n} unit={label.unit}>
+        <View style={[onbCard, { paddingTop: 22, paddingBottom: 16, gap: 16 }]}>
+          <Stopwatch minutes={minutes} label={label} />
           <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 min" right="4 h or more" />
-        </SliderCard>
+        </View>
         <Tip icon="bolt">With Autocut it’s about {AUTOCUT_MINUTES} minutes a video: send the take, check the cut, export.</Tip>
       </Animated.View>
     </OnbScreen>
@@ -395,8 +500,45 @@ function Curve({ values, show }: { values: number[]; show: (v: number, i: number
   );
 }
 
-const RING = 210;
-const RING_STROKE = 16;
+const BLOCK_COLS = 6;
+
+/**
+ * The day as 24 hour blocks. The hours that go to editing fill in dark one after another, then the
+ * ones Autocut frees up flip to blue. A part hour fills part of its block.
+ */
+function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
+  const fill = useProgress(1100, 350); // dark blocks filling
+  const flip = useProgress(900, 1650); // then the freed ones turning blue
+  const hours = Math.min(24, spent);
+  const freed = Math.min(hours, saved);
+  const kept = hours - freed; // what's left of editing with Autocut
+  const [w, setW] = useState(0);
+  const size = w ? (w - 5 * 6) / BLOCK_COLS : 0;
+  return (
+    <View style={styles.blocksCard}>
+      <View style={styles.blocks} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
+        {Array.from({ length: 24 }, (_, h) => {
+          const edit = clamp01(hours * easeOut(fill) - h); // how much of this hour is editing
+          const blue = h >= kept ? clamp01((freed * easeOut(flip) - (h - kept)) * 1) : 0;
+          return (
+            <View key={h} style={[styles.block, { width: size, height: size * 0.8 }]}>
+              {edit > 0 && <View style={[styles.blockFill, { width: `${edit * 100}%`, backgroundColor: theme.ink }]} />}
+              {blue > 0 && <View style={[styles.blockFill, { width: `${Math.min(edit, blue) * 100}%`, backgroundColor: theme.blue }]} />}
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.blockLegend}>
+        <View style={[styles.legendDot, { backgroundColor: theme.ink }]} />
+        <Text style={styles.legendText}>Editing</Text>
+        <View style={[styles.legendDot, { backgroundColor: theme.blue, marginLeft: 14 }]} />
+        <Text style={styles.legendText}>
+          Freed up by Autocut · <Text style={{ color: theme.blue }}>{hm(freed)}</Text>
+        </Text>
+      </View>
+    </View>
+  );
+}
 
 /**
  * "Editing takes 50% of your day.": a clock face with the share of their day spent editing filling
@@ -410,8 +552,6 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
   const pct = Math.round(share * 100);
   const days = Math.round((n.saved * 365) / 24);
   const lowest = pricePerMonth(PLANS[0].monthly, 'yearly');
-  const r = (RING - RING_STROKE) / 2;
-  const c = 2 * Math.PI * r;
   useEffect(() => {
     const t = setTimeout(() => Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success), 1750);
     return () => clearTimeout(t);
@@ -422,25 +562,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
         <Text style={styles.lifeTitle}>
           <Text style={{ color: HIGHLIGHT }}>{pct >= 1 ? `${Math.round(pct * p)}%` : hm(n.spent)}</Text> of every day goes to editing.
         </Text>
-        <View style={styles.ring}>
-          <Svg width={RING} height={RING}>
-            <Circle cx={RING / 2} cy={RING / 2} r={r} stroke="rgba(61,107,255,0.12)" strokeWidth={RING_STROKE} fill="#fff" />
-            <Circle
-              cx={RING / 2} cy={RING / 2} r={r} stroke={theme.blue} strokeWidth={RING_STROKE} fill="none" strokeLinecap="round"
-              strokeDasharray={`${c} ${c}`} strokeDashoffset={c * (1 - Math.max(0.02, share) * p)} transform={`rotate(-90 ${RING / 2} ${RING / 2})`}
-            />
-            {[0, 90, 180, 270].map((a) => {
-              const rad = (a * Math.PI) / 180;
-              const x = (k: number) => RING / 2 + Math.sin(rad) * k;
-              const y = (k: number) => RING / 2 - Math.cos(rad) * k;
-              return <Line key={a} x1={x(r - 22)} y1={y(r - 22)} x2={x(r - 14)} y2={y(r - 14)} stroke="rgba(17,17,20,0.35)" strokeWidth={2} strokeLinecap="round" />;
-            })}
-          </Svg>
-          <View style={styles.ringCenter} pointerEvents="none">
-            <Text style={styles.ringBig}>{hm(n.saved)}</Text>
-            <Text style={styles.ringSmall}>freed up daily</Text>
-          </View>
-        </View>
+        <DayBlocks spent={n.spent} saved={n.saved} />
         <Text style={styles.lifeLine}>
           Autocut hands you <Text style={{ color: HIGHLIGHT }}>{days >= 1 ? `${days} day${days === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> a year, from {money(lowest)} a month.
         </Text>
@@ -536,6 +658,22 @@ const styles = StyleSheet.create({
   valueRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8 },
   value: { fontSize: 64, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
   unit: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
+  week: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
+  dayCol: { alignItems: 'center', gap: 6, width: 32 },
+  dayStack: { height: 150, justifyContent: 'flex-end', alignItems: 'center', gap: 3 },
+  tile: { width: 26, height: 11.5, borderRadius: 4, backgroundColor: theme.blue, alignItems: 'center', justifyContent: 'center' },
+  tilePlay: { width: 0, height: 0, borderTopWidth: 3, borderBottomWidth: 3, borderLeftWidth: 5, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: 'rgba(255,255,255,0.9)' },
+  more: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.blue },
+  dayLabel: { fontSize: 12, fontFamily: JAKARTA.bold, color: theme.faint },
+  weekTotal: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted, textAlign: 'center', marginTop: 12 },
+  crown: { width: 22, height: 9, borderRadius: 3, backgroundColor: theme.ink, marginBottom: 3 },
+  hand: { position: 'absolute', left: WATCH / 2 - 2, width: 4, borderRadius: 2, backgroundColor: theme.ink },
+  watchCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
+  watchValue: { fontSize: 38, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
+  watchUnit: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.muted, marginTop: -2 },
+  watchLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   statLabel: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.ink },
   statRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' },
@@ -548,11 +686,12 @@ const styles = StyleSheet.create({
   amountBig: { fontSize: 17, fontFamily: JAKARTA.medium },
   axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted },
   caption: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
+  blocksCard: { ...onbCard, marginTop: 26, gap: 14 },
+  blocks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  block: { borderRadius: 8, backgroundColor: '#EEF0F6', overflow: 'hidden' },
+  blockFill: { position: 'absolute', top: 0, bottom: 0, left: 0 },
+  blockLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   lifeTitle: { fontSize: 32, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  ring: { width: RING, height: RING, alignSelf: 'center', marginTop: 30 },
-  ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  ringBig: { fontSize: 26, fontFamily: JAKARTA.extrabold, color: theme.blue, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  ringSmall: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted, marginTop: 2 },
   lifeLine: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
   card: { ...onbCard, gap: 12, marginTop: 24 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },
