@@ -9,7 +9,7 @@ import { APP_FONTS } from '../lib/fonts';
 
 // Keep these in step with "expo-splash-screen" in app.json, so the hand-over from the system's
 // launch screen to this one doesn't move: same colour, same mark, same size, in the middle.
-const BG = '#D3DCFB';
+const BG = '#FFFFFF';
 const MARK_SIZE = 120;
 const MARK = require('../../assets/splash-icon.png');
 const WORDMARK = require('../../assets/wordmark.png');
@@ -18,7 +18,7 @@ const WORDMARK_W = 96;
 const AT_LEAST = 700;
 
 /**
- * The loading screen, like Instagram Edits': the mark in the middle of a light blue screen and the
+ * The loading screen, like Instagram Edits': the mark in the middle of a white screen and the
  * "Autocut" wordmark at the bottom. It takes over from the system launch screen (which can only show
  * the mark), stays until the account and fonts are ready, then fades away over the app.
  */
