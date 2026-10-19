@@ -619,7 +619,7 @@ const styles = StyleSheet.create({
   coverHint: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginBottom: 16, lineHeight: 18 },
   coverStrip: { height: 64, borderRadius: 12, overflow: 'visible' },
   coverTiles: { flex: 1, flexDirection: 'row', borderRadius: 12, overflow: 'hidden', opacity: 0.55 },
-  coverHandle: { position: 'absolute', top: -6, bottom: -6, borderRadius: 9, borderWidth: 3, borderColor: theme.ink, overflow: 'hidden', backgroundColor: theme.card },
+  coverHandle: { position: 'absolute', top: -6, bottom: -6, borderRadius: 9, borderWidth: 3, borderColor: theme.blue, overflow: 'hidden', backgroundColor: theme.card },
   framing: { ...StyleSheet.absoluteFill, borderWidth: 2, borderColor: '#fff' },
   guideV: { position: 'absolute', top: 0, bottom: 0, left: '50%', width: 1, marginLeft: -0.5, backgroundColor: 'rgba(255,255,255,0.85)' },
   guideH: { position: 'absolute', left: 0, right: 0, top: '50%', height: 1, marginTop: -0.5, backgroundColor: 'rgba(255,255,255,0.85)' },
@@ -632,6 +632,6 @@ const styles = StyleSheet.create({
   tourCount: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.blue },
   tourBody: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 20 },
   tourSkip: { fontSize: 14, color: theme.muted, fontFamily: JAKARTA.medium },
-  tourBtn: { backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 },
+  tourBtn: { backgroundColor: theme.blue, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 },
   tourBtnText: { color: '#fff', fontSize: 14, fontFamily: JAKARTA.bold },
 });

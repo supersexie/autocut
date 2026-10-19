@@ -32,7 +32,7 @@ export function Panel({ title, value, onClose, onDone, children, footer }: { tit
         <View style={[styles.headSide, { flexDirection: 'row', justifyContent: 'flex-end', gap: 14, alignItems: 'center' }]}>
           {value}
           <Pressable onPress={onDone} hitSlop={10} accessibilityLabel="Done">
-            <SymbolView name="checkmark" tintColor={theme.ink} size={17} weight="bold" />
+            <SymbolView name="checkmark" tintColor={theme.blue} size={17} weight="bold" />
           </Pressable>
         </View>
       </View>
@@ -80,7 +80,7 @@ export function CaptionsPanel({
           <Text style={styles.value}>
             {mmss(time)} / {mmss(total)}
           </Text>
-          <Switch value={settings.enabled} onValueChange={(enabled) => onChange({ ...settings, enabled })} trackColor={{ true: theme.ink }} />
+          <Switch value={settings.enabled} onValueChange={(enabled) => onChange({ ...settings, enabled })} trackColor={{ true: theme.blue }} />
         </>
       }
       onDone={onDone}
@@ -336,7 +336,7 @@ export function FormatPanel({ settings, onChange, onClose, onDone }: { settings:
         </View>
         <View style={styles.between}>
           <Text style={styles.label}>Show punctuation</Text>
-          <Switch value={settings.punctuation} onValueChange={(punctuation) => onChange({ ...settings, punctuation })} trackColor={{ true: theme.ink }} />
+          <Switch value={settings.punctuation} onValueChange={(punctuation) => onChange({ ...settings, punctuation })} trackColor={{ true: theme.blue }} />
         </View>
       </View>
     </Panel>
@@ -350,7 +350,7 @@ export function SizePanel({ scale, onChange, onDone }: { scale: number; onChange
       <View style={{ paddingHorizontal: 16, gap: 8 }}>
         <View style={styles.sliderRow}>
           <SymbolView name="textformat.size.smaller" tintColor={theme.muted} size={15} />
-          <Slider style={{ flex: 1 }} minimumValue={0.5} maximumValue={2.5} step={0.05} value={scale} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.ink} />
+          <Slider style={{ flex: 1 }} minimumValue={0.5} maximumValue={2.5} step={0.05} value={scale} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.blue} />
           <SymbolView name="textformat.size.larger" tintColor={theme.muted} size={18} />
         </View>
       </View>
@@ -374,7 +374,7 @@ export function VolumePanel({
         <View style={styles.sliderRow}>
           <SymbolView name="speaker.fill" tintColor={theme.muted} size={14} />
           <Text style={styles.small}>0%</Text>
-          <Slider style={{ flex: 1 }} minimumValue={0} maximumValue={2} step={0.05} value={volume} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.ink} />
+          <Slider style={{ flex: 1 }} minimumValue={0} maximumValue={2} step={0.05} value={volume} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.blue} />
           <Text style={styles.small}>200%</Text>
         </View>
         <Pressable onPress={onAll} style={styles.pill}>
@@ -383,7 +383,7 @@ export function VolumePanel({
         </Pressable>
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Mute the video’s own sound</Text>
-          <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.ink }} />
+          <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.blue }} />
         </View>
         <Pressable
           onPress={overlapLocked ? () => askToUpgrade('Overlap audio is on Pro and Ultimate', 'Upgrade to blend the sound across every cut.') : undefined}
@@ -404,7 +404,7 @@ export function VolumePanel({
           </View>
           {/* Locked, the switch lets taps through to the row (which offers the upgrade): a disabled switch would swallow them. */}
           <View pointerEvents={overlapLocked ? 'none' : 'auto'}>
-            <Switch value={overlap && !overlapLocked} onValueChange={onOverlap} disabled={overlapLocked} trackColor={{ true: theme.ink }} />
+            <Switch value={overlap && !overlapLocked} onValueChange={onOverlap} disabled={overlapLocked} trackColor={{ true: theme.blue }} />
           </View>
         </Pressable>
       </View>
@@ -421,12 +421,12 @@ export function OverlayVolumePanel({ volume, muted, onChange, onMute, onDone }: 
         <View style={[styles.sliderRow, muted && { opacity: 0.35 }]}>
           <SymbolView name="speaker.fill" tintColor={theme.muted} size={14} />
           <Text style={styles.small}>0%</Text>
-          <Slider style={{ flex: 1 }} disabled={muted} minimumValue={0} maximumValue={2} step={0.05} value={volume} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.ink} />
+          <Slider style={{ flex: 1 }} disabled={muted} minimumValue={0} maximumValue={2} step={0.05} value={volume} onValueChange={setV} onSlidingComplete={onChange} minimumTrackTintColor={theme.blue} />
           <Text style={styles.small}>200%</Text>
         </View>
         <View style={styles.switchRow}>
           <Text style={styles.switchLabel}>Mute this overlay</Text>
-          <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.ink }} />
+          <Switch value={muted} onValueChange={onMute} trackColor={{ true: theme.blue }} />
         </View>
       </View>
     </Panel>
@@ -454,7 +454,7 @@ export function MusicPanel({
         </View>
         <View style={styles.sliderRow}>
           <SymbolView name="speaker.fill" tintColor={theme.muted} size={14} />
-          <Slider style={{ flex: 1 }} minimumValue={0} maximumValue={1} step={0.05} value={music.volume} onValueChange={setV} onSlidingComplete={onVolume} minimumTrackTintColor={theme.ink} />
+          <Slider style={{ flex: 1 }} minimumValue={0} maximumValue={1} step={0.05} value={music.volume} onValueChange={setV} onSlidingComplete={onVolume} minimumTrackTintColor={theme.blue} />
           <SymbolView name="speaker.wave.3.fill" tintColor={theme.muted} size={14} />
         </View>
         <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -517,7 +517,7 @@ export function SpeedPanel({ speed, length, onChange, onDone }: { speed: number;
             value={toSlider(speed)}
             onValueChange={(p) => setV(fromSlider(p))}
             onSlidingComplete={(p) => onChange(fromSlider(p))}
-            minimumTrackTintColor={theme.ink}
+            minimumTrackTintColor={theme.blue}
           />
           <Text style={styles.small}>{label(MAX_SPEED)}</Text>
         </View>
@@ -538,7 +538,7 @@ export function Hint({ text }: { text: string }) {
 const styles = StyleSheet.create({
   swatches: { gap: 10, paddingVertical: 4, paddingHorizontal: 2 },
   swatch: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(17,17,20,0.15)', alignItems: 'center', justifyContent: 'center' },
-  swatchOn: { borderWidth: 3, borderColor: theme.ink },
+  swatchOn: { borderWidth: 3, borderColor: theme.blue },
   panel: { position: 'absolute', left: 0, right: 0, bottom: 0, top: 0, backgroundColor: theme.bg, borderTopLeftRadius: 22, borderTopRightRadius: 22, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: -4 } },
   head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, height: 50, borderBottomWidth: 1, borderBottomColor: theme.line },
   headSide: { minWidth: 70 },
@@ -558,7 +558,7 @@ const styles = StyleSheet.create({
   group: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.muted, marginBottom: 8, marginTop: 6 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: { borderRadius: 14, borderWidth: 2, borderColor: 'transparent', backgroundColor: theme.card, overflow: 'hidden' },
-  cardOn: { borderColor: theme.ink },
+  cardOn: { borderColor: theme.blue, backgroundColor: theme.blueTile },
   cardPreview: { height: 70, backgroundColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center', margin: 6, borderRadius: 10, overflow: 'hidden' },
   cardName: { fontSize: 11, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginBottom: 7 },
   label: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
@@ -566,7 +566,7 @@ const styles = StyleSheet.create({
   small: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   capsRow: { flexDirection: 'row', gap: 10 },
   capsBtn: { flex: 1, height: 42, borderRadius: 12, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
-  capsOn: { backgroundColor: theme.ink },
+  capsOn: { backgroundColor: theme.blue },
   lookText: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.ink },
   capsText: { fontSize: 15, fontFamily: JAKARTA.bold, color: theme.ink },
   sliderRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
@@ -586,7 +586,7 @@ const styles = StyleSheet.create({
   editLabel: { fontSize: 12, color: theme.muted, fontFamily: JAKARTA.semibold },
   editRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 10 },
   editInput: { flex: 1, fontSize: 17, fontFamily: JAKARTA.medium, color: theme.ink, backgroundColor: theme.card, borderRadius: 14, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 11, maxHeight: 120 },
-  editDone: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
+  editDone: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.blue, alignItems: 'center', justifyContent: 'center' },
   switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 },
   switchLabel: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink },
   proPill: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 6, paddingVertical: 2 },

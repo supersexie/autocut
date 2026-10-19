@@ -774,7 +774,7 @@ const styles = StyleSheet.create({
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
-  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, width: 82, height: 30, borderRadius: 9, backgroundColor: theme.ink },
+  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, width: 82, height: 30, borderRadius: 9, backgroundColor: theme.blue },
   exportText: { fontSize: 13, fontFamily: JAKARTA.bold, color: '#fff' },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
   bottom: { height: BOTTOM_H, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
