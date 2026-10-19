@@ -21,7 +21,7 @@ const LENGTH = 24.5;
 const READY_AT = 6.4;
 const ease = Easing.out(Easing.cubic);
 /** The colour the video fades into at the bottom: the wash, where the words sit. */
-const FADE = '#F1F3FE';
+const FADE = '#F5F7FF';
 
 type Word = { t: string; s: number; e: number };
 
@@ -158,7 +158,7 @@ export default function Welcome() {
 
   return (
     <View style={styles.screen}>
-      <Wash />
+      <Wash soft />
       {/* The take, full width from the top, fading into the wash where the words are. */}
       <View style={[styles.video, { height: height * 0.8 }]} pointerEvents="none">
         <VideoView player={raw} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
@@ -166,7 +166,7 @@ export default function Welcome() {
           <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
         </Animated.View>
         <LinearGradient colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']} style={[styles.shade, { height: insets.top + 70 }]} />
-        <LinearGradient colors={['rgba(241,243,254,0)', 'rgba(241,243,254,0.85)', FADE]} locations={[0, 0.55, 1]} style={styles.fade} />
+        <LinearGradient colors={['rgba(245,247,255,0)', 'rgba(245,247,255,0.85)', FADE]} locations={[0, 0.55, 1]} style={styles.fade} />
       </View>
 
       <View style={[styles.top, { top: insets.top + 8 }]}>

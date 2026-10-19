@@ -44,14 +44,17 @@ export function PressableScale({ scaleTo = 0.97, style, onPressIn, onPressOut, .
 /** The soft blue wash behind the app's screens: the same tint as the website's hero panel. */
 export const WASH = ['#E3E8FC', '#EBEEFD', '#F2F4FE'] as const;
 
-/** The wash, filling its parent. Put it first inside a screen's root view. */
-export function Wash() {
+/** A paler blue for the welcome and setup screens, where the video and numbers should lead. */
+export const SOFT_WASH = ['#F0F3FE', '#F4F6FF', '#F8F9FF'] as const;
+
+/** The wash, filling its parent. Put it first inside a screen's root view. `soft`: the paler one, for onboarding. */
+export function Wash({ soft = false }: { soft?: boolean }) {
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <LinearGradient colors={WASH} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={soft ? SOFT_WASH : WASH} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} style={StyleSheet.absoluteFill} />
       {/* Like the website's panel: a soft white glow at the top left and bottom right, a little lavender at the top right. */}
       <LinearGradient colors={['rgba(255,255,255,0.7)', 'rgba(255,255,255,0)']} start={{ x: 0, y: 0.1 }} end={{ x: 0.6, y: 0.45 }} style={StyleSheet.absoluteFill} />
-      <LinearGradient colors={['rgba(205,214,250,0.5)', 'rgba(205,214,250,0)']} start={{ x: 1, y: 0 }} end={{ x: 0.55, y: 0.3 }} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[soft ? 'rgba(205,214,250,0.28)' : 'rgba(205,214,250,0.5)', 'rgba(205,214,250,0)']} start={{ x: 1, y: 0 }} end={{ x: 0.55, y: 0.3 }} style={StyleSheet.absoluteFill} />
       <LinearGradient colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.55)']} start={{ x: 0.4, y: 0.55 }} end={{ x: 1, y: 0.9 }} style={StyleSheet.absoluteFill} />
     </View>
   );

@@ -5,19 +5,19 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeInDown, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Logo, PressableScale, Wash, WASH, type SymbolName } from './ui';
+import { Logo, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
 import { BRAND_FONT } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
 /** A highlighted word in a title ("Pro fits how you post.", "50% of your day"). */
 export const HIGHLIGHT = theme.blue;
 
-/** A setup screen: blue wash, the header, scrolling content and a footer above the home indicator. */
+/** A setup screen: the soft blue wash, the header, scrolling content and a footer above the home indicator. */
 export function OnbScreen({ header, children, footer, scroll = true }: { header: ReactNode; children: ReactNode; footer?: ReactNode; scroll?: boolean }) {
   const insets = useSafeAreaInsets();
   return (
-    <View style={{ flex: 1, backgroundColor: WASH[1] }}>
-      <Wash />
+    <View style={{ flex: 1, backgroundColor: SOFT_WASH[1] }}>
+      <Wash soft />
       <View style={{ paddingTop: insets.top + 4, paddingHorizontal: 22 }}>
         <View style={column()}>{header}</View>
       </View>

@@ -203,7 +203,7 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 6 }]}>
-      <Wash />
+      <Wash soft />
       <View style={styles.top}>
         {changing ? (
           <Pressable onPress={() => router.back()} hitSlop={10} style={{ width: 110 }} accessibilityLabel="Back">
