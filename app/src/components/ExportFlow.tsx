@@ -380,7 +380,7 @@ function Exporting({ phase, preview, seconds, onRetry, onClose }: { phase: Phase
         <Text style={styles.sub}>{phase.kind === 'failed' ? phase.error : phase.kind === 'exporting' && phase.note ? phase.note : 'Keep Autocut open while it finishes'}</Text>
       </View>
       <View style={{ marginTop: 28 }}>
-        <ProgressCard uri={preview} seconds={seconds} progress={phase.kind === 'exporting' ? phase.progress : 0} label={phase.kind === 'exporting' ? `${Math.round(phase.progress * 100)}%` : undefined} />
+        <ProgressCard uri={preview} seconds={seconds} progress={phase.kind === 'exporting' ? phase.progress : 0} percent={phase.kind === 'exporting'} />
       </View>
       {failed && (
         <View style={{ marginTop: 'auto', gap: 6 }}>

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../lib/theme';
+import { setGoal, startSmooth, step } from '../lib/smoothProgress';
 import { Thumb } from './Thumb';
 import { UI_FONT } from '../lib/fonts';
 
@@ -35,9 +36,13 @@ const RR = R - STROKE / 2;
 const LENGTH = 2 * (W - STROKE - 2 * RR) + 2 * (H - STROKE - 2 * RR) + 2 * Math.PI * RR;
 const PATH = outline(W, H, R, STROKE / 2);
 
-/** The take's thumbnail with the percentage in the middle and progress running round the border. */
-export function ProgressCard({ uri, seconds = 0.5, progress, label, flip }: { uri?: string; seconds?: number; progress: number; label?: string; flip?: boolean }) {
-  const p = useEased(Math.max(0, Math.min(1, progress)));
+/**
+ * The take's thumbnail with progress running round the border. `percent` shows the percentage in
+ * the middle, counting with the border; `label` shows other text there instead.
+ */
+export function ProgressCard({ uri, seconds = 0.5, progress, label, percent, flip }: { uri?: string; seconds?: number; progress: number; label?: string; percent?: boolean; flip?: boolean }) {
+  const p = useSmooth(Math.max(0, Math.min(1, progress)));
+  if (percent) label = `${Math.floor(p * 100)}%`;
 
   return (
     <View style={styles.wrap}>
@@ -54,26 +59,35 @@ export function ProgressCard({ uri, seconds = 0.5, progress, label, flip }: { ur
 }
 
 /**
- * Glides to `target` over `ms` whenever it changes, starting from where it is when it first shows
- * (a card that appears already finished doesn't draw its border again). Driven from JS rather than
- * Reanimated, which doesn't update animated SVG props inside a Modal (the export screen is one).
+ * Progress that moves smoothly between updates (see lib/smoothProgress). A card that appears
+ * already finished doesn't draw its border again. Driven from JS rather than Reanimated, which
+ * doesn't update animated SVG props inside a Modal (the export screen is one).
  */
-function useEased(target: number, ms = 600) {
+function useSmooth(target: number) {
   const [value, setValue] = useState(target);
-  const current = useRef(target);
+  const state = useRef(startSmooth(target));
+  const drawn = useRef(target);
   useEffect(() => {
-    const from = current.current;
-    const start = Date.now();
+    state.current = setGoal(state.current, target, Date.now() / 1000);
+  }, [target]);
+  useEffect(() => {
     let frame = 0;
+    let last = Date.now();
     const tick = () => {
-      const t = Math.min(1, (Date.now() - start) / ms);
-      current.current = from + (target - from) * (1 - Math.pow(1 - t, 3));
-      setValue(current.current);
-      if (t < 1) frame = requestAnimationFrame(tick);
+      const now = Date.now();
+      state.current = step(state.current, Math.min(0.1, (now - last) / 1000));
+      last = now;
+      const v = state.current.shown;
+      // Redraw only when it's moved enough to see (a fraction of a pixel round the border).
+      if (Math.abs(v - drawn.current) > 0.0008 || (v === 1 && drawn.current !== 1) || v < drawn.current) {
+        drawn.current = v;
+        setValue(v);
+      }
+      frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [target, ms]);
+  }, []);
   return value;
 }
 

@@ -185,11 +185,12 @@ export function CuttingView({ id }: { id: string }) {
     >
       <Header onBack={uploading ? undefined : leave} />
       <Text style={styles.title}>Cutting</Text>
-      {status && <Text style={[styles.subtitle, { color: theme.ink }]}>{status}</Text>}
+      {/* Always takes its line, so the card doesn't jump when the status comes and goes. */}
+      <Text style={[styles.subtitle, { color: theme.ink }]}>{status ?? ' '}</Text>
       <Text style={styles.subtitle}>{uploading ? 'Keep Autocut open.' : 'You’re free to go. Your cut will be waiting in Cuts.'}</Text>
 
       <View style={{ marginTop: 22 }}>
-        <ProgressCard uri={preview} progress={percent / 100} label={`${percent}%`} flip={flip} />
+        <ProgressCard uri={preview} progress={percent / 100} percent flip={flip} />
       </View>
 
       <View style={styles.tip}>
