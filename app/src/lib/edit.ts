@@ -36,7 +36,53 @@ export type TextAlign = 'left' | 'center' | 'right';
 export type TextLook = { font?: string; color?: string; box?: boolean; outline?: boolean; align?: TextAlign };
 export type TextOverlay = { id: string; text: string; style: string; start: number; end: number; x: number; y: number; scale: number } & TextLook;
 /** A song under the whole video: a file in the cuts folder, looped if it's shorter than the video. */
-export type Music = { file: string; name: string; mime: string; duration: number; volume: number };
+/**
+ * The song under the video. It plays from output second `start` to `end` (the whole video when
+ * they're unset), beginning `from` seconds into the song, and loops if it runs out.
+ */
+export type Music = { file: string; name: string; mime: string; duration: number; volume: number; start?: number; end?: number; from?: number };
+
+/** Shortest a text or the song can be dragged down to (seconds). */
+export const MIN_SPAN = 0.5;
+
+/** Where the song plays in an output of `total` seconds. */
+export function musicSpan(m: Music, total: number) {
+  const start = Math.max(0, Math.min(total, m.start ?? 0));
+  const end = Math.max(start, Math.min(total, m.end ?? total));
+  return { start, end, from: Math.max(0, m.from ?? 0) };
+}
+
+/**
+ * Moves a text's (or anything's) start or end, or both to slide it, keeping it on the timeline and
+ * at least MIN_SPAN long.
+ */
+export function retimeSpan<T extends { start: number; end: number }>(x: T, change: { start?: number; end?: number }, total: number): T {
+  if (change.start !== undefined && change.end !== undefined) {
+    const span = x.end - x.start;
+    const start = Math.max(0, Math.min(total - span, change.start));
+    return { ...x, start, end: start + span };
+  }
+  if (change.start !== undefined) return { ...x, start: Math.max(0, Math.min(x.end - MIN_SPAN, change.start)) };
+  if (change.end !== undefined) return { ...x, end: Math.min(total, Math.max(x.start + MIN_SPAN, change.end)) };
+  return x;
+}
+
+/**
+ * The song moved or trimmed on the timeline. Trimming its start skips into the song (so what's
+ * under the rest stays put); ends at the video's edges go back to following the video's length.
+ */
+export function retimeMusic(m: Music, change: { start?: number; end?: number }, total: number): Music {
+  const span = musicSpan(m, total);
+  const next = retimeSpan(span, change, total);
+  const skipped = change.start !== undefined && change.end === undefined ? next.start - span.start : 0;
+  const from = m.duration > 0 ? (((span.from + skipped) % m.duration) + m.duration) % m.duration : 0;
+  return {
+    ...m,
+    start: next.start > 0.05 ? next.start : undefined,
+    end: next.end < total - 0.05 ? next.end : undefined,
+    from: from > 0.05 ? from : undefined,
+  };
+}
 
 /** How the picture is framed: zoomed by `scale` (≥ 1) about the centre, then moved by x·width, y·height. */
 export type Framing = { scale: number; x: number; y: number };
@@ -109,8 +155,11 @@ export function fitToLength(edit: Edit, total: number): Edit {
   };
   const texts = edit.texts.map(fit);
   const overlays = edit.overlays?.map(fit);
-  const changed = texts.some((t, i) => t !== edit.texts[i]) || !!overlays?.some((o, i) => o !== edit.overlays![i]);
-  return changed ? { ...edit, texts, overlays } : edit;
+  // A song set to stop past the new end follows the video's end again.
+  const m = edit.music;
+  const music = m && ((m.end !== undefined && m.end >= total - 0.05) || (m.start !== undefined && m.start >= total - MIN_SPAN)) ? { ...m, end: undefined, start: m.start !== undefined && m.start >= total - MIN_SPAN ? undefined : m.start } : m;
+  const changed = texts.some((t, i) => t !== edit.texts[i]) || !!overlays?.some((o, i) => o !== edit.overlays![i]) || music !== m;
+  return changed ? { ...edit, texts, overlays, music } : edit;
 }
 
 /** Splits overlay `id` at `t` into two back-to-back overlays (a video carries on where it was). */
@@ -341,6 +390,15 @@ export function captionLines(words: Word[], clips: ClipEdit[], s: CaptionSetting
   return lines;
 }
 
+/** The song's timing for an export: only what's been changed, moved along by the cover's flash. */
+function musicTiming(m: Music, shift: number) {
+  return {
+    ...(m.start !== undefined ? { start: m.start + shift } : {}),
+    ...(m.end !== undefined ? { end: m.end + shift } : {}),
+    ...(m.from ? { from: m.from } : {}),
+  };
+}
+
 /** The body the server's export expects. */
 /**
  * What the server needs to render the edit. A chosen cover goes first as a two-frame flash, which
@@ -377,7 +435,7 @@ export function exportBody(
         }
       : undefined,
     texts: edit.texts.map(({ text, style, start, end, x, y, scale, font, color, box, outline, align }) => later({ text, style, start, end, x, y, scale, font, color, box, outline, align })),
-    music: musicUpload && edit.music ? { upload: musicUpload, volume: edit.music.volume } : undefined,
+    music: musicUpload && edit.music ? { upload: musicUpload, volume: edit.music.volume, ...musicTiming(edit.music, shift) } : undefined,
     keyframes: (edit.keyframes ?? []).map(({ t, scale, x, y }) => ({ t: t + shift, scale, x, y })),
     overlays: (edit.overlays ?? [])
       .filter((o) => overlayUploads[o.id])

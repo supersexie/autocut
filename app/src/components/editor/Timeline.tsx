@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { useEffect, useRef, useState } from 'react';
 import { Image, PanResponder, Pressable, ScrollView, StyleSheet, Text, View, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { clipOffset, outDuration, retimeOverlay, type CaptionLine, type ClipEdit, type Keyframe, type Music, type Overlay, type TextOverlay } from '../../lib/edit';
+import { clipOffset, musicSpan, outDuration, retimeMusic, retimeOverlay, retimeSpan, type CaptionLine, type ClipEdit, type Keyframe, type Music, type Overlay, type TextOverlay } from '../../lib/edit';
 import { cutFile } from '../../lib/store';
 import { theme } from '../../lib/theme';
 import Svg, { Path } from 'react-native-svg';
@@ -52,7 +52,13 @@ type Props = {
   onAudio: () => void;
   onCaptions: (line?: CaptionLine) => void;
   onSelectText: (id: string) => void;
+  /** A text's block was dragged: its new start, end, or both (slid). */
+  onRetimeText: (id: string, change: { start?: number; end?: number }) => void;
   onAddText: () => void;
+  /** The song's panel is open: its block shows handles to move and trim it. */
+  musicSelected: boolean;
+  /** The song's block was dragged: its new start, end, or both (slid). */
+  onRetimeMusic: (change: { start?: number; end?: number }) => void;
   overlays: Overlay[];
   selectedOverlay: string | null;
   onSelectOverlay: (id: string) => void;
@@ -79,6 +85,9 @@ export function Timeline(p: Props) {
   const [pps, setPps] = useState(PPS);
   // An overlay block being dragged, shown where it would land.
   const [overlayDraft, setOverlayDraft] = useState<Overlay | null>(null);
+  // The same for a text block and the song.
+  const [textDraft, setTextDraft] = useState<TextOverlay | null>(null);
+  const [musicDraft, setMusicDraft] = useState<Music | null>(null);
   const zoomed = Math.abs(pps - PPS) / PPS > 0.05;
   // A light tick as the playhead crosses into another clip while scrubbing.
   const lastClip = useRef(-1);
@@ -339,12 +348,41 @@ export function Timeline(p: Props) {
 
               <Pressable onPress={p.onAudio} style={styles.lane}>
                 {p.music ? (
-                  <View style={styles.song}>
-                    <SymbolView name="music.note" tintColor="#fff" size={11} />
-                    <Text style={styles.songText} numberOfLines={1}>
-                      {p.music.name}
-                    </Text>
-                  </View>
+                  (() => {
+                    const m = musicDraft ?? p.music;
+                    const span = musicSpan(m, total);
+                    const w = Math.max(16, x(span.end - span.start) - 2);
+                    const drag = (change: (dt: number) => { start?: number; end?: number }) => ({
+                      pps,
+                      onBegin: () => setScrollEnabled(false),
+                      onMove: (dt: number) => setMusicDraft(retimeMusic(p.music!, change(dt), total)),
+                      onEnd: (dt: number) => {
+                        setMusicDraft(null);
+                        setScrollEnabled(true);
+                        if (dt !== 0) p.onRetimeMusic(change(dt));
+                      },
+                      onCancel: () => {
+                        setMusicDraft(null);
+                        setScrollEnabled(true);
+                      },
+                    });
+                    const base = musicSpan(p.music, total);
+                    return (
+                      <View style={[styles.song, { left: x(span.start), width: w }, p.musicSelected && styles.songOn]}>
+                        <SymbolView name="music.note" tintColor="#fff" size={11} style={p.musicSelected ? { marginLeft: 8 } : undefined} />
+                        <Text style={styles.songText} numberOfLines={1}>
+                          {p.music.name}
+                        </Text>
+                        {p.musicSelected && (
+                          <>
+                            <Drag {...drag((dt) => ({ start: base.start + dt, end: base.end + dt }))} style={styles.overlayBody} />
+                            <Drag {...drag((dt) => ({ start: base.start + dt }))} style={[styles.overlayHandle, styles.songHandle, { left: 0 }]} grip />
+                            <Drag {...drag((dt) => ({ end: base.end + dt }))} style={[styles.overlayHandle, styles.songHandle, { right: 0 }]} grip />
+                          </>
+                        )}
+                      </View>
+                    );
+                  })()
                 ) : (
                   <Text style={styles.laneLabel}>+ Add audio</Text>
                 )}
@@ -352,17 +390,42 @@ export function Timeline(p: Props) {
 
               <Pressable onPress={p.onAddText} style={styles.lane}>
                 {!p.texts.length && <Text style={styles.laneLabel}>+ Add text</Text>}
-                {p.texts.map((t) => (
-                  <Pressable
-                    key={t.id}
-                    onPress={() => p.onSelectText(t.id)}
-                    style={[styles.chip, styles.textChip, { left: x(t.start), width: Math.max(14, x(t.end - t.start) - 2) }, p.selectedText === t.id && styles.textChipOn]}
-                  >
-                    <Text style={[styles.chipText, { color: theme.ink }]} numberOfLines={1}>
-                      {t.text}
-                    </Text>
-                  </Pressable>
-                ))}
+                {p.texts.map((base) => {
+                  const t = textDraft?.id === base.id ? textDraft : base;
+                  const on = p.selectedText === t.id;
+                  const drag = (change: (dt: number) => { start?: number; end?: number }) => ({
+                    pps,
+                    onBegin: () => setScrollEnabled(false),
+                    onMove: (dt: number) => setTextDraft(retimeSpan(base, change(dt), total)),
+                    onEnd: (dt: number) => {
+                      setTextDraft(null);
+                      setScrollEnabled(true);
+                      if (dt !== 0) p.onRetimeText(base.id, change(dt));
+                    },
+                    onCancel: () => {
+                      setTextDraft(null);
+                      setScrollEnabled(true);
+                    },
+                  });
+                  return (
+                    <Pressable
+                      key={t.id}
+                      onPress={() => p.onSelectText(t.id)}
+                      style={[styles.chip, styles.textChip, { left: x(t.start), width: Math.max(16, x(t.end - t.start) - 2) }, on && styles.textChipOn]}
+                    >
+                      <Text style={[styles.chipText, { color: theme.ink }, on && { marginHorizontal: 8 }]} numberOfLines={1}>
+                        {t.text}
+                      </Text>
+                      {on && (
+                        <>
+                          <Drag {...drag((dt) => ({ start: base.start + dt, end: base.end + dt }))} style={styles.overlayBody} />
+                          <Drag {...drag((dt) => ({ start: base.start + dt }))} style={[styles.overlayHandle, { left: 0 }]} grip />
+                          <Drag {...drag((dt) => ({ end: base.end + dt }))} style={[styles.overlayHandle, { right: 0 }]} grip />
+                        </>
+                      )}
+                    </Pressable>
+                  );
+                })}
               </Pressable>
             </View>
           </ScrollView>
@@ -579,13 +642,15 @@ const styles = StyleSheet.create({
   grip: { width: 3, height: 18, borderRadius: 2, backgroundColor: '#fff' },
   lane: { height: ROW_H, marginTop: ROW_GAP, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.75)', justifyContent: 'center' },
   laneLabel: { fontSize: 13, ...UI_FONT.semibold, color: theme.ink, marginLeft: 12 },
-  song: { position: 'absolute', top: 3, bottom: 3, left: 2, right: 2, borderRadius: 7, backgroundColor: '#3A3A40', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8 },
+  song: { position: 'absolute', top: 3, bottom: 3, borderRadius: 7, backgroundColor: '#3A3A40', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8 },
   songText: { color: '#fff', fontSize: 11, ...UI_FONT.semibold, flexShrink: 1 },
   chip: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, backgroundColor: theme.ink, justifyContent: 'center', paddingHorizontal: 6 },
   chipOn: { borderWidth: 2, borderColor: '#fff', zIndex: 2 },
   chipText: { color: '#fff', fontSize: 11, ...UI_FONT.semibold },
   textChip: { backgroundColor: '#E4E4E8' },
-  textChipOn: { borderWidth: 2, borderColor: theme.ink },
+  textChipOn: { borderWidth: 2, borderColor: theme.ink, overflow: 'hidden', zIndex: 2 },
+  songOn: { borderWidth: 2, borderColor: theme.blue, overflow: 'hidden' },
+  songHandle: { backgroundColor: theme.blue },
   overlay: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, overflow: 'hidden', backgroundColor: '#E4E4E8', borderWidth: 2, borderColor: 'transparent' },
   overlayOn: { borderColor: theme.ink },
   overlayBody: { position: 'absolute', top: 0, bottom: 0, left: 12, right: 12 },

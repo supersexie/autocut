@@ -61,3 +61,21 @@ test('graded clips carry their LUT file and effects; ungraded ones carry nothing
   assert.deepEqual(clips[0].grade, { lut: 'file:///g.lut', size: 25, vignette: 0.4 });
   assert.equal('grade' in clips[1], false);
 });
+
+test("the song's timing goes to the phone export, moved along by the cover's flash", () => {
+  const edit = {
+    clips: [makeClip(0, 6)],
+    captions: DEFAULT_CAPTIONS,
+    texts: [],
+    keyframes: [],
+    overlays: [],
+    cover: 1,
+    music: { file: 'song.m4a', name: 'Song', mime: 'audio/mp4', duration: 3, volume: 0.4, start: 1, end: 4, from: 2 },
+  };
+  const body = exportBody(edit, [], { height: 720, fps: 30, bitrate: 8 }, 'music');
+  const spec = exportSpec(body, presets, { source: 's', output: 'o', music: 'file:///song.m4a', overlays: {}, fonts: {} });
+  assert.equal(spec.music.file, 'file:///song.m4a');
+  assert.equal(spec.music.from, 2);
+  assert.ok(spec.music.start > 1 && spec.music.start < 1.2);
+  assert.ok(spec.music.end > 4 && spec.music.end < 4.2);
+});

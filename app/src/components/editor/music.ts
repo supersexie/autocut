@@ -11,18 +11,25 @@ const setVolume = (p: AudioPlayer, volume: number) => {
   p.volume = volume;
 };
 
-/** Where the song should be at output time `t`: it loops under a long video. */
-const songTime = (music: Music, t: number) => (music.duration > 0 ? t % music.duration : 0);
+/**
+ * Where the song should be at output time `t` (it loops if it runs out), or null when `t` is outside
+ * its stretch of the video.
+ */
+const songTime = (music: Music, t: number) => {
+  if (t < (music.start ?? 0) || (music.end !== undefined && t >= music.end)) return null;
+  return music.duration > 0 ? ((music.from ?? 0) + t - (music.start ?? 0)) % music.duration : 0;
+};
 
 /**
- * Plays the edit's song in step with the video: starts and stops with it, jumps when the playhead
- * jumps, and nudges itself back if it drifts.
+ * Plays the edit's song in step with the video: starts and stops with it (and with its own stretch),
+ * jumps when the playhead jumps, and nudges itself back if it drifts.
  */
 export function useMusic(music: Music | undefined, time: number, playing: boolean) {
   const player = useAudioPlayer(music ? cutFile(music.file).uri : null);
   const at = useRef(0);
+  const inside = !!music && songTime(music, time) !== null;
   useEffect(() => {
-    at.current = music ? songTime(music, time) : 0;
+    at.current = (music && songTime(music, time)) ?? 0;
   });
 
   // Sound even with the silent switch on, like the video.
@@ -36,15 +43,16 @@ export function useMusic(music: Music | undefined, time: number, playing: boolea
 
   useEffect(() => {
     if (!music) return;
-    if (playing) {
+    if (playing && inside) {
       player.seekTo(at.current).then(() => player.play()).catch(() => {});
     } else player.pause();
-  }, [player, music, playing]);
+  }, [player, music, playing, inside]);
 
   // While playing, follow the video if the two drift apart (a hitch at a cut, a seek).
   useEffect(() => {
     if (!music || !playing || !player.isLoaded) return;
     const expected = songTime(music, time);
+    if (expected === null) return;
     const drift = Math.abs(player.currentTime - expected);
     if (drift > 0.3 && drift < music.duration - 0.3) player.seekTo(expected).catch(() => {});
   }, [player, music, playing, time]);

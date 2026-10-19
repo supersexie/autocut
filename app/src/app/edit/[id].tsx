@@ -18,7 +18,7 @@ import { Timeline } from '../../components/editor/Timeline';
 import { usePlayback } from '../../components/editor/playback';
 import { Button, Logo, PressableScale, Wash, WASH, type SymbolName } from '../../components/ui';
 import {
-  CAPTION_X, CAPTION_Y, captionLines, fitToLength, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip,
+  CAPTION_X, CAPTION_Y, captionLines, fitToLength, clipOffset, deleteCaption, splitCaption, coverSource, duplicateClip, framingAt, keyframeAt, putKeyframe, isRestored, locate, MIN_OVERLAY, outDuration, overlayHeight, overlaysAt, removeClip, retimeMusic, retimeSpan,
   restoreCut, retimeOverlay, splitAt, splitOverlay, totalDuration, trimClip, updateClip, type CaptionLine, type CaptionSettings, type ClipEdit, type Edit, type Framing, type Keyframe, type Overlay, type TextOverlay,
 } from '../../lib/edit';
 import { getWaveform } from '../../lib/api';
@@ -61,11 +61,12 @@ export function Editor({ cut }: { cut: CutRecord }) {
   const { clips } = edit;
   const total = totalDuration(clips);
 
-  // One thing at a time is selected: a text, an overlay, or a caption line (by its key).
-  const [selection, setSelection] = useState<{ kind: 'text' | 'overlay' | 'caption'; id: string } | null>(null);
+  // One thing at a time is selected: a text, an overlay, a caption line (by its key), or the song.
+  const [selection, setSelection] = useState<{ kind: 'text' | 'overlay' | 'caption' | 'song'; id: string } | null>(null);
   const selectedText = selection?.kind === 'text' ? selection.id : null;
   const selectedOverlay = selection?.kind === 'overlay' ? selection.id : null;
   const selectedCaption = selection?.kind === 'caption' ? selection.id : null;
+  const songOn = selection?.kind === 'song' && !!history.present.music;
   const setSelectedText = (id: string | null) => setSelection(id ? { kind: 'text', id } : null);
   const setSelectedOverlay = (id: string | null) => setSelection(id ? { kind: 'overlay', id } : null);
   const [editingLine, setEditingLine] = useState<CaptionLine | null>(null);
@@ -352,7 +353,8 @@ export function Editor({ cut }: { cut: CutRecord }) {
   type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'adjust' | 'volume' | 'speed' | 'restore'
     | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete'
     | 'overlay' | 'overlaySplit' | 'overlayDuplicate' | 'overlayMute' | 'overlayVolume' | 'overlayFront' | 'overlayDelete'
-    | 'captionEdit' | 'captionSplit' | 'captionDelete' | 'captionStyle' | 'captionAll';
+    | 'captionEdit' | 'captionSplit' | 'captionDelete' | 'captionStyle' | 'captionAll'
+    | 'songVolume' | 'songReplace' | 'songDelete';
   /** `divider`: a thin line after this tool, between the clip's own tools and the ones that add things. */
   type Tool = { id: ToolId; icon: SymbolName; label: string; disabled?: boolean; danger?: boolean; divider?: boolean };
   const clipTools: Tool[] = [
@@ -398,7 +400,12 @@ export function Editor({ cut }: { cut: CutRecord }) {
     { id: 'captionStyle', icon: 'textformat', label: 'Style' },
     { id: 'captionAll', icon: 'list.bullet', label: 'All captions' },
   ];
-  const tools = overlay ? overlayTools : text ? textTools : captionLine ? captionTools : clipTools;
+  const songTools: Tool[] = [
+    { id: 'songVolume', icon: 'speaker.wave.2', label: 'Volume' },
+    { id: 'songReplace', icon: 'arrow.triangle.2.circlepath', label: 'Replace' },
+    { id: 'songDelete', icon: 'trash', label: 'Delete', danger: true },
+  ];
+  const tools = overlay ? overlayTools : text ? textTools : captionLine ? captionTools : songOn ? songTools : clipTools;
 
   // ---- Song under the video.
   async function addSong(replace = false) {
@@ -456,6 +463,14 @@ export function Editor({ cut }: { cut: CutRecord }) {
         setOverlays(overlays.filter((o) => o.id !== overlay.id));
         setSelectedOverlay(null);
         if (panel === 'overlayVolume') setPanel(null);
+      }
+    } else if (songOn && tool.startsWith('song')) {
+      if (tool === 'songVolume') setPanel('music');
+      else if (tool === 'songReplace') addSong(true);
+      else if (tool === 'songDelete') {
+        commit({ ...edit, music: undefined }, { keepTime: true });
+        setSelection(null);
+        if (panel === 'music') setPanel(null);
       }
     } else if (!text) return;
     else if (tool === 'textEdit') setComposer({ id: text.id, text: text.text, style: text.style, font: text.font, color: text.color, box: text.box, outline: text.outline, align: text.align, scale: text.scale });
@@ -620,7 +635,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
               playback.pause();
               setChoosingCover(true);
             }}
-            onAudio={() => (edit.music ? setPanel('music') : addSong())}
+            onAudio={() => (edit.music ? setSelection({ kind: 'song', id: 'song' }) : addSong())}
             selectedCaption={selectedCaption}
             onCaptions={(l) => {
               playback.setScrubbing(false);
@@ -659,11 +674,14 @@ export function Editor({ cut }: { cut: CutRecord }) {
               if (o) setOverlays(overlays.map((x) => (x.id === oid ? retimeOverlay(o, change, total) : x)));
             }}
             onAddOverlay={addOverlay}
+            onRetimeText={(tid, change) => commit({ ...edit, texts: edit.texts.map((x) => (x.id === tid ? retimeSpan(x, change, total) : x)) }, { keepTime: true })}
+            musicSelected={songOn}
+            onRetimeMusic={(change) => edit.music && commit({ ...edit, music: retimeMusic(edit.music, change, total) }, { keepTime: true })}
           />
         </View>
 
         <View ref={toolbarRef} collapsable={false} style={[styles.toolbar, { paddingBottom: insets.bottom + 4 }]}>
-          {(text || overlay || captionLine) && (
+          {(text || overlay || captionLine || songOn) && (
             <Pressable onPress={() => selectOverlay(null)} hitSlop={10} style={styles.toolBack} accessibilityLabel="Back to clips">
               <SymbolView name="chevron.left" tintColor={theme.ink} size={16} weight="semibold" />
             </Pressable>

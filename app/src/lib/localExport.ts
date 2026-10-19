@@ -14,7 +14,7 @@ export type ExportBody = {
   overlapAudio?: boolean;
   captions?: { style: string; box?: boolean; outline?: boolean; color?: string; x?: number; y?: number; scale?: number; lines: BodyLine[] };
   texts: ({ text: string; style: string; start: number; end: number; x: number; y: number; scale: number } & Look)[];
-  music?: { upload: string; volume: number };
+  music?: { upload: string; volume: number; start?: number; end?: number; from?: number };
   keyframes: { t: number; scale: number; x: number; y: number }[];
   overlays: { upload: string; kind: 'image' | 'video'; start: number; end: number; from?: number; x: number; y: number; width: number; rotation?: number; volume?: number }[];
   height?: number;
@@ -106,7 +106,7 @@ export function exportSpec(
     fps: body.fps ?? 30,
     clips: body.clips.map((c) => ({ start: c.start, end: c.end, speed: c.speed ?? 1, volume: c.volume ?? 1, ...(c.grade && files.grade ? { grade: files.grade(c.grade) } : {}) })),
     overlap: body.overlapAudio !== false,
-    music: body.music && files.music ? { file: files.music, volume: body.music.volume } : undefined,
+    music: body.music && files.music ? (({ upload: _, ...m }) => ({ ...m, file: files.music! }))(body.music) : undefined,
     keyframes: body.keyframes,
     overlays: body.overlays.filter((o) => files.overlays[o.upload]).map(({ upload, ...o }) => ({ ...o, file: files.overlays[upload] })),
     captions,

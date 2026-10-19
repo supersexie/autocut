@@ -21,9 +21,14 @@ struct ExportSpec: Decodable {
     var vignette: Double?
     var grain: Double?
   }
+  /// The song: from output second `start` to `end` (the whole video when unset), beginning `from`
+  /// seconds into the song.
   struct Music: Decodable {
     var file: String
     var volume: Double?
+    var start: Double?
+    var end: Double?
+    var from: Double?
   }
   struct Keyframe: Decodable {
     var t: Double

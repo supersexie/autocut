@@ -189,7 +189,9 @@ function atempo(speed) {
  * `subtitles` burns an SRT; `ass` burns an ASS file using fonts from `fontsDir`.
  * `height` scales (keeping aspect), `fps` resamples, `bitrate` is in Mbps. `fast` trades quality
  * for speed (for the editor's preview): quick to encode, small, and a keyframe every half second.
- * `music` = { file, volume } lays a song under the whole video, looped if it's short, fading out at the end.
+ * `music` = { file, volume, start?, end?, from? } lays a song under the video (from output second
+ * `start` to `end`, the whole video by default, beginning `from` seconds into the song), looped if
+ * it's short, fading out at its end.
  * `motion` = { keyframes: [{ t, scale, x, y }], width, height } zooms and pans the picture over time
  * (scale ≥ 1 about the centre, then moved by x·width, y·height), under the captions.
  * `layers` = { list: [{ file, kind, start, end, from, x, y, width, rotation, volume, hasAudio }], width, height }
@@ -278,12 +280,19 @@ export async function render(input, output, clips, { subtitles, ass, fontsDir, h
   }
 
   if (music) {
-    const k = next++;
-    extra.push('-stream_loop', '-1', '-i', music.file);
-    const vol = Math.min(1, Math.max(0, music.volume ?? 0.5));
-    const tail = Math.min(1.5, total / 4);
-    parts.push(`[${k}:a]aresample=48000,volume=${vol.toFixed(3)},atrim=0:${total.toFixed(3)},afade=t=out:st=${Math.max(0, total - tail).toFixed(3)}:d=${tail.toFixed(3)}[song]`);
-    sounds.push('[song]');
+    // From `start` to `end` of the output (the whole video by default), beginning `from` seconds in.
+    const start = Math.max(0, Math.min(total, music.start ?? 0));
+    const end = Math.max(start, Math.min(total, music.end ?? total));
+    const len = end - start;
+    if (len > 0.05) {
+      const k = next++;
+      extra.push('-stream_loop', '-1', ...(music.from > 0 ? ['-ss', music.from.toFixed(3)] : []), '-i', music.file);
+      const vol = Math.min(1, Math.max(0, music.volume ?? 0.5));
+      const tail = Math.min(1.5, len / 4);
+      const delay = start > 0 ? `,adelay=delays=${Math.round(start * 1000)}:all=1` : '';
+      parts.push(`[${k}:a]asetpts=PTS-STARTPTS,aresample=48000,volume=${vol.toFixed(3)},atrim=0:${len.toFixed(3)},afade=t=out:st=${Math.max(0, len - tail).toFixed(3)}:d=${tail.toFixed(3)}${delay}[song]`);
+      sounds.push('[song]');
+    }
   }
 
   // Overlays, bottom to top: each scaled to its width, turned, and shown only for its stretch.

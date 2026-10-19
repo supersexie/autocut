@@ -59,3 +59,39 @@ test('a graded clip gets its LUT and effects in the render; an ungraded one gets
   const f = gradeFilters({ adjust: { vignette: 50, grain: 30 } }, '/tmp/autocut-test/out.mp4', luts);
   assert.match(f, /^,lut3d=file=\/tmp\/autocut-test\/grade-[a-z0-9]+\.cube:interp=tetrahedral,vignette=angle=[\d.]+,noise=alls=6:allf=t$/);
 });
+
+test('a song plays only between its start and end', async () => {
+  const { execFile } = await import('node:child_process');
+  const { promisify } = await import('node:util');
+  const { mkdtemp, rm } = await import('node:fs/promises');
+  const os = (await import('node:os')).default;
+  const path = (await import('node:path')).default;
+  const ffmpeg = (await import('ffmpeg-static')).default;
+  const { render } = await import('../src/media.js');
+  const run = promisify(execFile);
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'autocut-song-'));
+  try {
+    const song = path.join(dir, 'song.m4a');
+    await run(ffmpeg, ['-y', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=3', '-c:a', 'aac', song]);
+    const out = path.join(dir, 'out.mp4');
+    const source = new URL('../samples/demo.mp4', import.meta.url).pathname;
+    await render(source, out, [{ start: 0, end: 4, speed: 1, volume: 0 }], { height: 240, fast: true, music: { file: song, volume: 1, start: 1, end: 3, from: 0.5 } });
+    const loudness = async (ss, t) => {
+      const { stderr } = await run(ffmpeg, ['-ss', String(ss), '-t', String(t), '-i', out, '-af', 'volumedetect', '-vn', '-f', 'null', '-']);
+      return Number(/max_volume: (-?[\d.]+|-inf) dB/.exec(stderr)?.[1] ?? -Infinity);
+    };
+    assert.ok((await loudness(0.1, 0.7)) < -50, 'silent before the song starts');
+    assert.ok((await loudness(1.3, 1)) > -20, 'the song plays in its stretch');
+    assert.ok((await loudness(3.3, 0.6)) < -50, 'silent after it ends');
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test("the song's timing comes through the export request", async () => {
+  const { parseRender } = await import('../src/edits.js');
+  const out = parseRender({ clips: [{ start: 0, end: 5 }], music: { upload: 'x', volume: 0.5, start: 1, end: 4, from: 2 } }, { duration: 10, overlapAllowed: false });
+  assert.deepEqual(out.music, { upload: 'x', volume: 0.5, start: 1, end: 4, from: 2 });
+  const plain = parseRender({ clips: [{ start: 0, end: 5 }], music: { upload: 'x', volume: 0.5 } }, { duration: 10, overlapAllowed: false });
+  assert.deepEqual(plain.music, { upload: 'x', volume: 0.5 });
+});

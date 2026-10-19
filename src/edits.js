@@ -104,7 +104,22 @@ export function parseRender(body, { duration, words = [], overlapAllowed }) {
     .sort((a, b) => a.t - b.t);
   // Fade each cut's sound across the next one's (on unless the app says otherwise; Pro and Ultimate).
   const overlapAudio = body.overlapAudio !== false && !!overlapAllowed;
-  const music = body.music?.upload ? { upload: String(body.music.upload), volume: Math.min(1, Math.max(0, Number(body.music.volume) || 0.5)) } : undefined;
+  // The song: where it starts and stops in the output and how far into it to begin (each optional).
+  let music;
+  if (body.music?.upload) {
+    const m = body.music;
+    const num = (v) => (Number.isFinite(Number(v)) ? Math.max(0, Number(v)) : undefined);
+    const start = num(m.start);
+    const end = num(m.end);
+    const from = num(m.from);
+    music = {
+      upload: String(m.upload),
+      volume: Math.min(1, Math.max(0, Number(m.volume) || 0.5)),
+      ...(start ? { start } : {}),
+      ...(end !== undefined && end > (start ?? 0) ? { end } : {}),
+      ...(from ? { from } : {}),
+    };
+  }
   const overlays = (Array.isArray(body.overlays) ? body.overlays : []).slice(0, 20).map((o) => {
     const start = Math.max(0, Number(o.start) || 0);
     return {

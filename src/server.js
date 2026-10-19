@@ -276,7 +276,7 @@ async function createRender(req, res, cut, userId) {
   if (parsed.music) {
     const [key] = (await uploadKeys([parsed.music.upload], userId)) ?? [];
     if (!key) return send(res, 400, { error: 'The song didn’t upload. Try exporting again.' });
-    music = { key, volume: parsed.music.volume };
+    music = { key, volume: parsed.music.volume, start: parsed.music.start, end: parsed.music.end, from: parsed.music.from };
   }
   const overlays = [];
   for (const o of parsed.overlays) {

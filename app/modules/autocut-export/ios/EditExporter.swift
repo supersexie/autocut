@@ -128,22 +128,27 @@ final class EditExporter {
       }
     }
 
-    // Music under everything, looped if it's short, faded out at the end.
+    // Music under everything for its stretch (the whole video by default), starting `from` seconds
+    // in, looped if it's short, faded out at its end.
     if let music = spec.music {
       let asset = AVURLAsset(url: fileURL(music.file))
-      if let song = try await asset.loadTracks(withMediaType: .audio).first, let track = audioTrack() {
+      let first = max(0, min(total, music.start ?? 0))
+      let last = max(first, min(total, music.end ?? total))
+      if last - first > 0.05, let song = try await asset.loadTracks(withMediaType: .audio).first, let track = audioTrack() {
         let songLength = try await asset.load(.duration).seconds
-        var at = 0.0
-        while songLength > 0.05 && at < total - 0.01 {
-          let piece = min(songLength, total - at)
-          try track.insertTimeRange(CMTimeRange(start: .zero, duration: time(piece)), of: song, at: time(at))
+        var at = first
+        var offset = songLength > 0 ? (music.from ?? 0).truncatingRemainder(dividingBy: songLength) : 0
+        while songLength > 0.05 && at < last - 0.01 {
+          let piece = min(songLength - offset, last - at)
+          try track.insertTimeRange(CMTimeRange(start: time(offset), duration: time(piece)), of: song, at: time(at))
           at += piece
+          offset = 0
         }
         let p = params(track)
         let vol = Float(max(0, min(1, music.volume ?? 0.5)))
-        let tail = min(1.5, total / 4)
+        let tail = min(1.5, (last - first) / 4)
         p.setVolume(vol, at: .zero)
-        p.setVolumeRamp(fromStartVolume: vol, toEndVolume: 0, timeRange: CMTimeRange(start: time(total - tail), duration: time(tail)))
+        p.setVolumeRamp(fromStartVolume: vol, toEndVolume: 0, timeRange: CMTimeRange(start: time(last - tail), duration: time(tail)))
       }
     }
 

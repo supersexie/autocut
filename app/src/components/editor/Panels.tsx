@@ -449,7 +449,7 @@ export function MusicPanel({
             <Text style={styles.songName} numberOfLines={1}>
               {music.name}
             </Text>
-            <Text style={styles.small}>{mmss(music.duration)} · loops under the whole video</Text>
+            <Text style={styles.small}>{mmss(music.duration)} · drag its ends on the timeline to choose where it plays</Text>
           </View>
         </View>
         <View style={styles.sliderRow}>
