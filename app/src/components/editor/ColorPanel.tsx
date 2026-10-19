@@ -221,7 +221,7 @@ export function ColorPanel(p: {
         )}
 
         {tab === 'hsl' && (
-          <View style={{ gap: 6 }}>
+          <View style={{ gap: 2 }}>
             <View style={styles.bands}>
               {HSL_BANDS.map((b) => {
                 const used = !!g.hsl?.[b.key];
@@ -236,13 +236,19 @@ export function ColorPanel(p: {
             {(['h', 's', 'l'] as const).map((c) => {
               const v = g.hsl?.[band]?.[c] ?? 0;
               return (
-                <Labelled key={c} label={c === 'h' ? 'Hue' : c === 's' ? 'Saturation' : 'Luminance'} value={v} compact>
-                  <CenterSlider
-                    value={v}
-                    onChange={(nv, live) => set({ ...g, hsl: { ...g.hsl, [band]: { ...(g.hsl?.[band] as Band), [c]: nv } } }, live)}
-                    onEnd={p.onEnd}
-                  />
-                </Labelled>
+                <View key={c} style={styles.inline}>
+                  <Text style={styles.inlineLabel} numberOfLines={1} adjustsFontSizeToFit>
+                    {c === 'h' ? 'Hue' : c === 's' ? 'Saturation' : 'Luminance'}
+                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <CenterSlider
+                      value={v}
+                      onChange={(nv, live) => set({ ...g, hsl: { ...g.hsl, [band]: { ...(g.hsl?.[band] as Band), [c]: nv } } }, live)}
+                      onEnd={p.onEnd}
+                    />
+                  </View>
+                  <Text style={[styles.value, styles.inlineValue, v !== 0 && { color: theme.blue }]}>{v > 0 ? `+${v}` : v}</Text>
+                </View>
               );
             })}
           </View>
@@ -505,7 +511,7 @@ function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] |
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, paddingHorizontal: 12, gap: 8 },
+  body: { flex: 1, paddingHorizontal: 12, gap: 8, overflow: 'hidden' },
   reset: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.blue },
   clipStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
   clipLabel: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.ink },
@@ -523,6 +529,10 @@ const styles = StyleSheet.create({
   tileOn: { borderColor: theme.blue },
   tileText: { fontSize: 10, fontFamily: JAKARTA.medium, color: theme.ink, maxWidth: 58 },
   savedBadge: { position: 'absolute', top: 3, right: 3, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.blue, alignItems: 'center', justifyContent: 'center' },
+  // One line per slider (name, slider, value), so all three fit above the actions.
+  inline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
+  inlineLabel: { width: 78, fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.ink },
+  inlineValue: { width: 34, textAlign: 'right' },
   bands: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 },
   bandDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: 'transparent' },
   bandOn: { borderColor: '#fff', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, transform: [{ scale: 1.15 }] },
