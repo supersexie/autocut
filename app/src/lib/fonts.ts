@@ -17,8 +17,23 @@ export const CAPTION_FONTS = {
 /** The "Autocut" wordmark's typeface (Bricolage Grotesque ExtraBold), next to the logo in headers. */
 export const BRAND_FONT = 'Bricolage Grotesque ExtraBold';
 
-/** Everything loaded at launch: the caption fonts and the wordmark's. */
-export const APP_FONTS = { ...CAPTION_FONTS, [BRAND_FONT]: require('../../assets/fonts/BricolageGrotesque-ExtraBold.ttf') };
+/** Plus Jakarta Sans, the onboarding's typeface (CutAI's): welcome, setup questions, results and plans. */
+export const JAKARTA = {
+  medium: 'Plus Jakarta Sans Medium',
+  semibold: 'Plus Jakarta Sans SemiBold',
+  bold: 'Plus Jakarta Sans Bold',
+  extrabold: 'Plus Jakarta Sans ExtraBold',
+};
+
+/** Everything loaded at launch: the caption fonts, the wordmark's and the onboarding's. */
+export const APP_FONTS = {
+  ...CAPTION_FONTS,
+  [BRAND_FONT]: require('../../assets/fonts/BricolageGrotesque-ExtraBold.ttf'),
+  [JAKARTA.medium]: require('../../assets/fonts/PlusJakartaSans-Medium.ttf'),
+  [JAKARTA.semibold]: require('../../assets/fonts/PlusJakartaSans-SemiBold.ttf'),
+  [JAKARTA.bold]: require('../../assets/fonts/PlusJakartaSans-Bold.ttf'),
+  [JAKARTA.extrabold]: require('../../assets/fonts/PlusJakartaSans-ExtraBold.ttf'),
+};
 
 /** Fonts offered for text overlays (the A button in the text editor). */
 export const TEXT_FONTS = ['TikTok Sans Bold', 'Inter ExtraBold', 'Montserrat Black', 'Anton', 'Bangers', 'Lilita One', 'Shrikhand', 'Playfair Display', 'Poppins'];

@@ -6,7 +6,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeInDown, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
-import { BRAND_FONT } from '../lib/fonts';
+import { BRAND_FONT, JAKARTA } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
 /** A highlighted word in a title ("Pro fits how you post.", "50% of your day"). */
@@ -198,14 +198,14 @@ const styles = StyleSheet.create({
   segments: { flexDirection: 'row', gap: 6, marginTop: 10 },
   segment: { flex: 1, height: 5, borderRadius: 3, backgroundColor: 'rgba(17,17,20,0.1)', overflow: 'hidden' },
   segmentFill: { height: 5, borderRadius: 3, backgroundColor: theme.ink },
-  title: { fontSize: 32, fontWeight: '800', color: theme.ink, letterSpacing: -1, lineHeight: 37 },
-  sub: { fontSize: 16, color: theme.muted },
+  title: { fontSize: 32, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 38 },
+  sub: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted },
   choice: {
     flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 13,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
   tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: '#F1F1F4', alignItems: 'center', justifyContent: 'center' },
-  choiceLabel: { flex: 1, fontSize: 17, fontWeight: '600', color: theme.ink, letterSpacing: -0.2 },
+  choiceLabel: { flex: 1, fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.2 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 18 },
   bar: { width: 3.5, borderRadius: 1.5 },
   track: { height: KNOB + 8, justifyContent: 'center' },
@@ -217,10 +217,10 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
   },
   ends: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  end: { fontSize: 12, color: theme.muted },
+  end: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted },
   tipCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 16, padding: 14, marginTop: 16,
   },
   tipIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(61,107,255,0.1)', alignItems: 'center', justifyContent: 'center' },
-  tipText: { flex: 1, fontSize: 14, lineHeight: 19, color: theme.ink },
+  tipText: { flex: 1, fontSize: 14, fontFamily: JAKARTA.medium, lineHeight: 19, color: theme.ink },
 });

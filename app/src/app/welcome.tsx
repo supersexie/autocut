@@ -11,6 +11,7 @@ import { Button, Wash } from '../components/ui';
 import { clearDraft } from '../lib/draft';
 import WORDS from '../lib/introWords.json';
 import { column, formatTime, theme } from '../lib/theme';
+import { JAKARTA } from '../lib/fonts';
 
 // The sample: one take, raw and edited. They're the same take frame for frame, so the edit can
 // take over mid-sentence. WORDS is the raw take transcribed by Autocut itself (src/transcribe.js).
@@ -229,7 +230,7 @@ export default function Welcome() {
                 <Text style={styles.statusText}>{doing.label}</Text>
               )}
               {phase === 'ready' ? (
-                <Animated.Text entering={FadeIn.duration(250)} style={[styles.length, { color: theme.blue, fontSize: 15 }]}>
+                <Animated.Text entering={FadeIn.duration(250)} style={[styles.length, { color: theme.blue, fontSize: 15, fontFamily: JAKARTA.medium }]}>
                   Cut and captioned
                 </Animated.Text>
               ) : (
@@ -291,16 +292,16 @@ const styles = StyleSheet.create({
   side: { minWidth: 70 },
   round: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
   pill: { backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 999, paddingHorizontal: 14, paddingVertical: 7 },
-  pillText: { color: theme.ink, fontSize: 14, fontWeight: '700' },
+  pillText: { color: theme.ink, fontSize: 14, fontFamily: JAKARTA.bold },
   chip: { alignSelf: 'flex-start', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: 999, paddingHorizontal: 11, paddingVertical: 6 },
-  chipText: { color: theme.ink, fontSize: 10.5, fontWeight: '800', letterSpacing: 0.7 },
+  chipText: { color: theme.ink, fontSize: 10.5, fontFamily: JAKARTA.extrabold, letterSpacing: 0.7 },
   // Pinned to the bottom; the words, track and button sit over the fade.
   bottom: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingHorizontal: 22 },
-  headline: { fontSize: 38, fontWeight: '800', color: theme.ink, letterSpacing: -1.2, lineHeight: 42 },
-  sub: { fontSize: 16, color: theme.muted, lineHeight: 22 },
-  signIn: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 6 },
-  signInLink: { color: theme.ink, fontWeight: '700' },
-  transcript: { fontSize: 21, fontWeight: '800', color: theme.ink, letterSpacing: -0.4, lineHeight: 27, minHeight: 54 },
+  headline: { fontSize: 38, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -1.1, lineHeight: 44 },
+  sub: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 22 },
+  signIn: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginTop: 6 },
+  signInLink: { color: theme.ink, fontFamily: JAKARTA.bold },
+  transcript: { fontSize: 21, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.4, lineHeight: 27, minHeight: 54 },
   unsaid: { color: 'rgba(17,17,20,0.22)' },
   track: { height: 14, justifyContent: 'center' },
   rail: { position: 'absolute', left: 0, right: 0, height: 3, borderRadius: 2, backgroundColor: 'rgba(17,17,20,0.14)' },
@@ -310,7 +311,7 @@ const styles = StyleSheet.create({
   head: { position: 'absolute', top: 0, width: 3, height: 14, borderRadius: 2, backgroundColor: theme.blue },
   status: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusLeft: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusText: { fontSize: 13, fontWeight: '700', color: theme.muted },
-  length: { fontSize: 18, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
-  note: { fontSize: 11, color: theme.faint, textAlign: 'center' },
+  statusText: { fontSize: 13, fontFamily: JAKARTA.bold, color: theme.muted },
+  length: { fontSize: 18, fontFamily: JAKARTA.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  note: { fontSize: 11, fontFamily: JAKARTA.medium, color: theme.faint, textAlign: 'center' },
 });

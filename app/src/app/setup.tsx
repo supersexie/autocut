@@ -15,6 +15,7 @@ import {
   AUTOCUT_MINUTES, DAYS_A_MONTH, EDIT_STOPS, EDITOR_PER_VIDEO, editingNumbers, money, perWeekFor, planFor, PLANS, pricePerMonth, recommendedPlan, VOLUME_STOPS,
 } from '../lib/plans';
 import { midSentence, theme } from '../lib/theme';
+import { JAKARTA } from '../lib/fonts';
 
 type Answer = { value: string; label: string; icon: SymbolName };
 
@@ -520,7 +521,7 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
         </View>
         <Pressable onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })} hitSlop={8} style={{ alignSelf: 'center', marginTop: 18 }}>
           <Text style={styles.have}>
-            Already have an account? <Text style={{ color: theme.ink, fontWeight: '700' }}>Sign in</Text>
+            Already have an account? <Text style={{ color: theme.ink, fontFamily: JAKARTA.bold }}>Sign in</Text>
           </Text>
         </Pressable>
       </Animated.View>
@@ -529,33 +530,33 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
 }
 
 const styles = StyleSheet.create({
-  signIn: { fontSize: 16, fontWeight: '600', color: theme.blue },
+  signIn: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.blue },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8 },
-  value: { fontSize: 64, fontWeight: '800', color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 18, fontWeight: '700', color: theme.ink },
+  value: { fontSize: 64, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  statLabel: { fontSize: 14, fontWeight: '700', color: theme.ink },
+  statLabel: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.ink },
   statRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' },
-  statBig: { fontSize: 42, fontWeight: '800', color: theme.ink, letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
-  statUnit: { fontSize: 14, fontWeight: '600', color: theme.muted, flexShrink: 1 },
+  statBig: { fontSize: 42, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
+  statUnit: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted, flexShrink: 1 },
   howRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
-  how: { fontSize: 14, fontWeight: '700', color: theme.blue },
-  howText: { fontSize: 13, lineHeight: 19, color: theme.muted, marginTop: 8 },
-  amount: { position: 'absolute', width: 110, textAlign: 'center', fontSize: 14, fontWeight: '800', color: theme.ink, fontVariant: ['tabular-nums'] },
-  amountBig: { fontSize: 17 },
-  axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, color: theme.muted },
-  caption: { fontSize: 14, color: theme.muted, textAlign: 'center', marginTop: 8 },
-  lifeTitle: { fontSize: 32, fontWeight: '800', color: theme.ink, letterSpacing: -1, lineHeight: 38, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  how: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.blue },
+  howText: { fontSize: 13, fontFamily: JAKARTA.medium, lineHeight: 19, color: theme.muted, marginTop: 8 },
+  amount: { position: 'absolute', width: 110, textAlign: 'center', fontSize: 14, fontFamily: JAKARTA.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  amountBig: { fontSize: 17, fontFamily: JAKARTA.medium },
+  axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted },
+  caption: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
+  lifeTitle: { fontSize: 32, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
   ring: { width: RING, height: RING, alignSelf: 'center', marginTop: 30 },
   ringCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  ringBig: { fontSize: 26, fontWeight: '800', color: theme.blue, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
-  ringSmall: { fontSize: 12, fontWeight: '600', color: theme.muted, marginTop: 2 },
-  lifeLine: { fontSize: 18, fontWeight: '700', color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
+  ringBig: { fontSize: 26, fontFamily: JAKARTA.extrabold, color: theme.blue, letterSpacing: -0.8, fontVariant: ['tabular-nums'] },
+  ringSmall: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted, marginTop: 2 },
+  lifeLine: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
   card: { ...onbCard, gap: 12, marginTop: 24 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   pointIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F1F4', alignItems: 'center', justifyContent: 'center' },
-  pointText: { flex: 1, fontSize: 15, color: theme.ink, lineHeight: 20 },
-  have: { fontSize: 14, color: theme.muted },
-  legal: { fontSize: 12, color: theme.muted, textAlign: 'center', lineHeight: 17, marginTop: 2 },
-  legalLink: { color: theme.ink, fontWeight: '600', textDecorationLine: 'underline' },
+  pointText: { flex: 1, fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 20 },
+  have: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
+  legal: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 17, marginTop: 2 },
+  legalLink: { color: theme.ink, fontFamily: JAKARTA.semibold, textDecorationLine: 'underline' },
 });
