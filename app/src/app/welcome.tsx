@@ -168,7 +168,7 @@ export default function Welcome() {
           <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
         </Animated.View>
         <LinearGradient colors={['rgba(0,0,0,0.28)', 'rgba(0,0,0,0)']} style={[styles.shade, { height: insets.top + 70 }]} />
-        <LinearGradient colors={['rgba(245,247,255,0)', 'rgba(245,247,255,0.85)', FADE]} locations={[0, 0.55, 1]} style={styles.fade} />
+        <LinearGradient colors={['rgba(245,247,255,0)', 'rgba(245,247,255,0.7)', FADE]} locations={[0, 0.55, 1]} style={styles.fade} />
       </View>
 
       <View style={[styles.top, { top: insets.top + 8 }]}>
@@ -289,7 +289,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: FADE },
   video: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#1C1C1F', overflow: 'hidden' },
   shade: { position: 'absolute', top: 0, left: 0, right: 0 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '48%' },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: '30%' },
   top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { minWidth: 70 },
   round: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
