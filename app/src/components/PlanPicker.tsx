@@ -183,10 +183,8 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
       )}
       <Text style={styles.terms}>
         {total(plan)} {per}. Renews automatically. Cancel anytime.
-        {'\n'}
-        {PAYMENTS_ON
-          ? 'Charged to your Apple ID (or card, on the web) when you confirm. Renews unless cancelled at least 24 hours before the period ends; manage it in your account settings.'
-          : 'Free during the beta: you won’t be charged.'}
+        {PAYMENTS_ON &&
+          '\nCharged to your Apple ID (or card, on the web) when you confirm. Renews unless cancelled at least 24 hours before the period ends; manage it in your account settings.'}
       </Text>
       <View style={styles.links}>
         <Text style={styles.link} onPress={() => openLegal('terms')}>
@@ -257,9 +255,9 @@ const styles = StyleSheet.create({
   sub: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },
   plan: { borderRadius: 18, borderWidth: 1.5, borderColor: '#E3E3E8', padding: 16, gap: 10, backgroundColor: '#fff' },
   planOn: { borderColor: theme.blueLine },
-  // CutAI's: a blue pill on the card's top edge, dark navy capitals.
+  // A blue pill on the card's top edge, white capitals.
   badge: { position: 'absolute', top: -11, alignSelf: 'center', backgroundColor: theme.blue, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { color: '#0A1A33', fontSize: 11, ...UI_FONT.semibold, letterSpacing: 0.4 },
+  badgeText: { color: '#fff', fontSize: 11, ...UI_FONT.semibold, letterSpacing: 0.4 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
   radioOn: { backgroundColor: theme.blue, borderColor: theme.blue },

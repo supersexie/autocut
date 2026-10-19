@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
   tools: { gap: 6, paddingHorizontal: 8 },
   toolsCentered: { flexGrow: 1, justifyContent: 'center' },
   tool: { alignItems: 'center', gap: 4, minWidth: 58, paddingVertical: 2 },
-  toolText: { fontSize: 10, color: theme.ink, ...UI_FONT.semibold },
+  toolText: { fontSize: 11, color: theme.ink, ...UI_FONT.bold },
   toolDivider: { width: 1, height: 30, borderRadius: 0.5, backgroundColor: 'rgba(17,17,20,0.12)', alignSelf: 'center', marginHorizontal: 4 },
   sheet: { flex: 1, backgroundColor: '#fff' },
   sheetHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingBottom: 4 },
