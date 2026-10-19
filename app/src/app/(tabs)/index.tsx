@@ -246,11 +246,11 @@ export default function CreateScreen() {
   };
   // The tour of the main sections (shown once, or when they asked to be shown around).
   const TOUR = [
-    { title: 'Record your take', body: 'Tap to record. Flub a line? Just say it again. Autocut keeps your best take and cuts the rest.', target: tourTargets[0], round: true, cta: 'Next' },
-    { title: 'Already filmed it?', body: 'Pick one video, or several clips to combine into one. It gets the same cut.', target: tourTargets[1], cta: 'Next' },
-    { title: 'Your cuts', body: 'Every video lands here, cut and captioned. Tap one to fine-tune it in the editor, then export.', target: tabAt(1), cta: 'Next' },
-    { title: 'A week of videos at once', body: 'Add several videos, each from its own clips, and edit them all in one go. Pro and Ultimate can schedule them.', target: tabAt(2), cta: 'Next' },
-    { title: 'Your plan and settings', body: 'See how many edits you have left, change your plan, and tune how Autocut cuts.', target: tabAt(3), cta: 'Let’s go' },
+    { title: 'Record your take', accent: 'take', body: 'Tap to record. Flub a line? Just say it again. Autocut keeps your best take and cuts the rest.', target: tourTargets[0], round: true, cta: 'Next' },
+    { title: 'Already filmed it?', accent: 'filmed', body: 'Pick one video, or several clips to combine into one. It gets the same cut.', target: tourTargets[1], cta: 'Next' },
+    { title: 'Your cuts', accent: 'cuts', body: 'Every video lands here, cut and captioned. Tap one to fine-tune it in the editor, then export.', target: tabAt(1), cta: 'Next' },
+    { title: 'A week of videos at once', accent: 'week', body: 'Add several videos, each from its own clips, and edit them all in one go. Pro and Ultimate can schedule them.', target: tabAt(2), cta: 'Next' },
+    { title: 'Your plan and settings', accent: 'plan', body: 'See how many edits you have left, change your plan, and tune how Autocut cuts.', target: tabAt(3), cta: 'Let’s go' },
   ];
 
   if (!camPermission) return <View style={styles.black} />;

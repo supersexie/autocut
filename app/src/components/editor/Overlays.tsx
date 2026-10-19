@@ -510,7 +510,8 @@ export function CoverPicker({ clips, sourceUri, value, onDone, onCancel }: { cli
 }
 
 /** `round`: the spotlight is a circle (for round buttons) instead of a rounded square. */
-export type TourStep = { title: string; body: string; target?: LayoutRectangle; cta: string; round?: boolean };
+/** `accent`: the word (or words) of the title shown in blue. */
+export type TourStep = { title: string; accent?: string; body: string; target?: LayoutRectangle; cta: string; round?: boolean };
 
 const roundedRect = (x: number, y: number, w: number, h: number, r: number) =>
   `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${x + w - r} ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
@@ -541,7 +542,17 @@ export function Tour({ steps, index, onNext, onSkip }: { steps: TourStep[]; inde
       <View style={[styles.holeRing, { left: hole.x, top: hole.y, width: hole.w, height: hole.h, borderRadius: radius }]} pointerEvents="none" />
       <Animated.View key={index} entering={FadeIn.duration(220)} style={[styles.tourCard, { left: cardLeft, width: cardW }, cardAbove ? { bottom: height - hole.y + 12 } : { top: hole.y + hole.h + 12 }]}>
         <View style={styles.between}>
-          <Text style={styles.tourTitle}>{s.title}</Text>
+          <Text style={styles.tourTitle}>
+            {s.accent && s.title.includes(s.accent) ? (
+              <>
+                {s.title.slice(0, s.title.indexOf(s.accent))}
+                <Text style={{ color: theme.blue }}>{s.accent}</Text>
+                {s.title.slice(s.title.indexOf(s.accent) + s.accent.length)}
+              </>
+            ) : (
+              s.title
+            )}
+          </Text>
           <Text style={styles.tourCount}>
             {index + 1}/{steps.length}
           </Text>
@@ -614,11 +625,11 @@ const styles = StyleSheet.create({
   guideH: { position: 'absolute', left: 0, right: 0, top: '50%', height: 1, marginTop: -0.5, backgroundColor: 'rgba(255,255,255,0.85)' },
   zoomBadge: { position: 'absolute', top: 12, alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4 },
   zoomText: { color: '#fff', fontSize: 13, fontFamily: JAKARTA.bold, fontVariant: ['tabular-nums'] },
-  holeRing: { position: 'absolute', borderRadius: 14, borderWidth: 2, borderColor: '#fff' },
+  holeRing: { position: 'absolute', borderRadius: 14, borderWidth: 2, borderColor: '#9DB3FF' },
   tourCard: { position: 'absolute', backgroundColor: '#fff', borderRadius: 18, padding: 16, gap: 8, shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 20, shadowOffset: { width: 0, height: 8 } },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   tourTitle: { fontSize: 16, fontFamily: JAKARTA.bold, color: theme.ink },
-  tourCount: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.faint },
+  tourCount: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.blue },
   tourBody: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 20 },
   tourSkip: { fontSize: 14, color: theme.muted, fontFamily: JAKARTA.medium },
   tourBtn: { backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 18, paddingVertical: 9 },

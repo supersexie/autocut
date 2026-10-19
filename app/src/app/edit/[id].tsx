@@ -270,9 +270,9 @@ export function Editor({ cut }: { cut: CutRecord }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const tourSteps: TourStep[] = [
-    { title: 'Your cut, clip by clip', body: 'Drag to scrub, pinch to zoom. Tap a clip, then pull its edges to trim. Hold a clip to reorder.', target: targets.timeline, cta: 'Next' },
-    { title: 'The toolbox', body: 'Split or delete clips, add text and captions, change volume and speed.', target: targets.toolbar, cta: 'Next' },
-    { title: 'When it looks right', body: 'Export renders your cut and saves it to Photos.', target: targets.export, cta: 'Got it' },
+    { title: 'Your cut, clip by clip', accent: 'clip by clip', body: 'Drag to scrub, pinch to zoom. Tap a clip, then pull its edges to trim. Hold a clip to reorder.', target: targets.timeline, cta: 'Next' },
+    { title: 'The toolbox', accent: 'toolbox', body: 'Split or delete clips, add text and captions, change volume and speed.', target: targets.toolbar, cta: 'Next' },
+    { title: 'When it looks right', accent: 'right', body: 'Export renders your cut and saves it to Photos.', target: targets.export, cta: 'Got it' },
   ];
   const endTour = () => {
     setTour(-1);
