@@ -34,7 +34,7 @@ export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: (
             <Pressable onPress={() => setNaming(false)} hitSlop={10}>
               <Text style={styles.link}>Back</Text>
             </Pressable>
-            <Text style={styles.title}>New folder</Text>
+            <Text style={styles.title}>New <Text style={{ color: theme.blue }}>folder</Text></Text>
             <Pressable onPress={create} disabled={!name.trim()} hitSlop={10}>
               <Text style={[styles.link, styles.strong, !name.trim() && { color: theme.faint }]}>Create</Text>
             </Pressable>
@@ -54,7 +54,7 @@ export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: (
       ) : (
         <>
           <View style={styles.head}>
-            <Text style={[styles.title, { textAlign: 'left' }]}>Save new videos to</Text>
+            <Text style={[styles.title, { textAlign: 'left' }]}>Save new <Text style={{ color: theme.blue }}>videos</Text> to</Text>
             <Pressable onPress={onClose} hitSlop={10}>
               <Text style={styles.link}>Cancel</Text>
             </Pressable>
@@ -109,7 +109,7 @@ export function AddVideoSheet({ visible, onClose, onPick }: { visible: boolean; 
         setChosen(null);
       }}
     >
-      <Text style={[styles.title, { textAlign: 'left', marginBottom: 14 }]}>Add video</Text>
+      <Text style={[styles.title, { textAlign: 'left', marginBottom: 14 }]}>Add <Text style={{ color: theme.blue }}>video</Text></Text>
       <View style={{ gap: 10 }}>
         <Option icon="play.rectangle.fill" dark label="Single clip" detail="Quickly cut one video" onPress={() => choose('single')} />
         <Option icon="square.stack.3d.up.fill" label="Multiple clips" detail="Combine your takes into one video" onPress={() => choose('multiple')} />

@@ -77,12 +77,12 @@ export default function YouScreen() {
           </View>
           <View style={styles.stats}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.statValue}>{exported}</Text>
+              <Text style={[styles.statValue, { color: theme.blue }]}>{exported}</Text>
               <Text style={styles.statLabel}>Videos exported</Text>
               <Text style={styles.statNote}>From this {DEVICE}</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.statValue}>{made}</Text>
+              <Text style={[styles.statValue, { color: theme.blue }]}>{made}</Text>
               <Text style={styles.statLabel}>Cuts made</Text>
             </View>
           </View>
@@ -93,7 +93,7 @@ export default function YouScreen() {
             <View style={styles.emptyIcon}>
               <SymbolView name="film.stack" tintColor={theme.muted} size={26} />
             </View>
-            <Text style={styles.emptyTitle}>Your cuts show up here</Text>
+            <Text style={styles.emptyTitle}>Your <Text style={{ color: theme.blue }}>cuts</Text> show up here</Text>
             <Text style={styles.emptyBody}>Record a few takes and Autocut turns them into a post-ready cut.</Text>
             <Button kind="outline" title="Start recording" onPress={() => router.navigate('/')} style={{ paddingHorizontal: 26, minHeight: 46 }} />
           </View>

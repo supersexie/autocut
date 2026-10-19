@@ -258,7 +258,7 @@ export default function CreateScreen() {
     return (
       <View style={[styles.black, styles.center, { padding: 32, gap: 14 }]}>
         <SymbolView name="camera.fill" tintColor="#fff" size={36} />
-        <Text style={styles.permTitle}>Film your take here</Text>
+        <Text style={styles.permTitle}>Film your <Text style={{ color: theme.blue }}>take</Text> here</Text>
         <Text style={styles.permBody}>Autocut needs your camera and microphone to record. Or import a video you already have.</Text>
         <Button
           title={camPermission.canAskAgain ? 'Allow camera' : 'Open Settings'}

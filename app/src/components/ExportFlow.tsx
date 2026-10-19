@@ -367,7 +367,7 @@ function Done({ file, saved, assetId, aspect, onClose }: { file: string; saved: 
     <View style={[styles.done, { paddingTop: insets.top + 8, paddingBottom: insets.bottom + 12 }]}>
       <View style={styles.doneHead}>
         <View style={{ width: 50 }} />
-        <Text style={styles.doneTitle}>Your cut is ready</Text>
+        <Text style={styles.doneTitle}>Your cut is <Text style={{ color: theme.blue }}>ready</Text></Text>
         <Pressable onPress={onClose} hitSlop={10} style={{ width: 50, alignItems: 'flex-end' }}>
           <Text style={styles.doneLink}>Done</Text>
         </Pressable>

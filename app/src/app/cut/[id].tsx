@@ -117,7 +117,7 @@ export function CuttingView({ id }: { id: string }) {
       <Backdrop>
         <View style={{ height: 32 }} />
         <Animated.Text entering={FadeIn.duration(200)} style={styles.title}>
-          Your cut is ready
+          Your cut is <Text style={{ color: theme.blue }}>ready</Text>
         </Animated.Text>
         {/* No fade: the card stays put from the cutting screen, its border already full. */}
         <View style={{ marginTop: 24 }}>

@@ -165,7 +165,7 @@ export default function CutsScreen() {
             <View style={styles.emptyIcon}>
               <SymbolView name="folder" tintColor={theme.muted} size={26} />
             </View>
-            <Text style={styles.emptyTitle}>Nothing in {current.name} yet</Text>
+            <Text style={styles.emptyTitle}>Nothing in <Text style={{ color: theme.blue }}>{current.name}</Text> yet</Text>
             <Text style={styles.emptyBody}>Hold a cut and choose Move to folder, or pick this folder on the camera before you record.</Text>
           </View>
         )}
@@ -175,7 +175,7 @@ export default function CutsScreen() {
             <View style={styles.emptyIcon}>
               <SymbolView name="film.stack" tintColor={theme.muted} size={26} />
             </View>
-            <Text style={styles.emptyTitle}>No cuts yet</Text>
+            <Text style={styles.emptyTitle}>No <Text style={{ color: theme.blue }}>cuts</Text> yet</Text>
             <Text style={styles.emptyBody}>Film or upload on the Create tab and your first cut lands here.</Text>
             <Button kind="outline" title="Start recording" onPress={() => router.navigate('/')} style={{ paddingHorizontal: 26, minHeight: 46 }} />
           </View>
