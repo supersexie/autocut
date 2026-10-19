@@ -2,18 +2,12 @@ import { SymbolView } from 'expo-symbols';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import Svg, { Defs, LinearGradient as SvgGradient, Rect, Stop } from 'react-native-svg';
-import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PreAppFont, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
 import { BRAND_FONT, JAKARTA } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
-
-/** The answers' icons, in CutAI's blue on a pale blue tile (white on the blue when picked). */
-const ICON_BLUE = '#228BE5';
-const ICON_TILE = '#E0EEFA';
 
 /** A highlighted word in a title ("Pro fits how you post.", "50% of your day"). */
 export const HIGHLIGHT = theme.blue;
@@ -97,82 +91,20 @@ export function OnbTitle({ children, sub, center }: { children: ReactNode; sub?:
 }
 
 /**
- * One answer: a white card with its icon on a tile like the Autocut logo's. Picked, it takes an outline
- * like the logo's too (graphite, silver at two corners) and a check. Cards slide in one after another when the question appears.
+ * One answer: a white card with a blue icon on a pale blue tile (like the tips'). Picked, it takes a
+ * thin light blue line and a blue check. Cards slide in one after another when the question appears.
  */
 export function Choice({ label, icon, bars, selected, onPress, index }: { label: string; icon?: SymbolName; bars?: number; selected: boolean; onPress: () => void; index: number }) {
-  const [size, setSize] = useState({ w: 0, h: 0 });
   return (
-    <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-      <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={styles.choice}>
-        {selected && size.w > 0 && <SilverOutline w={size.w} h={size.h} />}
-        {bars != null ? (
-          <View style={[styles.tile, selected && { backgroundColor: ICON_BLUE }]}>
-            <Bars level={bars} on={selected} />
-          </View>
-        ) : (
-          icon && <SilverTile icon={icon} />
-        )}
+    <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)}>
+      <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={[styles.choice, selected && styles.choiceOn]}>
+        <View style={[styles.tile, selected && styles.tileOn]}>
+          {bars != null ? <Bars level={bars} on={false} /> : icon && <SymbolView name={icon} tintColor={theme.blue} size={18} />}
+        </View>
         <Text style={styles.choiceLabel}>{label}</Text>
-        {selected && <SymbolView name="checkmark" tintColor={GRAPHITE} size={15} weight="semibold" />}
+        {selected && <SymbolView name="checkmark" tintColor={theme.blue} size={15} weight="semibold" />}
       </PressableScale>
     </Animated.View>
-  );
-}
-
-const GRAPHITE = '#1D1A23';
-
-/** The picked answer's outline, like the logo: graphite, with silver catching the top-left and bottom-right corners. */
-function SilverOutline({ w, h }: { w: number; h: number }) {
-  return (
-    // Drawn over the card's own (clear) border, so it lines up with the card's edge.
-    <Animated.View entering={FadeIn.duration(160)} pointerEvents="none" style={{ position: 'absolute', top: -1.5, left: -1.5, width: w, height: h }}>
-      <Svg width={w} height={h}>
-        <Defs>
-          <SvgGradient id="edge" x1="0" y1="0" x2={w} y2={h} gradientUnits="userSpaceOnUse">
-            <Stop offset="0" stopColor="#A9A9B4" />
-            <Stop offset="0.16" stopColor={GRAPHITE} />
-            <Stop offset="0.84" stopColor={GRAPHITE} />
-            <Stop offset="1" stopColor="#9A9AA5" />
-          </SvgGradient>
-        </Defs>
-        <Rect x={1} y={1} width={w - 2} height={h - 2} rx={15} fill="none" stroke="url(#edge)" strokeWidth={2} />
-      </Svg>
-    </Animated.View>
-  );
-}
-
-const TILE = 38;
-
-/**
- * An answer's icon on a tile like the Autocut logo: the dark #1D1A23 tile, faded silver on the
- * top-left and bottom-right corners, and the white icon shading to soft grey towards the bottom right
- * (a soft shade over the tile, since symbols take one colour).
- */
-function SilverTile({ icon }: { icon: SymbolName }) {
-  return (
-    <View style={styles.silverTile}>
-      <SymbolView name={icon} tintColor="#FFFFFF" size={18} />
-      <LinearGradient
-        pointerEvents="none"
-        colors={['rgba(29,26,35,0)', 'rgba(29,26,35,0)', 'rgba(29,26,35,0.42)']}
-        locations={[0, 0.45, 1]}
-        start={{ x: 0.2, y: 0.1 }}
-        end={{ x: 0.85, y: 0.95 }}
-        style={StyleSheet.absoluteFill}
-      />
-      <Svg pointerEvents="none" width={TILE} height={TILE} style={StyleSheet.absoluteFill}>
-        <Defs>
-          <SvgGradient id="rim" x1="0" y1="0" x2="1" y2="1">
-            <Stop offset="0" stopColor="#FFFFFF" stopOpacity="0.95" />
-            <Stop offset="0.32" stopColor="#B9B9C2" stopOpacity="0" />
-            <Stop offset="0.68" stopColor="#B9B9C2" stopOpacity="0" />
-            <Stop offset="1" stopColor="#E6E6EC" stopOpacity="0.85" />
-          </SvgGradient>
-        </Defs>
-        <Rect x={0.75} y={0.75} width={TILE - 1.5} height={TILE - 1.5} rx={10.25} fill="none" stroke="url(#rim)" strokeWidth={1.5} />
-      </Svg>
-    </View>
   );
 }
 
@@ -266,12 +198,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 32, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 38 },
   sub: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted },
   choice: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, borderColor: 'transparent', paddingHorizontal: 14, paddingVertical: 13,
+    flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: 'transparent', paddingHorizontal: 14, paddingVertical: 13,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
-  tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: ICON_TILE, alignItems: 'center', justifyContent: 'center' },
+  tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: 'rgba(61,107,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  choiceOn: { borderColor: 'rgba(61,107,255,0.4)' },
+  tileOn: { backgroundColor: 'rgba(61,107,255,0.16)' },
   choiceLabel: { flex: 1, fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.2 },
-  silverTile: { width: TILE, height: TILE, borderRadius: 11, backgroundColor: '#1D1A23', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 18 },
   bar: { width: 3.5, borderRadius: 1.5 },
   track: { height: KNOB + 8, justifyContent: 'center' },
