@@ -25,6 +25,9 @@ export type Profile = {
   goal?: string;
   editorCost?: string;
   perWeek?: string;
+  /** Videos a day and minutes editing each, from setup's sliders. */
+  perDay?: number;
+  editMinutes?: number;
   plan?: PlanId;
   billing?: Billing;
   onboarded?: boolean;
@@ -62,7 +65,7 @@ export const NOT_CONFIGURED = "Accounts aren't connected yet. Add your Supabase 
 // Profile fields live in the Supabase user's metadata, so no extra tables are needed.
 const KEYS: Record<keyof Profile, string> = {
   firstName: 'first_name', lastName: 'last_name', language: 'language', handle: 'handle',
-  tour: 'tour', editorTour: 'editor_tour', who: 'who', goal: 'goal', editorCost: 'editor_cost', perWeek: 'per_week', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
+  tour: 'tour', editorTour: 'editor_tour', who: 'who', goal: 'goal', editorCost: 'editor_cost', perWeek: 'per_week', perDay: 'per_day', editMinutes: 'edit_minutes', plan: 'plan', billing: 'billing', onboarded: 'onboarded',
   termsVersion: 'terms_version', aiConsent: 'ai_consent',
 };
 const toMetadata = (p: Profile) =>

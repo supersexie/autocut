@@ -1,14 +1,16 @@
 import { SymbolView } from 'expo-symbols';
-import { useEffect, type ReactNode } from 'react';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { FadeInDown, interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Logo, PressableScale, Wash, WASH, type SymbolName } from './ui';
 import { BRAND_FONT } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
-/** A highlighted word in a title ("Pro fits how you post.", "15 months"). */
-export const HIGHLIGHT = '#8E8E95';
+/** A highlighted word in a title ("Pro fits how you post.", "50% of your day"). */
+export const HIGHLIGHT = theme.blue;
 
 /** A setup screen: blue wash, the header, scrolling content and a footer above the home indicator. */
 export function OnbScreen({ header, children, footer, scroll = true }: { header: ReactNode; children: ReactNode; footer?: ReactNode; scroll?: boolean }) {
@@ -122,6 +124,71 @@ function Bars({ level, on }: { level: number; on: boolean }) {
   );
 }
 
+const KNOB = 30;
+
+/**
+ * A slider that snaps to `stops` places, like CutAI's: a dotted track, filled in blue up to a white
+ * knob. Drag anywhere on it or tap a spot; each new stop gives a light tick.
+ */
+export function StepSlider({ stops, index, onChange, left, right }: { stops: number; index: number; onChange: (i: number) => void; left: string; right: string }) {
+  const [w, setW] = useState(0);
+  const usable = Math.max(1, w - KNOB);
+  const move = (x: number) => {
+    const i = Math.round(Math.max(0, Math.min(1, (x - KNOB / 2) / usable)) * (stops - 1));
+    if (i !== index) {
+      Haptics.selectionAsync();
+      onChange(i);
+    }
+  };
+  // On the JS thread: it only sets state, a few times per drag.
+  const drag = Gesture.Pan().runOnJS(true).minDistance(0).onBegin((e) => move(e.x)).onUpdate((e) => move(e.x));
+  const knobX = (index / (stops - 1)) * usable;
+  return (
+    <View>
+      <GestureDetector gesture={drag}>
+        <View
+          style={styles.track}
+          onLayout={(e) => setW(e.nativeEvent.layout.width)}
+          accessibilityRole="adjustable"
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(e) => onChange(Math.max(0, Math.min(stops - 1, index + (e.nativeEvent.actionName === 'increment' ? 1 : -1))))}
+        >
+          <View pointerEvents="none" style={[styles.rail, { left: KNOB / 2, right: KNOB / 2 }]}>
+            <View style={[styles.railFill, { width: w ? knobX : 0 }]} />
+            {w > 0 &&
+              Array.from({ length: stops }, (_, i) => (
+                <View key={i} style={[styles.tick, { left: (i / (stops - 1)) * usable - 2, backgroundColor: i <= index ? '#fff' : 'rgba(17,17,20,0.18)' }]} />
+              ))}
+          </View>
+          {w > 0 && <View pointerEvents="none" style={[styles.knob, { left: knobX }]} />}
+        </View>
+      </GestureDetector>
+      <View style={styles.ends}>
+        <Text style={styles.end}>{left}</Text>
+        <Text style={styles.end}>{right}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** A short, true note under a question, where CutAI shows a review (Autocut has none to show yet). */
+export function Tip({ icon, children }: { icon: SymbolName; children: ReactNode }) {
+  return (
+    <View style={styles.tipCard}>
+      <View style={styles.tipIcon}>
+        <SymbolView name={icon} tintColor={theme.blue} size={15} />
+      </View>
+      <Text style={styles.tipText}>{children}</Text>
+    </View>
+  );
+}
+
+/** The white card a setup screen's numbers sit on. */
+export const onbCard = {
+  backgroundColor: '#fff', borderRadius: 20, padding: 18,
+  shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
+} as const;
+
 const styles = StyleSheet.create({
   headRow: { flexDirection: 'row', alignItems: 'center', height: 48 },
   side: { width: 80 },
@@ -141,4 +208,19 @@ const styles = StyleSheet.create({
   choiceLabel: { flex: 1, fontSize: 17, fontWeight: '600', color: theme.ink, letterSpacing: -0.2 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 18 },
   bar: { width: 3.5, borderRadius: 1.5 },
+  track: { height: KNOB + 8, justifyContent: 'center' },
+  rail: { position: 'absolute', height: 8, borderRadius: 4, backgroundColor: '#EEF0F6', top: (KNOB + 8) / 2 - 4 },
+  railFill: { position: 'absolute', left: 0, top: 0, bottom: 0, borderRadius: 4, backgroundColor: theme.blue },
+  tick: { position: 'absolute', top: 2, width: 4, height: 4, borderRadius: 2 },
+  knob: {
+    position: 'absolute', top: 4, width: KNOB, height: KNOB, borderRadius: KNOB / 2, backgroundColor: '#fff', borderWidth: 1, borderColor: 'rgba(17,17,20,0.08)',
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 2 },
+  },
+  ends: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  end: { fontSize: 12, color: theme.muted },
+  tipCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 16, padding: 14, marginTop: 16,
+  },
+  tipIcon: { width: 32, height: 32, borderRadius: 10, backgroundColor: 'rgba(61,107,255,0.1)', alignItems: 'center', justifyContent: 'center' },
+  tipText: { flex: 1, fontSize: 14, lineHeight: 19, color: theme.ink },
 });

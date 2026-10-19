@@ -11,6 +11,7 @@ export const theme = {
   tint: 'rgba(17,17,20,0.06)', // soft fill behind icons and selected tracks
   disabled: '#C7C7CC',
   cut: '#F2545B',
+  blue: '#3D6BFF', // highlights in setup: charts, the ring, sliders, a word in a title (the website's blue)
   ok: '#2FB463',
   danger: '#D93B3B',
 };

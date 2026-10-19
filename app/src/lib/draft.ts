@@ -11,7 +11,9 @@ export type Draft = {
   who?: string;
   goal?: string;
   editorCost?: string; // an EDITOR_COSTS value
-  perWeek?: string; // a PER_WEEK value
+  perWeek?: string; // a PER_WEEK value (worked out from perDay now)
+  perDay?: number; // videos a day, from the slider (a week's worth / 7 for under one a day)
+  editMinutes?: number; // minutes they spend editing one video
   language?: Language;
   firstName?: string;
   lastName?: string;
@@ -56,6 +58,6 @@ export const useDraft = () =>
 /** The setup answers that belong on the profile, without the empty ones. */
 export function profileFromDraft(d: Draft = draft): Profile {
   return Object.fromEntries(
-    Object.entries({ who: d.who, goal: d.goal, editorCost: d.editorCost, perWeek: d.perWeek, language: d.language }).filter(([, v]) => v)
+    Object.entries({ who: d.who, goal: d.goal, editorCost: d.editorCost, perWeek: d.perWeek, perDay: d.perDay, editMinutes: d.editMinutes, language: d.language }).filter(([, v]) => v)
   );
 }

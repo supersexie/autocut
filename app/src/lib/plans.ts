@@ -61,13 +61,49 @@ export const hoursBack = (perWeek?: string) => (videosPerWeek(perWeek) * (BY_HAN
 
 const ORDER: PlanId[] = ['starter', 'pro', 'ultimate'];
 
-/** The plan to suggest from what they spend on editing now, and enough edits for how much they post. */
-export function recommendedPlan(editorCost?: string, perWeek?: string): PlanId {
+/**
+ * The plan to suggest: enough edits for how much they post (`perDay` from setup's slider, or the older
+ * `perWeek` answer), and no smaller than what they spend on an editor now (accounts from before).
+ */
+export function recommendedPlan(editorCost?: string, perWeek?: string, perDay?: number): PlanId {
   const spend = editorMonthly(editorCost);
   const bySpend: PlanId = !spend || spend < 500 ? 'starter' : spend >= 1000 ? 'ultimate' : 'pro';
-  const monthly = videosPerWeek(perWeek) * 4.3;
+  const monthly = perDay ? perDay * DAYS_A_MONTH : videosPerWeek(perWeek) * 4.3;
   const byVolume: PlanId = monthly > 250 ? 'ultimate' : monthly > 80 ? 'pro' : 'starter';
   return ORDER[Math.max(ORDER.indexOf(bySpend), ORDER.indexOf(byVolume))];
+}
+
+export const DAYS_A_MONTH = 365 / 12;
+
+/** Setup's "How many videos are you currently posting?" slider, from 1 a week to 10 or more a day. */
+export const VOLUME_STOPS = [
+  ...[1, 2, 3, 4, 5, 6].map((n) => ({ n, unit: 'a week', perDay: n / 7 })),
+  ...[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({ n, unit: 'a day', perDay: n })),
+  { n: 10, unit: 'or more a day', perDay: 10 },
+];
+
+/** Setup's "How long do you spend editing?" slider: minutes per video, from 5 minutes to 4+ hours. */
+export const EDIT_STOPS = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240];
+
+/** What a freelance editor charges for one short video (US dollars), for "vs. hiring an editor". */
+export const EDITOR_PER_VIDEO = 15;
+
+/** The older "videos a week" answer for a `perDay` from the slider, so saved profiles stay readable. */
+export const perWeekFor = (perDay: number) => {
+  const week = perDay * 7;
+  return week <= 3 ? '1-3' : week <= 7 ? '4-7' : week <= 15 ? '8-15' : '15+';
+};
+
+/**
+ * What setup works out from the two sliders. Hours are per day. With Autocut a video takes about
+ * AUTOCUT_MINUTES (send it, check the cut, export); `editor` is what hiring one would cost a month.
+ */
+export function editingNumbers(perDay: number, minutes: number, autocutMonthly: number) {
+  const spent = (perDay * minutes) / 60;
+  const saved = (perDay * Math.max(0, minutes - AUTOCUT_MINUTES)) / 60;
+  const videosAMonth = perDay * DAYS_A_MONTH;
+  const editor = videosAMonth * EDITOR_PER_VIDEO;
+  return { spent, saved, videosAMonth, editor, savedMoney: Math.max(0, editor - autocutMonthly) };
 }
 
 /** $49.99, $1,500 — cents only when there are some. */

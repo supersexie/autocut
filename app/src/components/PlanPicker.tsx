@@ -10,7 +10,7 @@ import { openLegal } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { applePrices, buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type ApplePrice, type Ways } from '../lib/billing';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
-import { FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
+import { DAYS_A_MONTH, FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
 import { BRAND_FONT } from '../lib/fonts';
 import { column, COLUMN, midSentence, theme } from '../lib/theme';
 
@@ -27,7 +27,8 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
   const { account, updateProfile, signOut } = useAuth();
   const changing = mode === 'change';
   const current = account?.profile.plan;
-  const best = recommendedPlan(getDraft().editorCost ?? account?.profile.editorCost, getDraft().perWeek ?? account?.profile.perWeek);
+  const perDay = getDraft().perDay ?? account?.profile.perDay;
+  const best = recommendedPlan(getDraft().editorCost ?? account?.profile.editorCost, getDraft().perWeek ?? account?.profile.perWeek, perDay);
   // New users start on yearly, the price the setup's savings were worked out with.
   const [billing, setBilling] = useState<Billing>(account?.profile.billing ?? getDraft().billing ?? (changing ? 'monthly' : 'yearly'));
   const [plan, setPlan] = useState<PlanId>(current ?? getDraft().plan ?? best);
@@ -85,7 +86,9 @@ export function PlanPicker({ mode, header, onDone }: { mode: 'setup' | 'onboardi
         <Text style={{ color: HIGHLIGHT }}>{chosen.name}</Text> fits how you post.
       </Text>
       <Text style={styles.sub}>
-        Everything your editor does, for a fraction of the price: {sentence([chosen.edits, ...chosen.features, 'captions'].map(midSentence))}.
+        {perDay && !changing
+          ? `You post about ${Math.round(perDay * DAYS_A_MONTH)} videos a month. ${chosen.name} gives you ${midSentence(chosen.edits)}.`
+          : `Everything your editor does, for a fraction of the price: ${sentence([chosen.edits, ...chosen.features, 'captions'].map(midSentence))}.`}
       </Text>
     </>
   );
