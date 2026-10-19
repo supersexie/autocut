@@ -575,7 +575,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
   const hours = n.spent * 365;
   const days = Math.min(365, hours / 24);
   const back = Math.round((n.saved * 365) / 24);
-  const lowest = pricePerMonth(PLANS[0], 'yearly');
+  const lowest = PLANS[0].monthly; // Starter, paid monthly
   const count = Math.max(1, Math.round(days * p));
   return (
     <OnbScreen header={header} footer={<Button title="See my plan  →" onPress={onNext} />}>
@@ -586,7 +586,7 @@ function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft
         <Text style={styles.lifeSub}>That’s {Math.round(hours).toLocaleString('en-US')} hours, around the clock.</Text>
         <YearBar days={days} />
         <Text style={styles.lifeLine}>
-          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{back >= 1 ? `${back} day${back === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> of it back, from {money(lowest)} a month billed yearly.
+          Autocut hands you <Text style={{ color: HIGHLIGHT }}>{back >= 1 ? `${back} day${back === 1 ? '' : 's'}` : `${Math.round(n.saved * 365)} hours`}</Text> of it back, from {money(lowest)} a month.
         </Text>
       </Animated.View>
     </OnbScreen>
