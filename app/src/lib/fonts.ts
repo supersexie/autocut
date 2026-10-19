@@ -1,6 +1,7 @@
 // The caption/text fonts, registered under the same family names the server's ASS styles use.
 export const CAPTION_FONTS = {
-  'TikTok Sans Bold': require('../../assets/fonts/TikTokSans-Bold.ttf'),
+  'TikTok Sans Bold': require('../../assets/fonts/TikTokSans-Bold.ttf'), // earlier projects
+  'TikTok Sans SemiBold': require('../../assets/fonts/TikTokSans-SemiBold.ttf'), // the default, as in CutAI
   Inter: require('../../assets/fonts/Inter-Bold.ttf'),
   'Inter ExtraBold': require('../../assets/fonts/Inter-ExtraBold.ttf'),
   'Inter Black': require('../../assets/fonts/Inter-Black.ttf'),
@@ -43,4 +44,4 @@ export const APP_FONTS = {
 };
 
 /** Fonts offered for text overlays (the A button in the text editor). */
-export const TEXT_FONTS = ['TikTok Sans Bold', 'Playfair Display Regular', 'Abel', 'Zilla Slab Bold Italic', 'Luckiest Guy', 'Fredoka SemiBold', 'Roboto Condensed Bold', 'Montserrat Black', 'Anton'];
+export const TEXT_FONTS = ['TikTok Sans SemiBold', 'Playfair Display Regular', 'Abel', 'Zilla Slab Bold Italic', 'Luckiest Guy', 'Fredoka SemiBold', 'Roboto Condensed Bold', 'Montserrat Black', 'Anton'];

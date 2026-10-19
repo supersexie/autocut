@@ -5,7 +5,7 @@ Fredoka, Abel and Zilla Slab.
 
 Luckiest Guy is from Google Fonts under the Apache License 2.0 (in LuckiestGuy-Apache-2.0.txt).
 
-TikTok Sans Bold (the default caption and text font) is by TikTok, also under the SIL Open Font
+TikTok Sans SemiBold (the default caption and text font) and Bold (earlier projects) is by TikTok, also under the SIL Open Font
 License 1.1; its licence is in TikTokSans-OFL.txt.
 
 The app also bundles Bricolage Grotesque ExtraBold (app/assets/fonts) for the "Autocut" wordmark, from Google Fonts under the same licence.

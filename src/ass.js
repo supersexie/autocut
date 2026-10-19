@@ -13,6 +13,7 @@ const FONT_SCALE = 0.085; // font size as a share of the width, for size 1
 // ratio, read from its file, scales Fontsize so the export matches what the editor shows.
 const FONT_FILES = {
   'TikTok Sans Bold': 'TikTokSans-Bold.ttf',
+  'TikTok Sans SemiBold': 'TikTokSans-SemiBold.ttf',
   Inter: 'Inter-Bold.ttf',
   'Inter ExtraBold': 'Inter-ExtraBold.ttf',
   'Inter Black': 'Inter-Black.ttf',
@@ -82,7 +83,7 @@ function styleLine(name, s, playResY, alignment, marginV) {
     assColor('#000000', 0x80),
     s.bold ? -1 : 0, s.italic ? -1 : 0, 0, 0, 100, 100, 0, s.rotate ?? 0,
     boxed ? 3 : 1, s.outlineWidth ?? 0, s.shadow ?? 0,
-    alignment, 60, 60, marginV, 1,
+    alignment, 38, 38, marginV, 1, // 93% of the width for the text, like CutAI (and the app: 0.93)
   ].join(',');
 }
 

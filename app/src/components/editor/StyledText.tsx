@@ -94,7 +94,7 @@ export function StyledText({ preset, words, active = -1, frameWidth, scale = 1, 
   return (
     <View
       style={[
-        { alignSelf: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center', maxWidth: frameWidth * 0.88 },
+        { alignSelf: align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center', maxWidth: frameWidth * 0.93 },
         p.rotate ? { transform: [{ rotate: `${-p.rotate}deg` }] } : null,
         p.box ? { backgroundColor: p.box, paddingHorizontal: outline, paddingVertical: outline * 0.35, borderRadius: outline * 0.6 } : null,
         style,

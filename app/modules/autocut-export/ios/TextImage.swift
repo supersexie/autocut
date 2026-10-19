@@ -76,7 +76,7 @@ enum TextImage {
     if let r = activeRange { attributed.addAttribute(activeKey, value: true, range: r) }
 
     // Lines broken to fit 88% of the frame's width, like the preview.
-    let maxText = max(fontSize, frameWidth * 0.88 - 2 * padH - (boxed ? 2 * outline : 0))
+    let maxText = max(fontSize, frameWidth * 0.93 - 2 * padH - (boxed ? 2 * outline : 0))
     let typesetter = CTTypesetterCreateWithAttributedString(attributed)
     var lines: [Line] = []
     var at = 0
