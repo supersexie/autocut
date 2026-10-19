@@ -9,6 +9,10 @@ import { Logo, PressableScale, SOFT_WASH, Wash, type SymbolName } from './ui';
 import { BRAND_FONT, JAKARTA } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
+/** The answers' icons, in CutAI's blue on a pale blue tile (white on the blue when picked). */
+const ICON_BLUE = '#228BE5';
+const ICON_TILE = '#E0EEFA';
+
 /** A highlighted word in a title ("Pro fits how you post.", "50% of your day"). */
 export const HIGHLIGHT = theme.blue;
 
@@ -89,8 +93,8 @@ export function OnbTitle({ children, sub, center }: { children: ReactNode; sub?:
 }
 
 /**
- * One answer: a white card with an icon tile. Picked, it takes a dark outline, a dark icon tile and a
- * check. Cards slide in one after another when the question appears.
+ * One answer: a white card with a blue icon on a pale blue tile. Picked, it takes a dark outline, a
+ * solid blue tile and a check. Cards slide in one after another when the question appears.
  */
 export function Choice({ label, icon, bars, selected, onPress, index }: { label: string; icon?: SymbolName; bars?: number; selected: boolean; onPress: () => void; index: number }) {
   const on = useSharedValue(selected ? 1 : 0);
@@ -101,8 +105,8 @@ export function Choice({ label, icon, bars, selected, onPress, index }: { label:
   return (
     <Animated.View entering={FadeInDown.delay(60 + index * 55).duration(320)}>
       <PressableScale onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected }} scaleTo={0.98} style={[styles.choice, card]}>
-        <View style={[styles.tile, selected && { backgroundColor: theme.ink }]}>
-          {bars != null ? <Bars level={bars} on={selected} /> : icon && <SymbolView name={icon} tintColor={selected ? '#fff' : theme.ink} size={18} />}
+        <View style={[styles.tile, selected && { backgroundColor: ICON_BLUE }]}>
+          {bars != null ? <Bars level={bars} on={selected} /> : icon && <SymbolView name={icon} tintColor={selected ? '#fff' : ICON_BLUE} size={18} />}
         </View>
         <Text style={styles.choiceLabel}>{label}</Text>
         {selected && <SymbolView name="checkmark" tintColor={theme.ink} size={15} weight="semibold" />}
@@ -204,7 +208,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1.5, paddingHorizontal: 14, paddingVertical: 13,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, shadowOffset: { width: 0, height: 3 },
   },
-  tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: '#F1F1F4', alignItems: 'center', justifyContent: 'center' },
+  tile: { width: 38, height: 38, borderRadius: 11, backgroundColor: ICON_TILE, alignItems: 'center', justifyContent: 'center' },
   choiceLabel: { flex: 1, fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.2 },
   bars: { flexDirection: 'row', alignItems: 'flex-end', gap: 2, height: 18 },
   bar: { width: 3.5, borderRadius: 1.5 },
