@@ -23,9 +23,10 @@ const READY_AT = 6.4;
 const ease = Easing.out(Easing.cubic);
 /** The colour the video fades into at the bottom, and the plain screen under it where the words sit. */
 const FADE = '#F5F7FF';
-// The fade into it, eased in (smoothstep) over many stops so it has no visible start or bands.
-const FADE_AT = Array.from({ length: 11 }, (_, i) => i / 10);
-const FADE_COLORS = FADE_AT.map((t) => `rgba(245,247,255,${(t * t * (3 - 2 * t)).toFixed(3)})`) as unknown as readonly [string, string, ...string[]];
+// The fade into it: long, but barely there for most of its height and only turning solid near the
+// bottom (an ease-in curve over many stops), so the video stays clear and there's no band or edge.
+const FADE_AT = Array.from({ length: 16 }, (_, i) => i / 15);
+const FADE_COLORS = FADE_AT.map((t) => `rgba(245,247,255,${Math.pow(t, 2.6).toFixed(3)})`) as unknown as readonly [string, string, ...string[]];
 
 type Word = { t: string; s: number; e: number };
 
@@ -203,7 +204,7 @@ export default function Welcome() {
       <View style={[styles.bottom, column(), { paddingBottom: insets.bottom + 10 }]}>
         {phase === 'intro' ? (
           <Animated.View key="intro" exiting={FadeOut.duration(180)} style={{ gap: 10 }}>
-            <Text style={styles.headline}>Raw take in.{'\n'}Tight <Text style={{ color: theme.blue }}>cut</Text> out.</Text>
+            <Text style={styles.headline}>Raw take in.{'\n'}Tight cut out.</Text>
             <Text style={styles.sub}>Autocut cuts the dead air, ums and retakes, and captions every word. You just film.</Text>
             <Button title="See it happen" icon={<SymbolView name="play.fill" tintColor="#fff" size={14} />} onPress={seeIt} style={{ marginTop: 8 }} />
             <Text style={styles.signIn}>
@@ -292,7 +293,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: FADE },
   video: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#1C1C1F', overflow: 'hidden' },
   shade: { position: 'absolute', top: 0, left: 0, right: 0 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 80 },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 260 },
   top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { minWidth: 70 },
   round: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
