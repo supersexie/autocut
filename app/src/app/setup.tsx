@@ -515,38 +515,31 @@ function Curve({ values, show }: { values: number[]; show: (v: number, i: number
 const BLOCK_COLS = 6;
 
 /**
- * The day as 24 hour blocks. The hours that go to editing fill in dark one after another, then they
- * flip to blue: the time Autocut gives back. A part hour fills part of its block.
+ * The day as 24 hour blocks: the hours that go to editing fill in blue, one after another (the time
+ * Autocut gives back). A part hour fills part of its block.
  */
 function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
-  const fill = useProgress(1100, 350); // dark blocks filling
-  const flip = useProgress(900, 1650); // then the freed ones turning blue
+  const fill = useProgress(1300, 350);
   const hours = Math.min(24, spent);
   const freed = Math.min(hours, saved);
-  // Every editing hour turns blue: what's left with Autocut (a few minutes a video) is too small to show.
-  const kept = 0;
   const [w, setW] = useState(0);
   const size = w ? (w - 5 * 6) / BLOCK_COLS : 0;
   return (
     <View style={styles.blocksCard}>
       <View style={styles.blocks} onLayout={(e) => setW(e.nativeEvent.layout.width)}>
         {Array.from({ length: 24 }, (_, h) => {
-          const edit = clamp01(hours * easeOut(fill) - h); // how much of this hour is editing
-          const blue = clamp01(hours * easeOut(flip) - (h - kept));
+          const on = clamp01(hours * easeOut(fill) - h); // how much of this hour is filled
           return (
             <View key={h} style={[styles.block, { width: size, height: size * 0.8 }]}>
-              {edit > 0 && <View style={[styles.blockFill, { width: `${edit * 100}%`, backgroundColor: theme.ink }]} />}
-              {blue > 0 && <View style={[styles.blockFill, { width: `${Math.min(edit, blue) * 100}%`, backgroundColor: theme.blue }]} />}
+              {on > 0 && <View style={[styles.blockFill, { width: `${on * 100}%`, backgroundColor: theme.blue }]} />}
             </View>
           );
         })}
       </View>
       <View style={styles.blockLegend}>
-        <View style={[styles.legendDot, { backgroundColor: theme.ink }]} />
-        <Text style={styles.legendText}>Editing</Text>
-        <View style={[styles.legendDot, { backgroundColor: theme.blue, marginLeft: 14 }]} />
+        <View style={[styles.legendDot, { backgroundColor: theme.blue }]} />
         <Text style={styles.legendText}>
-          Freed up by Autocut · <Text style={{ color: theme.blue }}>{hm(freed)}</Text>
+          Hours editing, freed up by Autocut · <Text style={{ color: theme.blue }}>{hm(freed)}</Text>
         </Text>
       </View>
     </View>
@@ -554,9 +547,8 @@ function DayBlocks({ spent, saved }: { spent: number; saved: number }) {
 }
 
 /**
- * "Editing takes 50% of your day.": a clock face with the share of their day spent editing filling
- * round it, and the time Autocut gives back in the middle. Then what that is over a year, and the
- * lowest price it costs.
+ * "X% of every day goes to editing.": the day as hour blocks filling in, then what Autocut gives back
+ * over a year and the lowest price it costs.
  */
 function Life({ header, draft, onNext }: { header: React.ReactNode; draft: Draft; onNext: () => void }) {
   const n = numbersFor(draft);
