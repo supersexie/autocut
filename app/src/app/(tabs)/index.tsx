@@ -17,7 +17,7 @@ import { folderName, useFolders, useSettings } from '../../lib/store';
 import { Tour } from '../../components/editor/Overlays';
 import { useTours } from '../../lib/tours';
 import { AddVideoSheet, FolderSheet } from '../../components/CameraSheets';
-import { BRAND_FONT, JAKARTA } from '../../lib/fonts';
+import { BRAND_FONT, UI_FONT } from '../../lib/fonts';
 import { formatTime, theme } from '../../lib/theme';
 
 const LENGTHS = [
@@ -487,27 +487,27 @@ function RoundIcon({ name, label, onPress, disabled, big }: { name: React.Compon
 
 const styles = StyleSheet.create({
   zoomPill: { position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 999, paddingHorizontal: 10, paddingVertical: 6 },
-  zoomText: { color: '#fff', fontSize: 13, fontFamily: JAKARTA.bold },
+  zoomText: { color: '#fff', fontSize: 13, ...UI_FONT.bold },
   black: { flex: 1, backgroundColor: '#000' },
   center: { alignItems: 'center', justifyContent: 'center' },
-  permTitle: { color: '#fff', fontSize: 22, fontFamily: JAKARTA.bold },
-  permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontFamily: JAKARTA.medium, textAlign: 'center', lineHeight: 21 },
+  permTitle: { color: '#fff', fontSize: 22, ...UI_FONT.bold },
+  permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, ...UI_FONT.medium, textAlign: 'center', lineHeight: 21 },
   top: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   pillCentre: { position: 'absolute', left: 0, right: 0, top: 0, alignItems: 'center' },
   brandText: { color: '#fff', fontSize: 17, fontFamily: BRAND_FONT },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.cut },
-  pillText: { color: '#fff', fontSize: 13, fontFamily: JAKARTA.semibold, fontVariant: ['tabular-nums'] },
+  pillText: { color: '#fff', fontSize: 13, ...UI_FONT.semibold, fontVariant: ['tabular-nums'] },
   round: { backgroundColor: 'rgba(0,0,0,0.35)', alignItems: 'center', justifyContent: 'center' },
   bottom: { position: 'absolute', alignItems: 'center', gap: 16 },
   lengths: { flexDirection: 'row', backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 999, padding: LENGTH_PAD },
   folder: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', maxWidth: 150, backgroundColor: 'rgba(255,255,255,0.94)', borderRadius: 999, paddingHorizontal: 16, paddingVertical: 12 },
-  folderText: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink, flexShrink: 1 },
+  folderText: { fontSize: 15, ...UI_FONT.semibold, color: theme.ink, flexShrink: 1 },
   importButton: { width: 52, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   length: { width: LENGTH_W, alignItems: 'center', paddingVertical: 7, borderRadius: 999 },
   lengthOn: { backgroundColor: '#fff' },
-  lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, fontFamily: JAKARTA.bold },
+  lengthText: { color: 'rgba(255,255,255,0.75)', fontSize: 13, ...UI_FONT.bold },
   controls: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 28, width: '100%' },
   side: { flex: 1 },
   shutter: { width: RING, height: RING, alignItems: 'center', justifyContent: 'center' },

@@ -6,7 +6,7 @@ import { Backdrop, Button, PreAppFont } from '../components/ui';
 import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 import { theme } from '../lib/theme';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 const CONFIRMED = 'Your email is confirmed. Sign in with your email and password to continue.';
 
@@ -48,7 +48,7 @@ export default function AuthCallback() {
     <Backdrop>
       {message ? (
         <>
-          <Text style={{ fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink, textAlign: 'center', marginTop: 120, lineHeight: 22, marginHorizontal: 12 }}>{message}</Text>
+          <Text style={{ fontSize: 16, ...UI_FONT.medium, color: theme.ink, textAlign: 'center', marginTop: 120, lineHeight: 22, marginHorizontal: 12 }}>{message}</Text>
           <Button kind="text" title="Go to sign in" onPress={() => router.replace('/sign-in')} />
         </>
       ) : (

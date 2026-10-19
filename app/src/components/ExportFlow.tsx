@@ -13,7 +13,7 @@ import { Asset } from 'expo-asset';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { cancelPhoneExport, exportOnPhone, hasPhoneExport } from '../../modules/autocut-export';
 import { download, getJob, ServerUnreachable, startRender, uploadTake } from '../lib/api';
-import { CAPTION_FONTS, JAKARTA } from '../lib/fonts';
+import { CAPTION_FONTS, UI_FONT } from '../lib/fonts';
 import { nativeGrade } from '../lib/gradeFiles';
 import { exportSpec } from '../lib/localExport';
 import { reportError } from '../lib/crashes';
@@ -500,34 +500,34 @@ const styles = StyleSheet.create({
   grabber: { alignSelf: 'center', width: 36, height: 5, borderRadius: 3, backgroundColor: '#DCDCE0', marginBottom: 6 },
   sheetHead: { flexDirection: 'row', gap: 12, alignItems: 'center' },
   sheetThumb: { width: 48, height: 72, borderRadius: 8 },
-  sheetTitle: { fontSize: 16, fontFamily: JAKARTA.bold, color: theme.ink },
-  sheetMeta: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
+  sheetTitle: { fontSize: 16, ...UI_FONT.bold, color: theme.ink },
+  sheetMeta: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   note: { flexDirection: 'row', gap: 8, alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 12, padding: 12 },
-  noteText: { flex: 1, fontSize: 13, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 18 },
+  noteText: { flex: 1, fontSize: 13, ...UI_FONT.medium, color: theme.ink, lineHeight: 18 },
   rows: { borderRadius: 16, backgroundColor: '#fff', overflow: 'hidden', shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 3 } },
   rowWrap: { borderBottomWidth: 1, borderBottomColor: theme.line },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 14 },
   pills: { flexDirection: 'row', gap: 6, paddingHorizontal: 12, paddingBottom: 14 },
   pill: { flex: 1, height: 38, borderRadius: 10, borderWidth: 1, borderColor: theme.line, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   pillOn: { borderColor: theme.blueLine, backgroundColor: theme.blueTile },
-  pillText: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.ink },
+  pillText: { fontSize: 13, ...UI_FONT.semibold, color: theme.ink },
   pillTextOn: { color: theme.blue },
   rateBox: { paddingHorizontal: 14, paddingBottom: 12, gap: 2 },
-  rateHint: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted },
-  rowLabel: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink },
-  rowValue: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
+  rateHint: { fontSize: 12, ...UI_FONT.medium, color: theme.muted },
+  rowLabel: { fontSize: 15, ...UI_FONT.medium, color: theme.ink },
+  rowValue: { fontSize: 15, ...UI_FONT.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
   full: { flex: 1, backgroundColor: WASH[1], paddingHorizontal: 20 },
-  bigTitle: { fontSize: 18, fontFamily: JAKARTA.semibold, color: theme.ink, textAlign: 'center' },
-  sub: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 18 },
+  bigTitle: { fontSize: 18, ...UI_FONT.semibold, color: theme.ink, textAlign: 'center' },
+  sub: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 18 },
   done: { flex: 1, backgroundColor: WASH[1], paddingHorizontal: 20, gap: 14, alignItems: 'center' },
   doneHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', alignSelf: 'stretch' },
-  doneTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
-  doneLink: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
+  doneTitle: { fontSize: 17, ...UI_FONT.bold, color: theme.ink },
+  doneLink: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink },
   donePlayer: { flex: 1, maxWidth: '100%', borderRadius: 22, overflow: 'hidden', backgroundColor: '#000' },
   postRow: { flexDirection: 'row', gap: 10 },
   savedRow: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
   rateCard: { alignSelf: 'stretch', backgroundColor: '#fff', borderRadius: 24, padding: 20, alignItems: 'center', gap: 8, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 20, shadowOffset: { width: 0, height: -4 } },
-  ratePill: { fontSize: 11, fontFamily: JAKARTA.bold, color: '#fff', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
-  rateTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink, marginTop: 4 },
+  ratePill: { fontSize: 11, ...UI_FONT.bold, color: '#fff', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3, overflow: 'hidden' },
+  rateTitle: { fontSize: 17, ...UI_FONT.bold, color: theme.ink, marginTop: 4 },
   stars: { flexDirection: 'row', gap: 14, marginVertical: 6 },
 });

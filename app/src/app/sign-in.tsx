@@ -8,7 +8,7 @@ import { openLegal } from '../lib/api';
 import { NOT_CONFIGURED, socialOptions, useAuth } from '../lib/auth';
 import { holdAgreement, TERMS_VERSION } from '../lib/consent';
 import { theme } from '../lib/theme';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 type Mode = 'sign-in' | 'sign-up';
 
@@ -190,13 +190,13 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 6 },
   rule: { flex: 1, height: 1, backgroundColor: theme.line },
-  terms: { fontSize: 13, fontFamily: JAKARTA.medium, lineHeight: 18, color: theme.muted, textAlign: 'center' },
-  termsLink: { color: theme.ink, fontFamily: JAKARTA.bold },
-  or: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.faint },
-  link: { fontSize: 14, color: theme.ink, fontFamily: JAKARTA.bold },
-  notice: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 20, backgroundColor: theme.card, padding: 14, borderRadius: 14 },
+  terms: { fontSize: 13, ...UI_FONT.medium, lineHeight: 18, color: theme.muted, textAlign: 'center' },
+  termsLink: { color: theme.ink, ...UI_FONT.bold },
+  or: { fontSize: 13, ...UI_FONT.medium, color: theme.faint },
+  link: { fontSize: 14, color: theme.ink, ...UI_FONT.bold },
+  notice: { fontSize: 14, ...UI_FONT.medium, color: theme.ink, lineHeight: 20, backgroundColor: theme.card, padding: 14, borderRadius: 14 },
   footer: { marginTop: 'auto', paddingTop: 28, gap: 14, alignItems: 'center' },
-  switch: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
+  switch: { fontSize: 14, ...UI_FONT.medium, color: theme.muted },
   devBox: { alignSelf: 'stretch', borderRadius: 14, backgroundColor: '#FFF7E0', padding: 12, gap: 4 },
-  devText: { fontSize: 13, fontFamily: JAKARTA.medium, color: '#7A5B00', textAlign: 'center' },
+  devText: { fontSize: 13, ...UI_FONT.medium, color: '#7A5B00', textAlign: 'center' },
 });

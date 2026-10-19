@@ -15,7 +15,7 @@ import {
   AUTOCUT_MINUTES, DAYS_A_MONTH, EDIT_STOPS, EDITOR_PER_VIDEO, editingNumbers, money, perWeekFor, planFor, PLANS, pricePerMonth, recommendedPlan, VOLUME_STOPS,
 } from '../lib/plans';
 import { midSentence, theme } from '../lib/theme';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 type Answer = { value: string; label: string; icon: SymbolName };
 
@@ -37,9 +37,9 @@ const GOAL: Answer[] = [
 type StepId = 'who' | 'goal' | 'volume' | 'time' | 'spend' | 'adds' | 'life' | 'plan' | 'save';
 const STEPS: StepId[] = ['who', 'goal', 'volume', 'time', 'spend', 'adds', 'life', 'plan', 'save'];
 
-// Where the sliders start: 1 a day, and an hour a video.
+// Where the sliders start: 1 a day, and half an hour a video.
 const VOLUME_START = VOLUME_STOPS.findIndex((v) => v.unit === 'a day' && v.n === 1);
-const EDIT_START = EDIT_STOPS.indexOf(60);
+const EDIT_START = EDIT_STOPS.indexOf(30);
 
 /** What they'd pay for Autocut: the plan that suits them, at its yearly price (the one they start on). */
 function autocutFor(draft: Draft) {
@@ -64,11 +64,10 @@ function hm(hours: number) {
 }
 /** Hours for the bigger amounts: "84 h", "4,344 h" (and "45 min" when it's under an hour). */
 const bigHours = (h: number) => (h < 10 ? hm(h) : `${Math.round(h).toLocaleString('en-US')} h`);
-/** "20 minutes", "1 hour", "1.5 hours", "4+ hours" (the last stop). */
+/** "20 minutes", "1 hour". */
 function editLabel(minutes: number) {
   if (minutes < 60) return { n: String(minutes), unit: 'minutes a video' };
   const h = minutes / 60;
-  if (minutes === EDIT_STOPS[EDIT_STOPS.length - 1]) return { n: `${h}+`, unit: 'hours a video' };
   return { n: String(h), unit: h === 1 ? 'hour a video' : 'hours a video' };
 }
 
@@ -184,28 +183,29 @@ const WATCH_STROKE = 12;
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /**
- * "How long does one video take to edit?" as a stopwatch: one turn is 4 hours. The hand sweeps and
+ * "How long does one video take to edit?" as a stopwatch: one turn is an hour, like a clock face. The hand sweeps and
  * the face fills to the answer; under it, their time against Autocut's, side by side.
  */
 function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; unit: string } }) {
   const r = (WATCH - WATCH_STROKE) / 2;
   const c = 2 * Math.PI * r;
-  const share = useSharedValue(Math.min(1, minutes / 240));
+  const share = useSharedValue(Math.min(1, minutes / 60));
   useEffect(() => {
-    share.set(withTiming(Math.min(1, minutes / 240), { duration: 320, easing: Easing.out(Easing.cubic) }));
+    share.set(withTiming(Math.min(1, minutes / 60), { duration: 320, easing: Easing.out(Easing.cubic) }));
   }, [minutes, share]);
   const arc = useAnimatedProps(() => ({ strokeDashoffset: c * (1 - share.value) }));
   const hand = useAnimatedStyle(() => ({ transform: [{ rotate: `${share.value * 360}deg` }] }));
-  const ours = AUTOCUT_MINUTES / 240;
+  const ours = AUTOCUT_MINUTES / 60;
   return (
     <View style={{ alignItems: 'center' }}>
       <View style={styles.crown} />
       <View style={{ width: WATCH, height: WATCH }}>
         <Svg width={WATCH} height={WATCH}>
           <Circle cx={WATCH / 2} cy={WATCH / 2} r={r} stroke="#EEF0F6" strokeWidth={WATCH_STROKE} fill="#fff" />
-          {Array.from({ length: 24 }, (_, k) => {
-            const a = (k / 24) * 2 * Math.PI;
-            const long = k % 6 === 0;
+          {/* A mark every 5 minutes, longer at the quarter hours. */}
+          {Array.from({ length: 12 }, (_, k) => {
+            const a = (k / 12) * 2 * Math.PI;
+            const long = k % 3 === 0;
             const r1 = r - WATCH_STROKE / 2 - 4, r2 = r1 - (long ? 9 : 4);
             return (
               <Line key={k} x1={WATCH / 2 + Math.sin(a) * r1} y1={WATCH / 2 - Math.cos(a) * r1} x2={WATCH / 2 + Math.sin(a) * r2} y2={WATCH / 2 - Math.cos(a) * r2}
@@ -223,7 +223,7 @@ function Stopwatch({ minutes, label }: { minutes: number; label: { n: string; un
         </Svg>
         <Animated.View style={[StyleSheet.absoluteFill, hand]} pointerEvents="none">
           {/* A pointer near the rim, so the number in the middle stays clear. */}
-          <View style={[styles.hand, { height: 24, top: WATCH / 2 - (r - 16) }]} />
+          <View style={[styles.hand, { height: 16, top: WATCH / 2 - (r - 11) }]} />
         </Animated.View>
         <View style={styles.watchCenter} pointerEvents="none">
           <Animated.Text key={label.n} entering={FadeInDown.duration(200)} style={styles.watchValue}>{label.n}</Animated.Text>
@@ -292,7 +292,7 @@ function EditTime({ header, draft, onNext }: { header: React.ReactNode; draft: D
         <OnbTitle sub="From raw take to ready to post.">How long does one video take to <Text style={{ color: HIGHLIGHT }}>edit</Text>?</OnbTitle>
         <View style={[onbCard, { paddingTop: 22, paddingBottom: 16, gap: 16 }]}>
           <Stopwatch minutes={minutes} label={label} />
-          <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 min" right="4 h or more" />
+          <StepSlider stops={EDIT_STOPS.length} index={i} onChange={setI} left="5 min" right="1 h" />
         </View>
       </Animated.View>
     </OnbScreen>
@@ -650,7 +650,7 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
         </View>
         <Pressable onPress={() => router.push({ pathname: '/sign-in', params: { mode: 'sign-in' } })} hitSlop={8} style={{ alignSelf: 'center', marginTop: 18 }}>
           <Text style={styles.have}>
-            Already have an account? <Text style={{ color: theme.ink, fontFamily: JAKARTA.bold }}>Sign in</Text>
+            Already have an account? <Text style={{ color: theme.ink, ...UI_FONT.bold }}>Sign in</Text>
           </Text>
         </Pressable>
       </Animated.View>
@@ -659,57 +659,57 @@ function Save({ header, draft }: { header: React.ReactNode; draft: Draft }) {
 }
 
 const styles = StyleSheet.create({
-  signIn: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.blue },
+  signIn: { fontSize: 16, ...UI_FONT.semibold, color: theme.blue },
   valueRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: 8 },
-  value: { fontSize: 64, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
-  unit: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
+  value: { fontSize: 64, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -2, fontVariant: ['tabular-nums'] },
+  unit: { fontSize: 18, ...UI_FONT.bold, color: theme.ink },
   week: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingHorizontal: 4 },
   dayCol: { alignItems: 'center', gap: 6, width: 32 },
   dayStack: { height: 150, justifyContent: 'flex-end', alignItems: 'center', gap: 3 },
   tile: { width: 26, height: 11.5, borderRadius: 4, backgroundColor: theme.blue, alignItems: 'center', justifyContent: 'center' },
   tilePlay: { width: 0, height: 0, borderTopWidth: 3, borderBottomWidth: 3, borderLeftWidth: 5, borderTopColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: 'rgba(255,255,255,0.9)' },
-  more: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.blue },
-  dayLabel: { fontSize: 12, fontFamily: JAKARTA.bold, color: theme.faint },
-  weekTotal: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted, textAlign: 'center', marginTop: 12 },
+  more: { fontSize: 14, ...UI_FONT.bold, color: theme.blue },
+  dayLabel: { fontSize: 12, ...UI_FONT.bold, color: theme.faint },
+  weekTotal: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', marginTop: 12 },
   crown: { width: 22, height: 9, borderRadius: 3, backgroundColor: theme.ink, marginBottom: 3 },
   hand: { position: 'absolute', left: WATCH / 2 - 2, width: 4, borderRadius: 2, backgroundColor: theme.ink },
   watchCenter: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, alignItems: 'center', justifyContent: 'center' },
-  watchValue: { fontSize: 38, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
-  watchUnit: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.muted, marginTop: -2 },
+  watchValue: { fontSize: 38, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -1.2, fontVariant: ['tabular-nums'] },
+  watchUnit: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted, marginTop: -2 },
   versus: { flexDirection: 'row', alignItems: 'stretch', gap: 8, marginTop: 16, alignSelf: 'stretch' },
   versusSide: { flex: 1, borderRadius: 14, backgroundColor: '#F4F5F9', paddingVertical: 10, alignItems: 'center', gap: 2 },
   versusOurs: { backgroundColor: theme.blueTile, borderWidth: 1, borderColor: theme.blueLine },
   versusArrow: { justifyContent: 'center' },
-  versusLabel: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
-  versusValue: { fontSize: 24, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
-  versusUnit: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.ink },
-  faster: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted, textAlign: 'center', marginTop: 10 },
+  versusLabel: { fontSize: 12, ...UI_FONT.semibold, color: theme.muted },
+  versusValue: { fontSize: 24, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -0.6, fontVariant: ['tabular-nums'] },
+  versusUnit: { fontSize: 14, ...UI_FONT.bold, color: theme.ink },
+  faster: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', marginTop: 10 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
+  legendText: { fontSize: 12, ...UI_FONT.semibold, color: theme.muted },
   statHead: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  statLabel: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.ink },
+  statLabel: { fontSize: 14, ...UI_FONT.bold, color: theme.ink },
   statRow: { flexDirection: 'row', alignItems: 'baseline', gap: 8, marginTop: 6, flexWrap: 'wrap' },
-  statBig: { fontSize: 42, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
-  statUnit: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted, flexShrink: 1 },
+  statBig: { fontSize: 42, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -1.4, fontVariant: ['tabular-nums'] },
+  statUnit: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted, flexShrink: 1 },
   howRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 16 },
-  how: { fontSize: 14, fontFamily: JAKARTA.bold, color: theme.blue },
-  howText: { fontSize: 13, fontFamily: JAKARTA.medium, lineHeight: 19, color: theme.muted, marginTop: 8 },
-  amount: { position: 'absolute', width: 110, textAlign: 'center', fontSize: 14, fontFamily: JAKARTA.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
-  amountBig: { fontSize: 17, fontFamily: JAKARTA.medium },
-  axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted },
-  caption: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
+  how: { fontSize: 14, ...UI_FONT.bold, color: theme.blue },
+  howText: { fontSize: 13, ...UI_FONT.medium, lineHeight: 19, color: theme.muted, marginTop: 8 },
+  amount: { position: 'absolute', width: 110, textAlign: 'center', fontSize: 14, ...UI_FONT.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  amountBig: { fontSize: 17, ...UI_FONT.medium },
+  axis: { position: 'absolute', width: 80, textAlign: 'center', fontSize: 13, ...UI_FONT.medium, color: theme.muted },
+  caption: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', marginTop: 8 },
   blocksCard: { ...onbCard, marginTop: 26, gap: 14 },
   blocks: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   block: { borderRadius: 8, backgroundColor: '#EEF0F6', overflow: 'hidden' },
   blockFill: { position: 'absolute', top: 0, bottom: 0, left: 0 },
   blockLegend: { flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' },
-  lifeTitle: { fontSize: 32, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
-  lifeLine: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
+  lifeTitle: { fontSize: 32, ...UI_FONT.bold, color: theme.ink, letterSpacing: -0.9, lineHeight: 39, textAlign: 'center', fontVariant: ['tabular-nums'] },
+  lifeLine: { fontSize: 18, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', lineHeight: 25, marginTop: 30, paddingHorizontal: 6 },
   card: { ...onbCard, gap: 12, marginTop: 24 },
   point: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   pointIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: '#F1F1F4', alignItems: 'center', justifyContent: 'center' },
-  pointText: { flex: 1, fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink, lineHeight: 20 },
-  have: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
-  legal: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 17, marginTop: 2 },
-  legalLink: { color: theme.ink, fontFamily: JAKARTA.semibold, textDecorationLine: 'underline' },
+  pointText: { flex: 1, fontSize: 15, ...UI_FONT.medium, color: theme.ink, lineHeight: 20 },
+  have: { fontSize: 14, ...UI_FONT.medium, color: theme.muted },
+  legal: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 17, marginTop: 2 },
+  legalLink: { color: theme.ink, ...UI_FONT.semibold, textDecorationLine: 'underline' },
 });

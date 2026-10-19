@@ -3,7 +3,7 @@ import { StyleSheet, Switch, Text, View } from 'react-native';
 import { updateSettings, useSettings } from '../lib/store';
 import { theme } from '../lib/theme';
 import { Card, Footnote, Row } from './list';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 /** How Autocut cuts new takes: in Settings, and in "More options" before sending a take. */
 export function CuttingSettings() {
@@ -41,6 +41,6 @@ export function SwitchRow({ label, value, onChange, last }: { label: string; val
 const styles = StyleSheet.create({
   slider: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
   between: { flexDirection: 'row', justifyContent: 'space-between' },
-  text: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink },
-  value: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
+  text: { fontSize: 16, ...UI_FONT.medium, color: theme.ink },
+  value: { fontSize: 15, ...UI_FONT.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
 });

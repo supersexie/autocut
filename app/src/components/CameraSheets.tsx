@@ -5,7 +5,7 @@ import { createFolder, updateSettings, useFolders, useSettings } from '../lib/st
 import { theme } from '../lib/theme';
 import { Sheet } from './Sheet';
 import { PressableScale, type SymbolName } from './ui';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 /** "Save new videos to": the main Cuts page or a folder, and making a new folder. */
 export function FolderSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
@@ -135,19 +135,19 @@ function Option({ icon, label, detail, dark, onPress }: { icon: SymbolName; labe
 
 const styles = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, minHeight: 32 },
-  title: { fontSize: 20, fontFamily: JAKARTA.bold, color: theme.ink, flex: 1, textAlign: 'center' },
-  link: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted, minWidth: 56 },
-  strong: { color: theme.ink, fontFamily: JAKARTA.bold, textAlign: 'right' },
+  title: { fontSize: 20, ...UI_FONT.bold, color: theme.ink, flex: 1, textAlign: 'center' },
+  link: { fontSize: 16, ...UI_FONT.medium, color: theme.muted, minWidth: 56 },
+  strong: { color: theme.ink, ...UI_FONT.bold, textAlign: 'right' },
   list: { marginBottom: 16 },
   choice: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 10 },
   choiceIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
-  choiceLabel: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink },
-  choiceDetail: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
+  choiceLabel: { fontSize: 17, ...UI_FONT.semibold, color: theme.ink },
+  choiceDetail: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
   newFolder: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, borderRadius: 16, paddingVertical: 15, backgroundColor: theme.card },
-  newFolderText: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink },
-  input: { fontSize: 17, fontFamily: JAKARTA.medium, color: theme.ink, borderWidth: 2, borderColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
+  newFolderText: { fontSize: 17, ...UI_FONT.semibold, color: theme.ink },
+  input: { fontSize: 17, ...UI_FONT.medium, color: theme.ink, borderWidth: 2, borderColor: theme.ink, borderRadius: 14, paddingHorizontal: 16, paddingVertical: 14, marginBottom: 12 },
   option: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: theme.card, borderRadius: 18, padding: 14 },
   optionIcon: { width: 52, height: 52, borderRadius: 14, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
-  optionLabel: { fontSize: 18, fontFamily: JAKARTA.bold, color: theme.ink },
-  optionDetail: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted },
+  optionLabel: { fontSize: 18, ...UI_FONT.bold, color: theme.ink },
+  optionDetail: { fontSize: 14, ...UI_FONT.medium, color: theme.muted },
 });

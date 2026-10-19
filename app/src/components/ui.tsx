@@ -8,7 +8,7 @@ import {
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming, type AnimatedStyle } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient as SvgLinear, RadialGradient, Rect, Stop as SvgStop } from 'react-native-svg';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 import { column, theme } from '../lib/theme';
 
 export type SymbolName = ComponentProps<typeof SymbolView>['name'];
@@ -146,18 +146,18 @@ type ButtonProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Text across the app is set in Plus Jakarta Sans (CutAI's typeface). The shared pieces below
+// Text across the app is set in SF Pro, Apple's system font. The shared pieces below
 // (buttons, fields, titles, segmented controls, errors) take it from here; <PreAppFont> is kept so a
 // screen can still opt in explicitly, and it's on everywhere by default.
 const PreApp = createContext(true);
 export function PreAppFont({ children }: { children: ReactNode }) {
   return <PreApp.Provider value>{children}</PreApp.Provider>;
 }
-type Weight = keyof typeof JAKARTA;
-/** The font for a weight, in Plus Jakarta Sans on the pre-app screens (nothing changes elsewhere). */
+type Weight = keyof typeof UI_FONT;
+/** The font for a weight, in SF Pro. */
 function useFace() {
   const on = useContext(PreApp);
-  return (weight: Weight) => (on ? { fontFamily: JAKARTA[weight], fontWeight: 'normal' as const } : null);
+  return (weight: Weight) => (on ? UI_FONT[weight] : null);
 }
 
 /** Full-width pill. Primary is near-black and fades until it can be used. */
@@ -185,7 +185,7 @@ export function Button({ title, onPress, kind = 'primary', disabled, loading, ic
       ) : (
         <>
           {icon}
-          <Text style={[styles.buttonText, kind === 'primary' ? { color: disabled ? 'rgba(255,255,255,0.55)' : '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, fontFamily: JAKARTA.medium }, face(kind === 'text' ? 'medium' : 'bold')]}>
+          <Text style={[styles.buttonText, kind === 'primary' ? { color: disabled ? 'rgba(255,255,255,0.55)' : '#fff' } : kind === 'outline' ? { color: theme.ink } : { color: theme.muted, ...UI_FONT.medium }, face(kind === 'text' ? 'medium' : 'bold')]}>
             {title}
           </Text>
         </>
@@ -304,27 +304,27 @@ const styles = StyleSheet.create({
   primaryOff: { backgroundColor: 'rgba(17,17,20,0.8)' }, // near the same black, with a dimmed label, until it can be used (not a flat grey)
   outline: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#E3E3E8' },
   textButton: { minHeight: 40 },
-  buttonText: { fontSize: 16, fontFamily: JAKARTA.semibold },
+  buttonText: { fontSize: 16, ...UI_FONT.semibold },
   option: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: 'transparent', paddingHorizontal: 16, paddingVertical: 16 },
   optionIcon: { width: 34, height: 34, borderRadius: 10, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
-  optionLabel: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
-  optionDetail: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
+  optionLabel: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink },
+  optionDetail: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#D1D1D6', alignItems: 'center', justifyContent: 'center' },
   radioOn: { backgroundColor: theme.blue, borderColor: theme.blue },
-  label: { fontSize: 13, color: theme.muted, fontFamily: JAKARTA.medium },
+  label: { fontSize: 13, color: theme.muted, ...UI_FONT.medium },
   inputWrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingHorizontal: 16 },
-  prefix: { fontSize: 17, fontFamily: JAKARTA.medium, color: theme.faint, marginRight: 4 },
-  input: { flex: 1, fontSize: 17, fontFamily: JAKARTA.medium, color: theme.ink, paddingVertical: 16 },
+  prefix: { fontSize: 17, ...UI_FONT.medium, color: theme.faint, marginRight: 4 },
+  input: { flex: 1, fontSize: 17, ...UI_FONT.medium, color: theme.ink, paddingVertical: 16 },
   segmented: { flexDirection: 'row', backgroundColor: theme.card, borderRadius: 999, padding: 4 },
   segment: { flex: 1, paddingVertical: 9, borderRadius: 999, alignItems: 'center' },
   thumb: { position: 'absolute', top: 4, bottom: 4, left: 4, borderRadius: 999, backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
-  segmentText: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted },
-  segmentBadge: { fontSize: 12, color: theme.ok, fontFamily: JAKARTA.bold },
+  segmentText: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted },
+  segmentBadge: { fontSize: 12, color: theme.ok, ...UI_FONT.bold },
   stepHeader: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 24, height: 40 },
   back: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.card, alignItems: 'center', justifyContent: 'center' },
   progress: { flex: 1, height: 4, borderRadius: 2, backgroundColor: theme.line, overflow: 'hidden', marginRight: 8 },
   progressFill: { height: 4, borderRadius: 2, backgroundColor: theme.ink },
-  title: { fontSize: 30, fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: -0.6, lineHeight: 36 },
-  sub: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 21 },
-  error: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.danger, lineHeight: 20 },
+  title: { fontSize: 30, ...UI_FONT.bold, color: theme.ink, letterSpacing: -0.6, lineHeight: 36 },
+  sub: { fontSize: 15, ...UI_FONT.medium, color: theme.muted, lineHeight: 21 },
+  error: { fontSize: 14, ...UI_FONT.medium, color: theme.danger, lineHeight: 20 },
 });

@@ -11,7 +11,7 @@ import { useAuth } from '../lib/auth';
 import { applePrices, buyOnWeb, buyWithApple, PAYMENTS_ON, waysToPay, type ApplePrice, type Ways } from '../lib/billing';
 import { clearDraft, getDraft, profileFromDraft, updateDraft } from '../lib/draft';
 import { DAYS_A_MONTH, FEATURES, money, planFor, PLANS, pricePerMonth, recommendedPlan, YEARLY_DISCOUNT, type Billing, type PlanId } from '../lib/plans';
-import { BRAND_FONT, JAKARTA } from '../lib/fonts';
+import { BRAND_FONT, UI_FONT } from '../lib/fonts';
 import { column, COLUMN, midSentence, theme } from '../lib/theme';
 
 /** "a, b and c". */
@@ -240,25 +240,25 @@ const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, height: 44 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brandText: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
-  switch: { fontSize: 14, fontFamily: JAKARTA.semibold, color: theme.muted },
-  title: { fontSize: 31, fontFamily: JAKARTA.bold, color: theme.ink, textAlign: 'center', letterSpacing: -0.9, marginTop: 10 },
-  sub: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },
+  switch: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted },
+  title: { fontSize: 31, ...UI_FONT.bold, color: theme.ink, textAlign: 'center', letterSpacing: -0.9, marginTop: 10 },
+  sub: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginTop: 8, marginHorizontal: 6 },
   plan: { borderRadius: 18, borderWidth: 1.5, borderColor: '#E3E3E8', padding: 16, gap: 10, backgroundColor: '#fff' },
   planOn: { borderColor: theme.blueLine },
   badge: { position: 'absolute', top: -10, alignSelf: 'center', backgroundColor: theme.ink, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 3 },
-  badgeText: { color: '#fff', fontSize: 10, fontFamily: JAKARTA.extrabold, letterSpacing: 0.6 },
+  badgeText: { color: '#fff', fontSize: 10, ...UI_FONT.extrabold, letterSpacing: 0.6 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   radio: { width: 22, height: 22, borderRadius: 11, borderWidth: 1.5, borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
   radioOn: { backgroundColor: theme.blue, borderColor: theme.blue },
-  planName: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
-  planEdits: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
-  price: { fontSize: 17, fontFamily: JAKARTA.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
-  per: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.faint },
+  planName: { fontSize: 17, ...UI_FONT.bold, color: theme.ink },
+  planEdits: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
+  price: { fontSize: 17, ...UI_FONT.extrabold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  per: { fontSize: 12, ...UI_FONT.medium, color: theme.faint },
   features: { flexDirection: 'row', gap: 14, paddingLeft: 34 },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  featureText: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.ink },
+  featureText: { fontSize: 12, ...UI_FONT.medium, color: theme.ink },
   footer: { paddingHorizontal: 22, paddingTop: 8, gap: 6, ...column(COLUMN + 44) },
-  terms: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', lineHeight: 17 },
+  terms: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 17 },
   links: { flexDirection: 'row', justifyContent: 'center', gap: 16 },
-  link: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.faint },
+  link: { fontSize: 12, ...UI_FONT.medium, color: theme.faint },
 });

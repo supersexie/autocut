@@ -16,7 +16,7 @@ import { cacheBytes, clearCache, updateSettings, useSettings } from '../lib/stor
 import { useTours } from '../lib/tours';
 import { column, COLUMN, theme } from '../lib/theme';
 import { useUsage } from '../lib/usage';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 const SUPPORT_EMAIL = process.env.EXPO_PUBLIC_SUPPORT_EMAIL;
 const VERSION = `v${Constants.expoConfig?.version ?? '1.0.0'}${Constants.expoConfig?.ios?.buildNumber ? ` (${Constants.expoConfig.ios.buildNumber})` : ''}`;
@@ -90,7 +90,7 @@ export default function SettingsScreen() {
         <Card>
           <View style={styles.profile}>
             <View style={[listStyles.avatar, { width: 50, height: 50 }]}>
-              <Text style={[listStyles.avatarText, { fontSize: 17, fontFamily: JAKARTA.medium }]}>{initials}</Text>
+              <Text style={[listStyles.avatarText, { fontSize: 17, ...UI_FONT.medium }]}>{initials}</Text>
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.name} numberOfLines={1}>
@@ -195,14 +195,14 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  name: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
-  email: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
-  edit: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
-  input: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink, backgroundColor: theme.page, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
-  devLink: { color: theme.ink, fontSize: 15, fontFamily: JAKARTA.semibold },
-  status: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 18 },
+  name: { fontSize: 17, ...UI_FONT.bold, color: theme.ink },
+  email: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
+  edit: { fontSize: 15, ...UI_FONT.semibold, color: theme.ink },
+  input: { fontSize: 15, ...UI_FONT.medium, color: theme.ink, backgroundColor: theme.page, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10 },
+  devLink: { color: theme.ink, fontSize: 15, ...UI_FONT.semibold },
+  status: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, lineHeight: 18 },
   signOut: { marginTop: 30, backgroundColor: '#fff', borderRadius: 16, paddingVertical: 15, alignItems: 'center', borderWidth: 1, borderColor: theme.line },
-  signOutText: { fontSize: 16, fontFamily: JAKARTA.semibold, color: theme.ink },
-  version: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.faint, textAlign: 'center', marginTop: 22 },
-  delete: { fontSize: 15, color: theme.danger, marginTop: 14, fontFamily: JAKARTA.medium },
+  signOutText: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink },
+  version: { fontSize: 13, ...UI_FONT.medium, color: theme.faint, textAlign: 'center', marginTop: 22 },
+  delete: { fontSize: 15, color: theme.danger, marginTop: 14, ...UI_FONT.medium },
 });

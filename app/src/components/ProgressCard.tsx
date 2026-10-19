@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { theme } from '../lib/theme';
 import { Thumb } from './Thumb';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 const W = 176;
 const H = 312;
@@ -81,5 +81,5 @@ const styles = StyleSheet.create({
   wrap: { width: W, height: H, alignSelf: 'center' },
   card: { width: W, height: H, borderRadius: R, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1C1C1F' },
   shade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.22)' },
-  percent: { color: '#fff', fontSize: 34, fontFamily: JAKARTA.semibold, fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
+  percent: { color: '#fff', fontSize: 34, ...UI_FONT.semibold, fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
 });

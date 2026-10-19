@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { openLegal } from '../lib/api';
 import { AI_CONSENT_REQUIRED } from '../lib/consent';
 import { theme } from '../lib/theme';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 export type Agreement = { terms: boolean; ai: boolean };
 
@@ -46,6 +46,6 @@ const styles = StyleSheet.create({
   box: { width: 20, height: 20, borderRadius: 6, borderWidth: 1.5, borderColor: theme.faint, alignItems: 'center', justifyContent: 'center' },
   boxOn: { backgroundColor: theme.ink, borderColor: theme.ink },
   boxNudge: { borderColor: theme.danger, borderWidth: 2 },
-  text: { flexShrink: 1, fontSize: 13, fontFamily: JAKARTA.medium, lineHeight: 18, color: theme.muted },
-  link: { color: theme.ink, fontFamily: JAKARTA.bold },
+  text: { flexShrink: 1, fontSize: 13, ...UI_FONT.medium, lineHeight: 18, color: theme.muted },
+  link: { color: theme.ink, ...UI_FONT.bold },
 });

@@ -7,7 +7,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useSharedValue } from 'react-native-reanimated';
 import Svg, { Circle as SvgCircle, Line, Path } from 'react-native-svg';
 import { cleanGrade, curveFn, FILTERS, HSL_BANDS, ONE_SIDED, type AdjustKey, type Band, type Grade } from '../../lib/grade.mjs';
-import { JAKARTA } from '../../lib/fonts';
+import { UI_FONT } from '../../lib/fonts';
 import type { SavedLook } from '../../lib/store';
 import { theme } from '../../lib/theme';
 import { Segmented, type SymbolName } from '../ui';
@@ -512,26 +512,26 @@ function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] |
 
 const styles = StyleSheet.create({
   body: { flex: 1, paddingHorizontal: 12, gap: 8, overflow: 'hidden' },
-  reset: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.blue },
+  reset: { fontSize: 13, ...UI_FONT.semibold, color: theme.blue },
   clipStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
-  clipLabel: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.ink },
+  clipLabel: { fontSize: 12, ...UI_FONT.semibold, color: theme.ink },
   autoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, borderRadius: 12, backgroundColor: theme.blue, marginHorizontal: 4 },
-  autoText: { fontSize: 14, fontFamily: JAKARTA.bold, color: '#fff' },
-  group: { fontSize: 10, fontFamily: JAKARTA.semibold, color: theme.faint, marginLeft: 6, marginBottom: 2 },
+  autoText: { fontSize: 14, ...UI_FONT.bold, color: '#fff' },
+  group: { fontSize: 10, ...UI_FONT.semibold, color: theme.faint, marginLeft: 6, marginBottom: 2 },
   chip: { width: 58, alignItems: 'center', gap: 3, paddingVertical: 6, borderRadius: 10 },
   chipOn: { backgroundColor: theme.blueTile },
-  chipText: { fontSize: 9.5, fontFamily: JAKARTA.medium, color: theme.ink },
+  chipText: { fontSize: 9.5, ...UI_FONT.medium, color: theme.ink },
   dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: 'transparent' },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  label: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.ink },
-  value: { fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.muted, fontVariant: ['tabular-nums'] },
+  label: { fontSize: 13, ...UI_FONT.semibold, color: theme.ink },
+  value: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted, fontVariant: ['tabular-nums'] },
   tile: { width: 52, height: 52, borderRadius: 12, overflow: 'hidden', borderWidth: 2, borderColor: 'transparent' },
   tileOn: { borderColor: theme.blue },
-  tileText: { fontSize: 10, fontFamily: JAKARTA.medium, color: theme.ink, maxWidth: 58 },
+  tileText: { fontSize: 10, ...UI_FONT.medium, color: theme.ink, maxWidth: 58 },
   savedBadge: { position: 'absolute', top: 3, right: 3, width: 14, height: 14, borderRadius: 7, backgroundColor: theme.blue, alignItems: 'center', justifyContent: 'center' },
   // One line per slider (name, slider, value), so all three fit above the actions.
   inline: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 4 },
-  inlineLabel: { width: 78, fontSize: 13, fontFamily: JAKARTA.semibold, color: theme.ink },
+  inlineLabel: { width: 78, fontSize: 13, ...UI_FONT.semibold, color: theme.ink },
   inlineValue: { width: 34, textAlign: 'right' },
   bands: { flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 8 },
   bandDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: 'transparent' },
@@ -539,7 +539,7 @@ const styles = StyleSheet.create({
   wheelRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4 },
   puck: { position: 'absolute', width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: '#fff', backgroundColor: 'rgba(17,17,20,0.25)', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
   curveBox: { height: CURVE_H, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
-  curveHint: { fontSize: 10, fontFamily: JAKARTA.medium, color: theme.faint, textAlign: 'center', marginTop: 4 },
+  curveHint: { fontSize: 10, ...UI_FONT.medium, color: theme.faint, textAlign: 'center', marginTop: 4 },
   sliderTrack: { height: KNOB + 6, justifyContent: 'center' },
   sliderRail: { position: 'absolute', height: 4, borderRadius: 2, backgroundColor: '#E3E6EE' },
   sliderFill: { position: 'absolute', height: 4, borderRadius: 2, backgroundColor: theme.blue },
@@ -550,9 +550,9 @@ const styles = StyleSheet.create({
   },
   actions: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 6, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   action: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  actionText: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.ink },
+  actionText: { fontSize: 12, ...UI_FONT.semibold, color: theme.ink },
   tabs: { flexDirection: 'row', justifyContent: 'space-around', paddingTop: 6, paddingBottom: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   tab: { alignItems: 'center', gap: 3, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 10, minWidth: 58 },
   tabOn: { backgroundColor: theme.blueTile },
-  tabText: { fontSize: 10, fontFamily: JAKARTA.semibold, color: theme.ink },
+  tabText: { fontSize: 10, ...UI_FONT.semibold, color: theme.ink },
 });

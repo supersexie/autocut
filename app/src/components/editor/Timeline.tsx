@@ -9,7 +9,7 @@ import { theme } from '../../lib/theme';
 import Svg, { Path } from 'react-native-svg';
 import { Thumb } from '../Thumb';
 import { PressableScale, type SymbolName } from '../ui';
-import { JAKARTA } from '../../lib/fonts';
+import { UI_FONT } from '../../lib/fonts';
 
 export const PPS = 56; // points per second of output, before zooming
 const MIN_PPS = 14;
@@ -564,26 +564,26 @@ const styles = StyleSheet.create({
   left: { width: LEFT, alignItems: 'center' },
   cover: { width: LEFT - 14, height: CLIP_H, borderRadius: 10, overflow: 'hidden', backgroundColor: theme.card },
   coverShade: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.32)', alignItems: 'center', justifyContent: 'center', gap: 3 },
-  coverText: { color: '#fff', fontSize: 11, fontFamily: JAKARTA.bold },
+  coverText: { color: '#fff', fontSize: 11, ...UI_FONT.bold },
   laneButton: { width: LEFT - 22, height: ROW_H, marginTop: ROW_GAP, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.75)', alignItems: 'center', justifyContent: 'center' },
-  laneButtonText: { fontSize: 15, fontFamily: JAKARTA.semibold, color: theme.ink },
+  laneButtonText: { fontSize: 15, ...UI_FONT.semibold, color: theme.ink },
   ruler: { height: 22 },
   tick: { position: 'absolute', top: 4 },
-  tickText: { fontSize: 9, fontFamily: JAKARTA.medium, color: theme.faint, fontVariant: ['tabular-nums'], marginLeft: -12 },
+  tickText: { fontSize: 9, ...UI_FONT.medium, color: theme.faint, fontVariant: ['tabular-nums'], marginLeft: -12 },
   clip: { position: 'absolute', top: 0, height: CLIP_H, borderRadius: 10, overflow: 'hidden', backgroundColor: '#E4E4E8', borderWidth: 2, borderColor: 'transparent' },
   clipOn: { borderColor: theme.ink },
   tiles: { flex: 1, flexDirection: 'row' },
   badge: { position: 'absolute', top: 4, left: 16, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 6, paddingHorizontal: 5, paddingVertical: 1 },
-  badgeText: { color: '#fff', fontSize: 10, fontFamily: JAKARTA.bold },
+  badgeText: { color: '#fff', fontSize: 10, ...UI_FONT.bold },
   handle: { position: 'absolute', top: 0, bottom: 0, width: 14, backgroundColor: theme.ink, alignItems: 'center', justifyContent: 'center' },
   grip: { width: 3, height: 18, borderRadius: 2, backgroundColor: '#fff' },
   lane: { height: ROW_H, marginTop: ROW_GAP, borderRadius: 9, backgroundColor: 'rgba(255,255,255,0.75)', justifyContent: 'center' },
-  laneLabel: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginLeft: 12 },
+  laneLabel: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginLeft: 12 },
   song: { position: 'absolute', top: 3, bottom: 3, left: 2, right: 2, borderRadius: 7, backgroundColor: '#3A3A40', flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 8 },
-  songText: { color: '#fff', fontSize: 11, fontFamily: JAKARTA.semibold, flexShrink: 1 },
+  songText: { color: '#fff', fontSize: 11, ...UI_FONT.semibold, flexShrink: 1 },
   chip: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, backgroundColor: theme.ink, justifyContent: 'center', paddingHorizontal: 6 },
   chipOn: { borderWidth: 2, borderColor: '#fff', zIndex: 2 },
-  chipText: { color: '#fff', fontSize: 11, fontFamily: JAKARTA.semibold },
+  chipText: { color: '#fff', fontSize: 11, ...UI_FONT.semibold },
   textChip: { backgroundColor: '#E4E4E8' },
   textChipOn: { borderWidth: 2, borderColor: theme.ink },
   overlay: { position: 'absolute', top: 3, height: ROW_H - 6, borderRadius: 7, overflow: 'hidden', backgroundColor: '#E4E4E8', borderWidth: 2, borderColor: 'transparent' },
@@ -595,6 +595,6 @@ const styles = StyleSheet.create({
   wave: { position: 'absolute', left: 0, right: 0, bottom: 0, height: WAVE_H + 4, paddingTop: 2, backgroundColor: 'rgba(0,0,0,0.28)' },
   keyframe: { position: 'absolute', top: CLIP_H / 2 - KEY / 2, width: KEY, height: KEY, borderRadius: 3, backgroundColor: '#fff', borderWidth: 2, borderColor: theme.ink, transform: [{ rotate: '45deg' }] },
   zoom: { position: 'absolute', top: 0, right: 8, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.card, borderRadius: 999, paddingHorizontal: 8, paddingVertical: 3 },
-  zoomText: { fontSize: 10, fontFamily: JAKARTA.bold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  zoomText: { fontSize: 10, ...UI_FONT.bold, color: theme.ink, fontVariant: ['tabular-nums'] },
   playhead: { position: 'absolute', top: 0, bottom: 0, width: 2, borderRadius: 1, backgroundColor: theme.ink },
 });

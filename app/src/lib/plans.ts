@@ -82,8 +82,8 @@ export const VOLUME_STOPS = [
   { n: 10, unit: 'or more a day', perDay: 10 },
 ];
 
-/** Setup's "How long do you spend editing?" slider: minutes per video, from 5 minutes to 4+ hours. */
-export const EDIT_STOPS = [5, 10, 15, 20, 30, 45, 60, 90, 120, 180, 240];
+/** Setup's "How long do you spend editing?" slider: minutes per video, from 5 minutes to an hour. */
+export const EDIT_STOPS = [5, 10, 15, 20, 25, 30, 40, 50, 60];
 
 /** What a freelance editor charges for one short video (US dollars), for "vs. hiring an editor". */
 export const EDITOR_PER_VIDEO = 15;

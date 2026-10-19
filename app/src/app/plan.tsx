@@ -11,7 +11,7 @@ import { MANAGE_APPLE_URL, MANAGE_WHOP_URL, PAYMENTS_ON, restore } from '../lib/
 import { FEATURES, planFor } from '../lib/plans';
 import { column, COLUMN, theme } from '../lib/theme';
 import { usageLine, useUsage } from '../lib/usage';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 /** "Your plan": the plan, this month's edits, and changing it. */
 export default function PlanScreen() {
@@ -90,13 +90,13 @@ export default function PlanScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
   pad: { padding: 18 },
-  plan: { fontSize: 30, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.5 },
-  tag: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.muted },
-  line: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink, marginTop: 6 },
-  small: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 3 },
-  included: { fontSize: 13, fontFamily: JAKARTA.bold, color: theme.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
+  plan: { fontSize: 30, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -0.5 },
+  tag: { fontSize: 16, ...UI_FONT.medium, color: theme.muted },
+  line: { fontSize: 16, ...UI_FONT.medium, color: theme.ink, marginTop: 6 },
+  small: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, marginTop: 3 },
+  included: { fontSize: 13, ...UI_FONT.bold, color: theme.muted, letterSpacing: 0.4, textTransform: 'uppercase' },
   feature: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  featureText: { flex: 1, fontSize: 15, fontFamily: JAKARTA.medium, color: theme.ink },
-  upgrade: { fontSize: 12, fontFamily: JAKARTA.semibold, color: theme.muted },
-  usage: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink, fontVariant: ['tabular-nums'] },
+  featureText: { flex: 1, fontSize: 15, ...UI_FONT.medium, color: theme.ink },
+  upgrade: { fontSize: 12, ...UI_FONT.semibold, color: theme.muted },
+  usage: { fontSize: 17, ...UI_FONT.semibold, color: theme.ink, fontVariant: ['tabular-nums'] },
 });

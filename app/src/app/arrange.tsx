@@ -13,7 +13,7 @@ import { startCut, type Take } from '../lib/jobs';
 import { useUsage } from '../lib/usage';
 import { formatTime, theme } from '../lib/theme';
 import { CuttingView } from './cut/[id]';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 const TILE_W = 104;
 const TILE_H = 170;
@@ -160,21 +160,21 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: theme.page },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 44 },
   back: { flexDirection: 'row', alignItems: 'center', gap: 4, width: 70 },
-  backText: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink },
-  headTitle: { fontSize: 17, fontFamily: JAKARTA.bold, color: theme.ink },
+  backText: { fontSize: 16, ...UI_FONT.medium, color: theme.ink },
+  headTitle: { fontSize: 17, ...UI_FONT.bold, color: theme.ink },
   intro: { paddingHorizontal: 20, marginTop: 8, gap: 6 },
-  title: { fontSize: 28, fontFamily: JAKARTA.extrabold, color: theme.ink, letterSpacing: -0.5 },
-  sub: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted, lineHeight: 21 },
+  title: { fontSize: 28, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -0.5 },
+  sub: { fontSize: 15, ...UI_FONT.medium, color: theme.muted, lineHeight: 21 },
   row: { gap: GAP, paddingHorizontal: 20, paddingVertical: 22 },
   tile: { borderRadius: 16, overflow: 'hidden', backgroundColor: theme.card },
   number: { position: 'absolute', top: 7, left: 7, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
-  numberText: { color: '#fff', fontSize: 13, fontFamily: JAKARTA.bold },
+  numberText: { color: '#fff', fontSize: 13, ...UI_FONT.bold },
   remove: { position: 'absolute', top: 7, right: 7, width: 24, height: 24, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center' },
   length: { position: 'absolute', bottom: 7, right: 7, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 8, paddingHorizontal: 6, paddingVertical: 2 },
-  lengthText: { color: '#fff', fontSize: 12, fontFamily: JAKARTA.bold, fontVariant: ['tabular-nums'] },
+  lengthText: { color: '#fff', fontSize: 12, ...UI_FONT.bold, fontVariant: ['tabular-nums'] },
   add: { width: TILE_W - 20, height: TILE_H, borderRadius: 16, borderWidth: 2, borderStyle: 'dashed', borderColor: '#C7C7CC', alignItems: 'center', justifyContent: 'center' },
   option: { flexDirection: 'row', alignItems: 'center', gap: 14, backgroundColor: '#fff', borderRadius: 18, padding: 16, marginHorizontal: 20 },
-  optionTitle: { fontSize: 16, fontFamily: JAKARTA.bold, color: theme.ink },
-  optionSub: { fontSize: 13, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
-  summary: { fontSize: 14, fontFamily: JAKARTA.medium, color: theme.muted, textAlign: 'center', marginVertical: 14, fontVariant: ['tabular-nums'] },
+  optionTitle: { fontSize: 16, ...UI_FONT.bold, color: theme.ink },
+  optionSub: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
+  summary: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', marginVertical: 14, fontVariant: ['tabular-nums'] },
 });

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../lib/theme';
 import { PressableScale, type SymbolName } from './ui';
-import { JAKARTA } from '../lib/fonts';
+import { UI_FONT } from '../lib/fonts';
 
 // Grouped-list pieces for the You, Plan and Settings screens: white cards on the grey page.
 
@@ -96,7 +96,7 @@ export function Meter({ fraction }: { fraction: number }) {
 export const listStyles = StyleSheet.create({
   /** Initials in an outlined circle. */
   avatar: { borderRadius: 999, borderWidth: 1.5, borderColor: theme.line, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { fontFamily: JAKARTA.bold, color: theme.ink, letterSpacing: 0.5 },
+  avatarText: { ...UI_FONT.bold, color: theme.ink, letterSpacing: 0.5 },
 });
 
 const styles = StyleSheet.create({
@@ -105,19 +105,19 @@ const styles = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 },
   },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10 },
-  headerTitle: { fontSize: 17, fontFamily: JAKARTA.semibold, color: theme.ink },
+  headerTitle: { fontSize: 17, ...UI_FONT.semibold, color: theme.ink },
   card: {
     backgroundColor: '#fff', borderRadius: 18, overflow: 'hidden',
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 10, shadowOffset: { width: 0, height: 2 },
   },
-  label: { fontSize: 13, color: theme.muted, fontFamily: JAKARTA.medium, marginTop: 22, marginBottom: 8, marginLeft: 4 },
-  foot: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 8, marginHorizontal: 4, lineHeight: 17 },
+  label: { fontSize: 13, color: theme.muted, ...UI_FONT.medium, marginTop: 22, marginBottom: 8, marginLeft: 4 },
+  foot: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, marginTop: 8, marginHorizontal: 4, lineHeight: 17 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 16, paddingVertical: 13, minHeight: 52 },
   rowIcon: { width: 32, height: 32, borderRadius: 9, backgroundColor: theme.blueTile, alignItems: 'center', justifyContent: 'center' },
   rowLine: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
-  rowLabel: { fontSize: 16, fontFamily: JAKARTA.medium, color: theme.ink },
-  rowDetail: { fontSize: 12, fontFamily: JAKARTA.medium, color: theme.muted, marginTop: 2 },
-  rowValue: { fontSize: 15, fontFamily: JAKARTA.medium, color: theme.muted },
+  rowLabel: { fontSize: 16, ...UI_FONT.medium, color: theme.ink },
+  rowDetail: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
+  rowValue: { fontSize: 15, ...UI_FONT.medium, color: theme.muted },
   meter: { height: 4, borderRadius: 2, backgroundColor: theme.line, overflow: 'hidden', marginTop: 10 },
   meterFill: { height: 4, borderRadius: 2, backgroundColor: theme.ink },
 });
