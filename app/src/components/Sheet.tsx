@@ -4,13 +4,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { column, theme } from '../lib/theme';
 
 /**
- * A card that slides up from the bottom over a dimmed screen, sized to what's in it. Tap outside
+ * A card at the bottom over a dimmed screen, sized to what’s in it; both fade in together. Tap outside
  * to close. `onDismissed` runs once it has fully gone (open a picker from there, not before).
  */
 export function Sheet({ visible, onClose, onDismissed, children }: { visible: boolean; onClose: () => void; onDismissed?: () => void; children: ReactNode }) {
   const insets = useSafeAreaInsets();
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} onDismiss={onDismissed}>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose} onDismiss={onDismissed}>
       <KeyboardAvoidingView behavior="padding" style={styles.screen}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Close" />
         <View style={[styles.card, { paddingBottom: insets.bottom + 16 }]}>

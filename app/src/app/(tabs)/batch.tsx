@@ -170,7 +170,7 @@ function ScheduleSheet({ n, now, at, onPick, onClose }: { n: number; now: number
   // On the minute picked (the picker keeps the seconds it started with).
   const chosen = Math.max(new Date(value).setSeconds(0, 0), soon);
   return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
+    <Modal transparent animationType="fade" onRequestClose={onClose}>
       <Pressable style={styles.scrim} onPress={onClose} accessibilityLabel="Close" />
       <View style={[styles.sheet, { paddingBottom: insets.bottom + 12 }]}>
         <View style={styles.grabber} />

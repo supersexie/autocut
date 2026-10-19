@@ -1,4 +1,4 @@
-import { Canvas, Circle, RadialGradient, SweepGradient, vec, type SkImage } from '@shopify/react-native-skia';
+import { Canvas, Circle, Line as SkLine, RadialGradient, SweepGradient, vec, type SkImage } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
@@ -12,6 +12,7 @@ import type { SavedLook } from '../../lib/store';
 import { theme } from '../../lib/theme';
 import { Segmented, type SymbolName } from '../ui';
 import { GradedFrame } from './GradedFrame';
+import { ColorNote } from './ColorDialogs';
 import { Panel } from './Panels';
 
 export type ColorScope = 'all' | 'clip';
@@ -89,11 +90,15 @@ export function ColorPanel(p: {
   onMatch: () => void;
   looks: SavedLook[];
   onSaveLook: () => void;
+  /** A short note shown over the panel ("Look copied"), and how to ask for one. */
+  note: string | null;
+  onNote: (text: string) => void;
   frame: SkImage | null;
   onDone: () => void;
 }) {
   const [tab, setTab] = useState<Tab>('adjust');
-  const [slider, setSlider] = useState<AdjustKey | 'auto'>('auto');
+  // Opens on Exposure. Auto isn't a slider: tapping it adjusts once.
+  const [slider, setSlider] = useState<AdjustKey>('exposure');
   const [band, setBand] = useState(HSL_BANDS[0].key);
   const g = p.grade ?? {};
   const set = (next: Grade, live = false) => p.onChange(cleanGrade(next), live);
@@ -126,9 +131,18 @@ export function ColorPanel(p: {
               onPress={() => {
                 copied = p.grade;
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                p.onNote('Look copied. Paste it on any clip.');
               }}
             />
-            <Action icon="doc.on.clipboard" label="Paste" disabled={!copied} onPress={() => set(copied ?? {})} />
+            <Action
+              icon="doc.on.clipboard"
+              label="Paste"
+              disabled={!copied}
+              onPress={() => {
+                set(copied ?? {});
+                p.onNote('Look pasted');
+              }}
+            />
           </View>
           <View style={styles.tabs}>
             {TABS.map((t) => (
@@ -142,33 +156,29 @@ export function ColorPanel(p: {
       }
     >
       <View style={styles.body}>
-        <View style={{ width: 230, alignSelf: 'center' }}>
-          <Segmented value={p.scope} onChange={p.onScope} options={[{ value: 'all', label: 'All clips' }, { value: 'clip', label: 'This clip' }]} />
-        </View>
-        {p.scope === 'clip' && p.onClipStep && (
-          <View style={styles.clipStep}>
-            <Pressable onPress={() => p.onClipStep?.(-1)} hitSlop={10}>
-              <SymbolView name="chevron.left" tintColor={theme.ink} size={12} weight="semibold" />
-            </Pressable>
-            <Text style={styles.clipLabel}>{p.clipLabel}</Text>
-            <Pressable onPress={() => p.onClipStep?.(1)} hitSlop={10}>
-              <SymbolView name="chevron.right" tintColor={theme.ink} size={12} weight="semibold" />
-            </Pressable>
+        {/* Which clips change; on This clip, the arrows to step through them sit beside it. */}
+        <View style={styles.scopeRow}>
+          <View style={{ width: p.scope === 'clip' && p.onClipStep ? 200 : 230 }}>
+            <Segmented value={p.scope} onChange={p.onScope} options={[{ value: 'all', label: 'All clips' }, { value: 'clip', label: 'This clip' }]} />
           </View>
-        )}
+          {p.scope === 'clip' && p.onClipStep && (
+            <View style={styles.clipStep}>
+              <Pressable onPress={() => p.onClipStep?.(-1)} hitSlop={10} accessibilityLabel="Previous clip">
+                <SymbolView name="chevron.left" tintColor={theme.ink} size={12} weight="semibold" />
+              </Pressable>
+              <Text style={styles.clipLabel}>{p.clipLabel}</Text>
+              <Pressable onPress={() => p.onClipStep?.(1)} hitSlop={10} accessibilityLabel="Next clip">
+                <SymbolView name="chevron.right" tintColor={theme.ink} size={12} weight="semibold" />
+              </Pressable>
+            </View>
+          )}
+        </View>
 
         {tab === 'adjust' && (
           <View style={{ gap: 8 }}>
-            {slider === 'auto' ? (
-              <Pressable onPress={p.onAuto} style={styles.autoBtn}>
-                <SymbolView name="wand.and.stars" tintColor="#fff" size={15} />
-                <Text style={styles.autoText}>Auto adjust</Text>
-              </Pressable>
-            ) : (
-              <Labelled label={SLIDERS.flatMap((s) => s.items).find((i) => i.key === slider)?.label ?? ''} value={g.adjust?.[slider] ?? 0}>
-                <CenterSlider value={g.adjust?.[slider] ?? 0} oneSided={ONE_SIDED.includes(slider)} onChange={(v, live) => setAdjust(slider, v, live)} onEnd={p.onEnd} />
-              </Labelled>
-            )}
+            <Labelled label={SLIDERS.flatMap((s) => s.items).find((i) => i.key === slider)?.label ?? ''} value={g.adjust?.[slider] ?? 0}>
+              <CenterSlider value={g.adjust?.[slider] ?? 0} oneSided={ONE_SIDED.includes(slider)} onChange={(v, live) => setAdjust(slider, v, live)} onEnd={p.onEnd} />
+            </Labelled>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 2, paddingHorizontal: 4 }}>
               {SLIDERS.map((grp) => (
                 <View key={grp.group}>
@@ -178,7 +188,7 @@ export function ColorPanel(p: {
                       const on = slider === it.key;
                       const used = it.key !== 'auto' && !!g.adjust?.[it.key];
                       return (
-                        <Pressable key={it.key} onPress={() => setSlider(it.key)} style={[styles.chip, on && styles.chipOn]}>
+                        <Pressable key={it.key} onPress={() => (it.key === 'auto' ? p.onAuto() : setSlider(it.key))} style={[styles.chip, on && styles.chipOn]}>
                           <SymbolView name={it.icon} tintColor={on ? theme.blue : theme.ink} size={17} />
                           <Text style={[styles.chipText, on && { color: theme.blue }]} numberOfLines={1}>
                             {it.label}
@@ -282,6 +292,7 @@ export function ColorPanel(p: {
         )}
 
         {tab === 'curves' && <CurveEditor points={g.curve} onChange={(curve, live) => set({ ...g, curve }, live)} onEnd={p.onEnd} />}
+        <ColorNote text={p.note} />
       </View>
     </Panel>
   );
@@ -356,7 +367,7 @@ function CenterSlider({ value, onChange, onEnd, oneSided }: { value: number; onC
     .onUpdate((e) => move(e.x, true))
     .onFinalize(() => onEnd());
   // Double-tap puts it back to 0.
-  const tap = Gesture.Tap().numberOfTaps(2).runOnJS(true).onEnd(() => {
+  const tap = Gesture.Tap().numberOfTaps(2).maxDistance(8).runOnJS(true).onEnd(() => {
     onChange(0, false);
     onEnd();
   });
@@ -374,15 +385,35 @@ function CenterSlider({ value, onChange, onEnd, oneSided }: { value: number; onC
   );
 }
 
-const WHEEL = 104;
+const WHEEL = 120;
+const PUCK = 22;
+// The hue at every 30°, so the colour under the puck is exactly the tint it adds (angle = hue).
+// (As hex: Skia doesn't read every hsl() string.)
+// The sweep runs clockwise from 3 o'clock, where the hue is 90° (0° is at the top).
+const HUES = Array.from({ length: 13 }, (_, k) => hex((90 + k * 30) % 360, 0.9, 0.58));
 
-/** A tint wheel: the direction picks the colour, the distance from the middle how much. */
+/** An HSL colour as #rrggbb (h in degrees, s and l 0…1). */
+function hex(h: number, s: number, l: number) {
+  const f = (n: number) => {
+    const k = (n + h / 30) % 12;
+    const c = l - s * Math.min(l, 1 - l) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+    return Math.round(c * 255).toString(16).padStart(2, '0');
+  };
+  return `#${f(0)}${f(8)}${f(4)}`;
+}
+
+/**
+ * A tint wheel: the direction picks the colour, the distance from the middle how much. Soft colours
+ * that fade to white in the middle, faint cross hairs, and a puck filled with the tint it adds.
+ */
 function ColourWheel({ angle, amount, onChange, onEnd }: { angle: number; amount: number; onChange: (angle: number, amount: number, live: boolean) => void; onEnd: () => void }) {
   const r = WHEEL / 2;
+  const reach = r - PUCK / 2 - 2; // how far the puck's centre can go
   const move = (x: number, y: number) => {
     const dx = x - r;
     const dy = y - r;
-    const dist = Math.min(1, Math.hypot(dx, dy) / (r - 8));
+    let dist = Math.min(1, Math.hypot(dx, dy) / reach);
+    if (dist < 0.06) dist = 0; // a little dead zone in the middle: no tint
     const a = (Math.atan2(dx, -dy) * 180) / Math.PI; // 0° at the top, clockwise
     onChange(Math.round((a + 360) % 360), Math.round(dist * 100), true);
   };
@@ -392,41 +423,58 @@ function ColourWheel({ angle, amount, onChange, onEnd }: { angle: number; amount
     .onBegin((e) => move(e.x, e.y))
     .onUpdate((e) => move(e.x, e.y))
     .onFinalize(() => onEnd());
+  // Double-tap: back to no tint.
+  const reset = Gesture.Tap().numberOfTaps(2).maxDistance(8).runOnJS(true).onEnd(() => {
+    onChange(angle, 0, false);
+    onEnd();
+  });
   const rad = (angle * Math.PI) / 180;
-  const px = r + Math.sin(rad) * (amount / 100) * (r - 8);
-  const py = r - Math.cos(rad) * (amount / 100) * (r - 8);
+  const px = r + Math.sin(rad) * (amount / 100) * reach;
+  const py = r - Math.cos(rad) * (amount / 100) * reach;
+  const fill = amount ? `hsl(${angle}, ${40 + amount * 0.5}%, ${70 - amount * 0.15}%)` : '#fff';
   return (
-    <GestureDetector gesture={drag}>
+    <GestureDetector gesture={Gesture.Exclusive(reset, drag)}>
       <View style={{ width: WHEEL, height: WHEEL }}>
         <Canvas style={{ width: WHEEL, height: WHEEL }}>
           <Circle cx={r} cy={r} r={r}>
-            <SweepGradient c={vec(r, r)} start={-90} end={270} colors={['#FF3B3B', '#FFB13B', '#F5F53B', '#3BFF5A', '#3BF5F5', '#3B6BFF', '#B03BFF', '#FF3BB0', '#FF3B3B']} />
+            <SweepGradient c={vec(r, r)} colors={HUES} />
           </Circle>
           <Circle cx={r} cy={r} r={r}>
-            <RadialGradient c={vec(r, r)} r={r} colors={['rgba(255,255,255,0.95)', 'rgba(255,255,255,0)']} />
+            <RadialGradient c={vec(r, r)} r={r} colors={['rgba(255,255,255,1)', 'rgba(255,255,255,0.6)', 'rgba(255,255,255,0.08)']} positions={[0, 0.5, 1]} />
           </Circle>
+          <Circle cx={r} cy={r} r={r - 0.5} style="stroke" strokeWidth={1} color="rgba(17,17,20,0.10)" />
+          <SkLine p1={vec(r, 10)} p2={vec(r, WHEEL - 10)} color="rgba(17,17,20,0.10)" strokeWidth={1} />
+          <SkLine p1={vec(10, r)} p2={vec(WHEEL - 10, r)} color="rgba(17,17,20,0.10)" strokeWidth={1} />
+          {amount > 0 && <SkLine p1={vec(r, r)} p2={vec(px, py)} color="rgba(255,255,255,0.95)" strokeWidth={2} />}
+          <Circle cx={r} cy={r} r={2.5} color="rgba(17,17,20,0.35)" />
         </Canvas>
-        <View pointerEvents="none" style={[styles.puck, { left: px - 9, top: py - 9 }]} />
+        <View pointerEvents="none" style={[styles.puck, { left: px - PUCK / 2, top: py - PUCK / 2, backgroundColor: fill }]} />
       </View>
     </GestureDetector>
   );
 }
 
 const CURVE_H = 112;
+const CURVE_PAD = 10; // room round the edge so the end points show in full
 
 /** A tone curve: drag a point to move it, tap empty space to add one, double-tap a point to remove it. */
 function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] | undefined; onChange: (pts: [number, number][], live: boolean) => void; onEnd: () => void }) {
   const [w, setW] = useState(0);
-  const [held, setHeld] = useState<number | null>(null);
-  // The point being dragged, read inside the gesture (which can outlive a render).
-  const drag0 = useSharedValue(-1);
-  const pts: [number, number][] = points?.length ? points : [[0, 0], [1, 1]];
-  const toXY = ([x, y]: [number, number]) => [x * w, (1 - y) * CURVE_H] as const;
-  const fromXY = (x: number, y: number): [number, number] => [Math.max(0, Math.min(1, x / Math.max(1, w))), Math.max(0, Math.min(1, 1 - y / CURVE_H))];
-  const nearest = (x: number, y: number) => {
+  // While a finger is down the curve keeps its own points: the saved grade drops a curve that's
+  // still a straight line (a point just added on the diagonal), which would move the wrong point.
+  const [draft, setDraft] = useState<[number, number][] | null>(null);
+  const [held, setHeld] = useState(-1);
+  const work = useSharedValue<{ pts: [number, number][]; i: number } | null>(null);
+  const saved: [number, number][] = points?.length ? points : [[0, 0], [1, 1]];
+  const pts = draft ?? saved;
+  const iw = Math.max(1, w - 2 * CURVE_PAD);
+  const ih = CURVE_H - 2 * CURVE_PAD;
+  const toXY = ([x, y]: [number, number]) => [CURVE_PAD + x * iw, CURVE_PAD + (1 - y) * ih] as const;
+  const fromXY = (x: number, y: number): [number, number] => [Math.max(0, Math.min(1, (x - CURVE_PAD) / iw)), Math.max(0, Math.min(1, 1 - (y - CURVE_PAD) / ih))];
+  const nearest = (list: [number, number][], x: number, y: number) => {
     let best = -1;
     let d = 26;
-    pts.forEach((p, i) => {
+    list.forEach((p, i) => {
       const [px, py] = toXY(p);
       const dd = Math.hypot(px - x, py - y);
       if (dd < d) {
@@ -436,51 +484,61 @@ function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] |
     });
     return best;
   };
-  const place = (i: number, x: number, y: number) => {
-    const next = pts.map((p) => [...p] as [number, number]);
-    let [nx, ny] = fromXY(x, y);
-    if (i === 0) nx = 0;
-    else if (i === pts.length - 1) nx = 1;
-    else nx = Math.max(next[i - 1][0] + 0.03, Math.min(next[i + 1][0] - 0.03, nx));
-    next[i] = [nx, ny];
+  const show = (next: [number, number][]) => {
+    setDraft(next);
     onChange(next, true);
   };
   const drag = Gesture.Pan()
     .runOnJS(true)
     .minDistance(0)
     .onBegin((e) => {
-      let i = nearest(e.x, e.y);
-      if (i < 0 && pts.length < 10) {
-        const [nx] = fromXY(e.x, e.y);
-        const next = [...pts, fromXY(e.x, e.y)].sort((a, b) => a[0] - b[0]);
-        i = next.findIndex((p) => p[0] === nx);
-        onChange(next, true);
+      let list = pts.map((p) => [...p] as [number, number]);
+      let i = nearest(list, e.x, e.y);
+      if (i < 0 && list.length < 10) {
+        // A new point where the finger is, in order along the curve.
+        const p = fromXY(e.x, e.y);
+        list = [...list, p].sort((a, b) => a[0] - b[0]);
+        i = list.indexOf(p);
         Haptics.selectionAsync();
+        show(list);
       }
-      drag0.set(i);
+      work.set(i >= 0 ? { pts: list, i } : null);
       setHeld(i);
     })
-    .onUpdate((e) => drag0.get() >= 0 && place(drag0.get(), e.x, e.y))
+    .onUpdate((e) => {
+      const cur = work.get();
+      if (!cur) return;
+      const next = cur.pts.map((p) => [...p] as [number, number]);
+      const i = cur.i;
+      let [nx, ny] = fromXY(e.x, e.y);
+      if (i === 0) nx = 0;
+      else if (i === next.length - 1) nx = 1;
+      else nx = Math.max(next[i - 1][0] + 0.03, Math.min(next[i + 1][0] - 0.03, nx));
+      next[i] = [nx, ny];
+      work.set({ pts: next, i });
+      show(next);
+    })
     .onFinalize(() => {
-      drag0.set(-1);
-      setHeld(null);
+      work.set(null);
+      setDraft(null);
+      setHeld(-1);
       onEnd();
     });
-  const remove = Gesture.Tap()
-    .numberOfTaps(2)
+  const remove = Gesture.Tap().numberOfTaps(2).maxDistance(8)
     .runOnJS(true)
     .onEnd((e) => {
-      const i = nearest(e.x, e.y);
-      if (i > 0 && i < pts.length - 1) {
-        onChange(pts.filter((_, k) => k !== i), false);
+      const i = nearest(saved, e.x, e.y);
+      if (i > 0 && i < saved.length - 1) {
+        onChange(saved.filter((_, k) => k !== i), false);
         onEnd();
       }
     });
   const f = curveFn(pts);
   const path = w
-    ? Array.from({ length: 41 }, (_, k) => {
-        const x = k / 40;
-        return `${k ? 'L' : 'M'}${(x * w).toFixed(1)} ${((1 - Math.max(0, Math.min(1, f(x)))) * CURVE_H).toFixed(1)}`;
+    ? Array.from({ length: 61 }, (_, k) => {
+        const x = k / 60;
+        const [px, py] = toXY([x, Math.max(0, Math.min(1, f(x)))]);
+        return `${k ? 'L' : 'M'}${px.toFixed(1)} ${py.toFixed(1)}`;
       }).join(' ')
     : '';
   return (
@@ -495,7 +553,7 @@ function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] |
               {[0.25, 0.5, 0.75].map((k) => (
                 <Line key={`h${k}`} x1={0} x2={w} y1={k * CURVE_H} y2={k * CURVE_H} stroke="rgba(17,17,20,0.08)" strokeWidth={1} />
               ))}
-              <Line x1={0} y1={CURVE_H} x2={w} y2={0} stroke="rgba(17,17,20,0.18)" strokeWidth={1} strokeDasharray="4 4" />
+              <Line x1={CURVE_PAD} y1={CURVE_H - CURVE_PAD} x2={w - CURVE_PAD} y2={CURVE_PAD} stroke="rgba(17,17,20,0.18)" strokeWidth={1} strokeDasharray="4 4" />
               <Path d={path} stroke={theme.ink} strokeWidth={2} fill="none" />
               {pts.map((p, i) => {
                 const [x, y] = toXY(p);
@@ -511,12 +569,11 @@ function CurveEditor({ points, onChange, onEnd }: { points: [number, number][] |
 }
 
 const styles = StyleSheet.create({
-  body: { flex: 1, paddingHorizontal: 12, gap: 8, overflow: 'hidden' },
+  body: { flex: 1, paddingHorizontal: 12, paddingTop: 12, gap: 10, overflow: 'hidden' },
   reset: { fontSize: 13, ...UI_FONT.semibold, color: theme.blue },
-  clipStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
+  scopeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 14 },
+  clipStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10 },
   clipLabel: { fontSize: 12, ...UI_FONT.semibold, color: theme.ink },
-  autoBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 40, borderRadius: 12, backgroundColor: theme.blue, marginHorizontal: 4 },
-  autoText: { fontSize: 14, ...UI_FONT.bold, color: '#fff' },
   group: { fontSize: 10, ...UI_FONT.semibold, color: theme.faint, marginLeft: 6, marginBottom: 2 },
   chip: { width: 58, alignItems: 'center', gap: 3, paddingVertical: 6, borderRadius: 10 },
   chipOn: { backgroundColor: theme.blueTile },
@@ -537,7 +594,7 @@ const styles = StyleSheet.create({
   bandDot: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: 'transparent' },
   bandOn: { borderColor: '#fff', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, transform: [{ scale: 1.15 }] },
   wheelRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: 4 },
-  puck: { position: 'absolute', width: 18, height: 18, borderRadius: 9, borderWidth: 3, borderColor: '#fff', backgroundColor: 'rgba(17,17,20,0.25)', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 3, shadowOffset: { width: 0, height: 1 } },
+  puck: { position: 'absolute', width: PUCK, height: PUCK, borderRadius: PUCK / 2, borderWidth: 3, borderColor: '#fff', shadowColor: '#000', shadowOpacity: 0.28, shadowRadius: 4, shadowOffset: { width: 0, height: 1 } },
   curveBox: { height: CURVE_H, borderRadius: 10, backgroundColor: '#fff', borderWidth: 1, borderColor: theme.line, overflow: 'hidden' },
   curveHint: { fontSize: 10, ...UI_FONT.semibold, color: theme.faint, textAlign: 'center', marginTop: 4 },
   sliderTrack: { height: KNOB + 6, justifyContent: 'center' },

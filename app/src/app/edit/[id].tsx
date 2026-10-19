@@ -7,6 +7,7 @@ import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, Style
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ExportFlow } from '../../components/ExportFlow';
+import { MatchSheet, SaveLookSheet } from '../../components/editor/ColorDialogs';
 import { ColorPanel, type ColorScope } from '../../components/editor/ColorPanel';
 import { GradedFrame, pixelsOf, useFrameAt } from '../../components/editor/GradedFrame';
 import { CaptionsPanel, FormatPanel, LineEditor, MusicPanel, OverlayVolumePanel, SizePanel, SpeedPanel, StylePicker, VolumePanel } from '../../components/editor/Panels';
@@ -306,43 +307,47 @@ export function Editor({ cut }: { cut: CutRecord }) {
     if (!px) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     applyGrade(cleanGrade({ ...clip?.grade, adjust: { ...clip?.grade?.adjust, ...autoGrade(frameStats(px, 16)) } }));
+    showColorNote('Auto adjusted');
   }
-  async function matchColor() {
-    const others = clips.map((c, i) => ({ c, i })).filter(({ i }) => i !== selected);
-    if (!others.length) return;
-    const pick = await new Promise<number | null>((done) =>
-      Alert.alert('Match this clip to…', 'Its light and colour change to look like the clip you pick.', [
-        ...others.slice(0, 6).map(({ i }) => ({ text: `Clip ${i + 1}`, onPress: () => done(i) })),
-        { text: 'Cancel', style: 'cancel' as const, onPress: () => done(null) },
-      ])
-    );
-    if (pick === null) return;
+  // Match and Save look open our own sheets; Copy, Paste and the results show a short note.
+  const [matching, setMatching] = useState(false);
+  const [namingLook, setNamingLook] = useState(false);
+  const [colorNote, setColorNote] = useState<string | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function showColorNote(text: string) {
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    setColorNote(text);
+    noteTimer.current = setTimeout(() => setColorNote(null), 1800);
+  }
+  async function matchTo(pick: number) {
+    setMatching(false);
     try {
       const ref = clips[pick];
       const thumb = await VideoThumbnails.getThumbnailAsync(sourceUri, { time: Math.round(((ref.start + ref.end) / 2) * 1000), quality: 0.6 });
       const { Skia } = await import('@shopify/react-native-skia');
       const refPx = pixelsOf(Skia.Image.MakeImageFromEncoded(await Skia.Data.fromURI(thumb.uri)));
       const px = pixelsOf(frame);
-      if (!refPx || !px) return;
+      if (!refPx || !px) throw new Error('no frames');
       const m = matchGrade(frameStats(px, 16), frameStats(refPx, 16));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       // Matching is for this clip only.
       setColorScope('clip');
       const g = cleanGrade({ ...clip?.grade, adjust: { ...clip?.grade?.adjust, ...m } });
       setClips(clips.map((c, k) => (k === selected ? { ...c, grade: g } : c)));
+      showColorNote(`Matched to clip ${pick + 1}`);
     } catch {
-      Alert.alert('Couldn’t match those clips', 'Try again in a moment.');
+      showColorNote('Couldn’t match those clips. Try again.');
     }
   }
-  function saveLook() {
+  function saveLook(name: string) {
+    setNamingLook(false);
     const g = cleanGrade(clip?.grade);
     if (!g) return;
-    const keep = (name: string) => {
-      const list = getSettings().looks ?? [];
-      updateSettings({ looks: [{ id: `${Date.now()}`, name: name.trim().slice(0, 18) || `Look ${list.length + 1}`, grade: g }, ...list].slice(0, 12) });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    };
-    Alert.prompt('Save this look', 'It shows up first in Filters, ready for your next videos.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Save', onPress: (name?: string) => keep(name ?? '') }], 'plain-text', `Look ${looks.length + 1}`);
+    const list = getSettings().looks ?? [];
+    const id = String(Math.max(0, ...list.map((l) => Number(l.id) || 0)) + 1); // one more than any before
+    updateSettings({ looks: [{ id, name: name.trim().slice(0, 18) || `Look ${list.length + 1}`, grade: g }, ...list].slice(0, 12) });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    showColorNote('Saved to Filters');
   }
   type ToolId = 'split' | 'duplicate' | 'delete' | 'text' | 'captions' | 'adjust' | 'volume' | 'speed' | 'restore'
     | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete'
@@ -669,7 +674,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
                   style={[styles.tool, t.disabled && { opacity: 0.3 }]}
                   accessibilityLabel={t.label}
                 >
-                  <SymbolView name={t.icon} tintColor={t.danger ? theme.danger : theme.ink} size={20} />
+                  <SymbolView name={t.icon} tintColor={t.danger ? theme.danger : theme.ink} size={20} weight="semibold" />
                   <Text style={[styles.toolText, t.danger && { color: theme.danger }]}>{t.label}</Text>
                 </PressableScale>
                 {t.divider && <View style={styles.toolDivider} />}
@@ -723,15 +728,23 @@ export function Editor({ cut }: { cut: CutRecord }) {
             onCompare={() => setCompare((c) => !c)}
             onAuto={autoColor}
             canMatch={clips.length > 1}
-            onMatch={matchColor}
+            onMatch={() => setMatching(true)}
             looks={looks}
-            onSaveLook={saveLook}
+            onSaveLook={() => setNamingLook(true)}
+            note={colorNote}
+            onNote={showColorNote}
             frame={frame}
             onDone={() => {
               setPanel(null);
               setCompare(false);
             }}
           />
+        )}
+        {panel === 'color' && (
+          <>
+            <MatchSheet visible={matching} clips={clips} current={selected} sourceUri={sourceUri} onPick={matchTo} onClose={() => setMatching(false)} />
+            <SaveLookSheet visible={namingLook} suggested={`Look ${looks.length + 1}`} onSave={saveLook} onClose={() => setNamingLook(false)} />
+          </>
         )}
         {panel === 'volume' && clip && (
           <VolumePanel
