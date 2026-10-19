@@ -38,7 +38,7 @@ export default function YouScreen() {
 
         <View style={styles.profile}>
           <View style={[listStyles.avatar, { width: 52, height: 52 }]}>
-            <Text style={[listStyles.avatarText, { fontSize: 18, ...UI_FONT.medium }]}>{initials}</Text>
+            <Text style={[listStyles.avatarText, { fontSize: 18, ...UI_FONT.semibold }]}>{initials}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.handle} numberOfLines={1}>
@@ -109,23 +109,23 @@ const styles = StyleSheet.create({
   h1: { fontSize: 34, ...UI_FONT.extrabold, color: theme.ink, letterSpacing: -0.6 },
   profile: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 14, marginBottom: 20 },
   handle: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink },
-  sub: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, marginTop: 3 },
+  sub: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted, marginTop: 3 },
   pad: { padding: 16 },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   plan: { fontSize: 22, ...UI_FONT.extrabold, color: theme.ink },
-  tag: { fontSize: 14, ...UI_FONT.medium, color: theme.muted },
+  tag: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted },
   manage: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   link: { fontSize: 15, ...UI_FONT.semibold, color: theme.ink },
-  small: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 6 },
+  small: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted, marginTop: 6 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: theme.line, marginVertical: 14 },
-  usage: { fontSize: 16, ...UI_FONT.medium, color: theme.ink, fontVariant: ['tabular-nums'] },
+  usage: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink, fontVariant: ['tabular-nums'] },
   cardTitle: { fontSize: 18, ...UI_FONT.bold, color: theme.ink },
   stats: { flexDirection: 'row', marginTop: 16 },
   statValue: { fontSize: 24, ...UI_FONT.bold, color: theme.ink, fontVariant: ['tabular-nums'] },
-  statLabel: { fontSize: 15, ...UI_FONT.medium, color: theme.ink, marginTop: 2 },
-  statNote: { fontSize: 12, ...UI_FONT.medium, color: theme.muted, marginTop: 2 },
+  statLabel: { fontSize: 15, ...UI_FONT.semibold, color: theme.ink, marginTop: 2 },
+  statNote: { fontSize: 12, ...UI_FONT.semibold, color: theme.muted, marginTop: 2 },
   empty: { alignItems: 'center', gap: 8, marginTop: 44, paddingHorizontal: 20 },
   emptyIcon: { width: 64, height: 64, borderRadius: 32, backgroundColor: theme.line, alignItems: 'center', justifyContent: 'center', marginBottom: 6 },
   emptyTitle: { fontSize: 18, ...UI_FONT.bold, color: theme.ink },
-  emptyBody: { fontSize: 14, ...UI_FONT.medium, color: theme.muted, textAlign: 'center', lineHeight: 20, marginBottom: 10 },
+  emptyBody: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted, textAlign: 'center', lineHeight: 20, marginBottom: 10 },
 });

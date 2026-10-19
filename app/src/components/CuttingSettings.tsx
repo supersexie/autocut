@@ -41,6 +41,6 @@ export function SwitchRow({ label, value, onChange, last }: { label: string; val
 const styles = StyleSheet.create({
   slider: { paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6, gap: 4, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: theme.line },
   between: { flexDirection: 'row', justifyContent: 'space-between' },
-  text: { fontSize: 16, ...UI_FONT.medium, color: theme.ink },
-  value: { fontSize: 15, ...UI_FONT.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
+  text: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink },
+  value: { fontSize: 15, ...UI_FONT.semibold, color: theme.muted, fontVariant: ['tabular-nums'] },
 });

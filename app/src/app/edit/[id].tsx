@@ -2,7 +2,7 @@ import * as Haptics from 'expo-haptics';
 import { router, useLocalSearchParams } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import * as VideoThumbnails from 'expo-video-thumbnails';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type LayoutRectangle } from 'react-native';
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -348,11 +348,12 @@ export function Editor({ cut }: { cut: CutRecord }) {
     | 'textEdit' | 'textStyle' | 'textSize' | 'textStart' | 'textEnd' | 'textDuplicate' | 'textDelete'
     | 'overlay' | 'overlaySplit' | 'overlayDuplicate' | 'overlayMute' | 'overlayVolume' | 'overlayFront' | 'overlayDelete'
     | 'captionEdit' | 'captionSplit' | 'captionDelete' | 'captionStyle' | 'captionAll';
-  type Tool = { id: ToolId; icon: SymbolName; label: string; disabled?: boolean; danger?: boolean };
+  /** `divider`: a thin line after this tool, between the clip's own tools and the ones that add things. */
+  type Tool = { id: ToolId; icon: SymbolName; label: string; disabled?: boolean; danger?: boolean; divider?: boolean };
   const clipTools: Tool[] = [
     { id: 'split', icon: 'square.split.2x1', label: 'Split' },
     { id: 'duplicate', icon: 'plus.square.on.square', label: 'Duplicate' },
-    { id: 'delete', icon: 'trash', label: 'Delete', disabled: clips.length < 2, danger: true },
+    { id: 'delete', icon: 'trash', label: 'Delete', disabled: clips.length < 2, danger: true, divider: true },
     { id: 'text', icon: 'textformat', label: 'Text' },
     { id: 'captions', icon: 'captions.bubble', label: 'Captions' },
     { id: 'overlay', icon: 'photo.on.rectangle', label: 'Overlay' },
@@ -484,7 +485,6 @@ export function Editor({ cut }: { cut: CutRecord }) {
           hitSlop={10}
           style={styles.exportBtn}
         >
-          <SymbolView name="square.and.arrow.up" tintColor="#fff" size={12} weight="semibold" />
           <Text style={styles.exportText}>Export</Text>
         </Pressable>
       </View>
@@ -561,7 +561,7 @@ export function Editor({ cut }: { cut: CutRecord }) {
         <View style={styles.clockRow}>
           <Text style={styles.clock}>
             {/* The length is rounded, like Photos and the export sheet show it; the playhead counts whole seconds. */}
-            {mmss(time)} / {mmss(Math.round(total))}
+            <Text style={styles.clockNow}>{mmss(time)}</Text> / {mmss(Math.round(total))}
           </Text>
           {playback.preparing && (
             <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(200)} style={styles.preparing}>
@@ -661,17 +661,19 @@ export function Editor({ cut }: { cut: CutRecord }) {
           )}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={[styles.tools, wide && styles.toolsCentered]}>
             {tools.map((t) => (
-              <PressableScale
-                key={t.label}
-                onPress={() => runTool(t.id)}
-                disabled={t.disabled}
-                scaleTo={0.9}
-                style={[styles.tool, t.disabled && { opacity: 0.3 }]}
-                accessibilityLabel={t.label}
-              >
-                <SymbolView name={t.icon} tintColor={t.danger ? theme.danger : theme.ink} size={20} />
-                <Text style={[styles.toolText, t.danger && { color: theme.danger }]}>{t.label}</Text>
-              </PressableScale>
+              <Fragment key={t.label}>
+                <PressableScale
+                  onPress={() => runTool(t.id)}
+                  disabled={t.disabled}
+                  scaleTo={0.9}
+                  style={[styles.tool, t.disabled && { opacity: 0.3 }]}
+                  accessibilityLabel={t.label}
+                >
+                  <SymbolView name={t.icon} tintColor={t.danger ? theme.danger : theme.ink} size={20} />
+                  <Text style={[styles.toolText, t.danger && { color: theme.danger }]}>{t.label}</Text>
+                </PressableScale>
+                {t.divider && <View style={styles.toolDivider} />}
+              </Fragment>
             ))}
           </ScrollView>
         </View>
@@ -861,33 +863,35 @@ export function Editor({ cut }: { cut: CutRecord }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: WASH[1] }, // with the blue wash behind
-  meta: { fontSize: 13, ...UI_FONT.medium, color: theme.muted },
+  meta: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, height: 46 },
   brandRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   brand: { fontSize: 19, fontFamily: BRAND_FONT, color: theme.ink, letterSpacing: -0.3 },
   // The same width as the back button, so the name stays centred.
-  exportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, width: 82, height: 30, borderRadius: 9, backgroundColor: theme.blue },
-  exportText: { fontSize: 13, ...UI_FONT.bold, color: '#fff' },
+  exportBtn: { width: 82, height: 30, alignItems: 'flex-end', justifyContent: 'center' },
+  exportText: { fontSize: 17, ...UI_FONT.bold, color: theme.blue },
   transport: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 18, height: 40 },
   bottom: { height: BOTTOM_H, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line },
   clockRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginHorizontal: 12, marginTop: 6, height: 18 },
-  clock: { fontSize: 11, ...UI_FONT.medium, color: theme.muted, fontVariant: ['tabular-nums'] },
+  clock: { fontSize: 11, ...UI_FONT.semibold, color: theme.muted, fontVariant: ['tabular-nums'] },
+  clockNow: { ...UI_FONT.bold, color: theme.ink },
   preparing: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  preparingText: { fontSize: 11, color: theme.muted, ...UI_FONT.medium },
+  preparingText: { fontSize: 11, color: theme.muted, ...UI_FONT.semibold },
   toolbar: { flexDirection: 'row', alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.line, paddingTop: 8, marginTop: 'auto' },
   toolBack: { paddingHorizontal: 14 },
   tools: { gap: 6, paddingHorizontal: 8 },
   toolsCentered: { flexGrow: 1, justifyContent: 'center' },
   tool: { alignItems: 'center', gap: 4, minWidth: 58, paddingVertical: 2 },
-  toolText: { fontSize: 10, color: theme.ink, ...UI_FONT.medium },
+  toolText: { fontSize: 10, color: theme.ink, ...UI_FONT.semibold },
+  toolDivider: { width: 1, height: 30, borderRadius: 0.5, backgroundColor: 'rgba(17,17,20,0.12)', alignSelf: 'center', marginHorizontal: 4 },
   sheet: { flex: 1, backgroundColor: '#fff' },
   sheetHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, paddingBottom: 4 },
   sheetTitle: { fontSize: 17, ...UI_FONT.bold, color: theme.ink },
-  sheetSub: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, paddingHorizontal: 20, paddingBottom: 10 },
+  sheetSub: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted, paddingHorizontal: 20, paddingBottom: 10 },
   sheetDone: { fontSize: 16, ...UI_FONT.semibold, color: theme.ink },
   sep: { height: 1, backgroundColor: theme.line, marginHorizontal: 20 },
   cutRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 20, paddingVertical: 12 },
   cutReason: { fontSize: 15, ...UI_FONT.semibold, color: theme.cut },
-  cutText: { fontSize: 14, ...UI_FONT.medium, color: theme.muted },
+  cutText: { fontSize: 14, ...UI_FONT.semibold, color: theme.muted },
   restore: { fontSize: 14, ...UI_FONT.bold, color: theme.ink },
 });

@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   black: { flex: 1, backgroundColor: '#000' },
   center: { alignItems: 'center', justifyContent: 'center' },
   permTitle: { color: '#fff', fontSize: 22, ...UI_FONT.bold },
-  permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, ...UI_FONT.medium, textAlign: 'center', lineHeight: 21 },
+  permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, ...UI_FONT.semibold, textAlign: 'center', lineHeight: 21 },
   top: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
   pillCentre: { position: 'absolute', left: 0, right: 0, top: 0, alignItems: 'center' },

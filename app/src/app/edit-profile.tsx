@@ -54,8 +54,8 @@ const styles = StyleSheet.create({
   sheet: { flex: 1, backgroundColor: '#fff' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18, paddingBottom: 10 },
   title: { fontSize: 17, ...UI_FONT.semibold, color: theme.ink },
-  cancel: { fontSize: 16, ...UI_FONT.medium, color: theme.muted },
+  cancel: { fontSize: 16, ...UI_FONT.semibold, color: theme.muted },
   save: { fontSize: 16, ...UI_FONT.bold, color: theme.ink },
   body: { padding: 18, gap: 16 },
-  email: { fontSize: 13, ...UI_FONT.medium, color: theme.muted, marginTop: 4 },
+  email: { fontSize: 13, ...UI_FONT.semibold, color: theme.muted, marginTop: 4 },
 });
