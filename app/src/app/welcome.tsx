@@ -165,7 +165,7 @@ export default function Welcome() {
     <View style={styles.screen}>
       {/* The take, full width from the top, fading into the wash where the words are. */}
       {/* Down to just behind the headline, so the words sit where the fade has turned light. */}
-      <View style={[styles.video, { height: height - insets.bottom - 230 }]} pointerEvents="none">
+      <View style={[styles.video, { height: height - insets.bottom - 245 }]} pointerEvents="none">
         <VideoView player={raw} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
         <Animated.View style={[StyleSheet.absoluteFill, editStyle]}>
           <VideoView player={edited} style={StyleSheet.absoluteFill} contentFit="cover" nativeControls={false} />
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: FADE },
   video: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#1C1C1F', overflow: 'hidden' },
   shade: { position: 'absolute', top: 0, left: 0, right: 0 },
-  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 130 },
+  fade: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 80 },
   top: { position: 'absolute', left: 16, right: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   side: { minWidth: 70 },
   round: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.85)', alignItems: 'center', justifyContent: 'center' },
