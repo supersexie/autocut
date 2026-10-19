@@ -322,10 +322,13 @@ export default function CreateScreen() {
           <Logo size={24} />
           <Text style={styles.brandText}>Autocut</Text>
         </View>
+        {/* Centred on the screen, not between the logo and the buttons (which differ in width). */}
         {busy && (
-          <View style={styles.pill}>
-            {mode === 'recording' && <View style={styles.dot} />}
-            <Text style={styles.pillText}>{takeLabel}</Text>
+          <View style={styles.pillCentre} pointerEvents="none">
+            <View style={styles.pill}>
+              {mode === 'recording' && <View style={styles.dot} />}
+              <Text style={styles.pillText}>{takeLabel}</Text>
+            </View>
           </View>
         )}
         <View style={{ gap: 10 }}>
@@ -491,6 +494,7 @@ const styles = StyleSheet.create({
   permBody: { color: 'rgba(255,255,255,0.75)', fontSize: 15, fontFamily: JAKARTA.medium, textAlign: 'center', lineHeight: 21 },
   top: { position: 'absolute', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  pillCentre: { position: 'absolute', left: 0, right: 0, top: 0, alignItems: 'center' },
   brandText: { color: '#fff', fontSize: 17, fontFamily: BRAND_FONT },
   pill: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8, backgroundColor: 'rgba(0,0,0,0.45)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 999 },
   dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: theme.cut },
