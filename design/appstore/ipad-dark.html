@@ -125,10 +125,10 @@ const SLIDES = {
       const raw = [['f1', 'Retake'], ['f2', 'Retake'], ['f3', 'Retake'], ['f4'], ['f5'], ['f6']];
       return device('s') + `<div class="card" style="top:1400px; left:250px; right:250px">
         <div class="label">Your raw take <span>0:30</span></div>
-        <div class="row">${raw.map(([f, tag]) => `<div class="f${tag ? ' cut' : ''}"><img src="src/${f}.jpg">${tag ? `<div class="x">${X}</div><div class="tag">${tag}</div>` : ''}</div>`).join('')}</div>
+        <div class="row">${raw.map(([f, tag]) => `<div class="f${tag ? ' cut' : ''}"><img src="src-dark/${f}.jpg">${tag ? `<div class="x">${X}</div><div class="tag">${tag}</div>` : ''}</div>`).join('')}</div>
         <div class="arrow"><svg width="100" height="120" viewBox="0 0 24 30" fill="none" stroke="#111114" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v23M4 18l8 8 8-8"/></svg></div>
         <div class="label">Your cut <span>0:26</span></div>
-        <div class="row kept">${['f4', 'f5', 'f6'].map((f) => `<div class="f"><img src="src/${f}.jpg"></div>`).join('')}</div>
+        <div class="row kept">${['f4', 'f5', 'f6'].map((f) => `<div class="f"><img src="src-dark/${f}.jpg"></div>`).join('')}</div>
       </div>`;
     },
     draw: () => screen('s', 'ipad-dark/ready.png') },
