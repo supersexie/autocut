@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Autocut iPad slide</title>
+<style>
+:root { --ink: #111114; --muted: #6B6B73; --soft: #A1A1A8; --page: #EBEEFD; --blue: #3D6BFF; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 2064px; height: 2752px; overflow: hidden; background: var(--page); }
+body { font-family: "SF Pro Text", -apple-system, system-ui, sans-serif; color: var(--ink); position: relative;
+  /* The app's blue wash: soft white glows and a touch of lavender over a pale blue. */
+  background:
+    radial-gradient(55% 45% at 18% 28%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+    radial-gradient(45% 40% at 82% 72%, rgba(255,255,255,.6), rgba(255,255,255,0) 70%),
+    radial-gradient(40% 35% at 70% 18%, rgba(205,214,250,.55), rgba(205,214,250,0) 70%),
+    linear-gradient(#E3E8FC, #EBEEFD 55%, #F2F4FE); }
+.head { position: absolute; top: 190px; left: 0; right: 0; text-align: center; padding: 0 120px; }
+h1 { font-family: "SF Pro Display", -apple-system, system-ui, sans-serif; font-weight: 800; font-size: 188px; line-height: 0.98; letter-spacing: -0.035em; }
+h1 em { font-style: normal; color: var(--blue); }
+h1 .two { color: var(--ink); display: block; }
+.sub { margin-top: 48px; font-size: 64px; line-height: 1.3; color: var(--ink); font-weight: 500; letter-spacing: -0.01em; }
+
+.device { position: absolute; left: 50%; top: 830px; width: 1500px; transform: translateX(-50%);
+  background: #0B0B0D; border-radius: 96px; padding: 30px;
+  box-shadow: 0 100px 200px rgba(17,17,20,.18), 0 0 0 5px #2A2A2E inset; }
+.screen { position: relative; border-radius: 68px; overflow: hidden; aspect-ratio: 2064 / 2752; background: #000; }
+.screen > canvas, .screen > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.chip { position: absolute; z-index: 5; display: flex; align-items: center; gap: 26px; background: #fff; border-radius: 999px;
+  padding: 32px 56px 32px 32px; font-size: 60px; font-weight: 700; letter-spacing: -0.02em;
+  box-shadow: 0 30px 70px rgba(17,17,20,.16), 0 2px 6px rgba(17,17,20,.06); white-space: nowrap; }
+.chip i { width: 76px; height: 76px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; }
+
+.card { position: absolute; left: 170px; right: 170px; background: #fff; border-radius: 80px; padding: 70px 70px;
+  box-shadow: 0 60px 140px rgba(17,17,20,.2); }
+.label { display: flex; justify-content: space-between; align-items: baseline; font-size: 56px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 32px; }
+.label span { color: var(--ink); font-weight: 500; font-size: 50px; }
+.row { display: flex; gap: 20px; justify-content: center; }
+.f { position: relative; flex: 1; aspect-ratio: 9 / 16; border-radius: 30px; overflow: hidden; background: #ddd; }
+.f img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.f.cut::after { content: ""; position: absolute; inset: 0; background: rgba(17,17,20,.62); }
+.f.cut { outline: 6px solid var(--ink); outline-offset: -6px; }
+.f .x { position: absolute; z-index: 2; top: 50%; left: 50%; width: 84px; height: 84px; margin: -42px 0 0 -42px; border-radius: 50%; background: #fff; display: grid; place-items: center; }
+.f .tag { position: absolute; z-index: 2; left: 10px; right: 10px; bottom: 18px; text-align: center; color: #fff; font-size: 36px; font-weight: 700; }
+.arrow { display: grid; place-items: center; height: 110px; }
+.kept { width: 49.3%; margin: 0 auto; }
+
+/* Dark variant: near-black page, left-aligned headline with its second line in bright blue, a tilted titanium device. */
+:root { --accent: #6E9BFF; }
+html, body { background: #0A0A0C !important; }
+body { color: #fff !important;
+  background:
+    radial-gradient(60% 40% at 50% 62%, rgba(110,155,255,.10), rgba(110,155,255,0) 70%),
+    radial-gradient(80% 50% at 50% 0%, rgba(255,255,255,.05), rgba(255,255,255,0) 70%),
+    linear-gradient(#0B0B0E, #0E0F13 60%, #0A0A0C) !important; }
+.head { text-align: left !important; }
+h1 { color: #fff; letter-spacing: -0.03em !important; }
+h1 em { color: inherit !important; }
+h1 .two { color: var(--accent) !important; }
+.sub { color: #9A9AA3 !important; font-weight: 500 !important; }
+.chip { display: none !important; }
+.card { background: #17181C !important; color: #fff; box-shadow: 0 60px 140px rgba(0,0,0,.5) !important; border: 2px solid #26272D; }
+.label, .label span { color: #fff !important; }
+.label span { color: #9A9AA3 !important; }
+.f.cut { outline-color: #fff !important; }
+.arrow svg { stroke: #fff; }
+
+.head { top: 210px !important; padding: 0 160px !important; }
+h1 { font-size: 176px !important; line-height: 1.02 !important; }
+.sub { margin-top: 44px !important; font-size: 64px !important; }
+.device { top: 880px !important; width: 1560px !important; padding: 26px !important; border-radius: 100px !important;
+  background: linear-gradient(125deg, #77777d 0%, #2c2c30 22%, #9a9aa0 46%, #2a2a2e 70%, #6a6a70 100%) !important;
+  box-shadow: 0 140px 240px rgba(0,0,0,.6), inset 0 0 0 3px rgba(255,255,255,.12) !important;
+  transform: translateX(-50%) perspective(5200px) rotateY(-14deg) rotateX(5deg) rotateZ(-1deg) !important; }
+.screen { border-radius: 74px !important; box-shadow: 0 0 0 16px #050506; }
+</style></head>
+<body>
+<div id="slide"></div>
+<script>
+const CHECK = '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const X = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#111114" stroke-width="3.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+const chip = (text, style) => `<div class="chip" style="${style}"><i>${CHECK}</i>${text}</div>`;
+const device = (id) => `<div class="device"><div class="screen"><canvas id="${id}"></canvas></div></div>`;
+
+const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
+
+/**
+ * Draws an iPad capture with a clean status bar: the left of the real one ("9:41 AM Thu 15 Oct
+ * Expo Go") is painted over in the colour behind it and redrawn without the Expo Go back-link, and
+ * the window handle in the bottom-right corner is painted out.
+ */
+async function screen(id, src, { under, keyBlack, soft } = {}) {
+  const c = document.getElementById(id);
+  c.width = 2064; c.height = 2752;
+  const g = c.getContext('2d');
+  if (under) g.drawImage(await load(under), 0, 0, 2064, 2752);
+  const img = await load(src);
+  const tmp = document.createElement('canvas'); tmp.width = 2064; tmp.height = 2752;
+  const t = tmp.getContext('2d');
+  t.drawImage(img, 0, 0);
+  const px = (x, y) => { const d = t.getImageData(x, y, 1, 1).data; return `rgb(${d[0]},${d[1]},${d[2]})`; };
+  const top = px(700, 30), corner = px(1960, 2700);
+  const dark = t.getImageData(700, 30, 1, 1).data[0] < 128;
+  if (soft) {
+    // Over video, a block of colour would show: blur the old text away instead (a few passes).
+    for (let i = 0; i < 4; i++) { t.save(); t.beginPath(); t.rect(0, 0, 470, 70); t.clip(); t.filter = 'blur(22px)'; t.drawImage(tmp, 0, 0); t.restore(); }
+  } else { t.fillStyle = top; t.fillRect(0, 0, 760, 70); }
+  t.fillStyle = corner; t.fillRect(1990, 2670, 74, 82);
+  t.fillStyle = dark || soft ? '#fff' : '#000';
+  t.font = '600 34px -apple-system, system-ui, sans-serif';
+  t.fillText('9:41 AM   Thu 15 Oct', 40, 46);
+  if (keyBlack) {
+    // The camera's black preview becomes see-through, showing the take underneath.
+    const d = t.getImageData(0, 0, 2064, 2752);
+    for (let i = 0; i < d.data.length; i += 4) if (Math.max(d.data[i], d.data[i + 1], d.data[i + 2]) < 6) d.data[i + 3] = 0;
+    t.putImageData(d, 0, 0);
+  }
+  g.drawImage(tmp, 0, 0);
+}
+
+const SLIDES = {
+  1: { h: ['Just talk.', 'We do the <em>cutting</em>.'], sub: 'Retakes, ums and dead air, cut for you.',
+    body: () => device('s') + chip('Retakes cut', 'left:110px; top:1500px') + chip('Ums removed', 'right:110px; top:1900px') + chip('Dead air gone', 'left:170px; top:2300px'),
+    draw: () => screen('s', 'ipad/camera.png', { under: 'ipad/hero.jpg', keyBlack: true }) },
+  2: { h: ['Flubbed a line?', 'Just say it <em>again</em>.'], sub: 'Autocut keeps your best take and cuts the rest.',
+    body: () => {
+      const raw = [['f1', 'Retake'], ['f2', 'Retake'], ['f3', 'Retake'], ['f4'], ['f5'], ['f6']];
+      return device('s') + `<div class="card" style="top:1400px; left:250px; right:250px">
+        <div class="label">Your raw take <span>0:30</span></div>
+        <div class="row">${raw.map(([f, tag]) => `<div class="f${tag ? ' cut' : ''}"><img src="src/${f}.jpg">${tag ? `<div class="x">${X}</div><div class="tag">${tag}</div>` : ''}</div>`).join('')}</div>
+        <div class="arrow"><svg width="100" height="120" viewBox="0 0 24 30" fill="none" stroke="#111114" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v23M4 18l8 8 8-8"/></svg></div>
+        <div class="label">Your cut <span>0:26</span></div>
+        <div class="row kept">${['f4', 'f5', 'f6'].map((f) => `<div class="f"><img src="src/${f}.jpg"></div>`).join('')}</div>
+      </div>`;
+    },
+    draw: () => screen('s', 'ipad/ready.png') },
+  3: { h: ['Captions on', '<em>every word</em>.'], sub: 'Drag, resize and restyle them on the video.',
+    body: () => device('s') + chip('Every word, timed', 'right:110px; top:1880px'),
+    draw: () => screen('s', 'ipad/editor.png') },
+  4: { h: ['Send it.', 'Keep <em>filming</em>.'], sub: 'Most videos are cut in about a minute. They wait for you in Cuts.',
+    body: () => device('s') + chip('You’re free to go', 'left:110px; top:2050px'),
+    draw: () => screen('s', 'ipad/cutting.png') },
+  5: { h: ['Edit <em>10 videos</em>', 'at once.'], sub: 'Pick each video’s clips, then tap Edit all.',
+    body: () => device('s') + chip('Batch your week', 'right:110px; top:2150px'),
+    draw: () => screen('s', 'ipad/batch.png') },
+  6: { h: ['Your captions.', 'Your <em>style</em>.'], sub: 'Pick a look, a colour and capitals. Every caption changes at once.',
+    body: () => device('s') + chip('Any colour', 'left:110px; top:2180px'),
+    draw: () => screen('s', 'ipad/style.png') },
+  7: { h: ['Colour like', 'a <em>pro</em>.'], sub: 'Filters, tone, HSL and curves. Match one clip to another in a tap.',
+    body: () => device('s') + chip('12 filters', 'right:110px; top:1900px'),
+    draw: () => screen('s', 'ipad/adjust.png', { soft: true }) },
+  8: { h: ['Drop in <em>photos</em>', 'and clips.'], sub: 'Show the product while you talk about it.',
+    body: () => device('s') + chip('Show, don’t just tell', 'left:110px; top:1700px'),
+    draw: () => screen('s', 'ipad/overlay.png') },
+  9: { h: ['<em>Schedule</em>', 'your edits.'], sub: 'Pick a time and it gets cut then, even with your phone off. On Pro and Ultimate.',
+    body: () => device('s') + chip('iPad can be off', 'right:110px; top:1300px'),
+    draw: () => screen('s', 'ipad/schedule.png') },
+  10: { h: ['Post straight', 'to <em>TikTok</em>.'], sub: 'Saved to Photos in full quality, then one tap to TikTok or Instagram.',
+    body: () => device('s') + chip('Full quality', 'left:110px; top:1500px'),
+    draw: () => screen('s', 'ipad/export.png') },
+};
+
+const n = new URLSearchParams(location.search).get('s') || '1';
+const s = SLIDES[n];
+document.getElementById('slide').innerHTML = `<div class="head"><h1>${s.h[0]}<span class="two">${s.h[1]}</span></h1><div class="sub">${s.sub}</div></div>` + s.body();
+s.draw().then(() => (document.body.dataset.ready = '1'));
+</script>
+</body></html>
