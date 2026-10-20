@@ -1,16 +1,20 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <title>Autocut App Store slide</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@800&family=Inter:wght@500;600;700&display=block" rel="stylesheet">
 <style>
-:root { --ink: #111114; --muted: #6B6B73; --soft: #A1A1A8; --page: #F2F2F4; }
+:root { --ink: #111114; --muted: #6B6B73; --soft: #A1A1A8; --page: #EBEEFD; --blue: #3D6BFF; }
 * { box-sizing: border-box; margin: 0; }
 html, body { width: 1320px; height: 2868px; overflow: hidden; background: var(--page); }
-body { font-family: Inter, system-ui, sans-serif; color: var(--ink); position: relative;
-  background: radial-gradient(1200px 900px at 50% 0%, #fff 0%, rgba(255,255,255,0) 70%), var(--page); }
+body { font-family: "SF Pro Text", -apple-system, system-ui, sans-serif; color: var(--ink); position: relative;
+  /* The app's blue wash: soft white glows and a touch of lavender over a pale blue. */
+  background:
+    radial-gradient(55% 45% at 18% 28%, rgba(255,255,255,.75), rgba(255,255,255,0) 70%),
+    radial-gradient(45% 40% at 82% 72%, rgba(255,255,255,.6), rgba(255,255,255,0) 70%),
+    radial-gradient(40% 35% at 70% 18%, rgba(205,214,250,.55), rgba(205,214,250,0) 70%),
+    linear-gradient(#E3E8FC, #EBEEFD 55%, #F2F4FE); }
 .head { position: absolute; top: 210px; left: 0; right: 0; text-align: center; padding: 0 70px; }
-h1 { font-family: "Inter Tight", Inter, sans-serif; font-weight: 800; font-size: 140px; line-height: 0.98; letter-spacing: -0.045em; }
+h1 { font-family: "SF Pro Display", -apple-system, system-ui, sans-serif; font-weight: 800; font-size: 140px; line-height: 0.98; letter-spacing: -0.035em; }
+h1 em { font-style: normal; color: var(--blue); }
 h1 .two { color: var(--ink); display: block; }
 .sub { margin-top: 44px; font-size: 52px; line-height: 1.3; color: var(--ink); font-weight: 500; letter-spacing: -0.01em; }
 
@@ -25,7 +29,7 @@ h1 .two { color: var(--ink); display: block; }
 .chip { position: absolute; z-index: 5; display: flex; align-items: center; gap: 22px; background: #fff; border-radius: 999px;
   padding: 26px 44px 26px 26px; font-size: 46px; font-weight: 700; letter-spacing: -0.02em;
   box-shadow: 0 24px 60px rgba(17,17,20,.16), 0 2px 6px rgba(17,17,20,.06); white-space: nowrap; }
-.chip i { width: 60px; height: 60px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; }
+.chip i { width: 60px; height: 60px; border-radius: 50%; background: var(--blue); display: grid; place-items: center; }
 
 .card { position: absolute; left: 80px; right: 80px; background: #fff; border-radius: 72px; padding: 70px 64px;
   box-shadow: 0 60px 140px rgba(17,17,20,.12); }
@@ -56,7 +60,7 @@ const chip = (text, style) => `<div class="chip" style="${style}"><i>${CHECK}</i
 const phone = (inner, island = true) => `<div class="phone"><div class="screen">${inner}${island ? '<div class="island"></div>' : ''}</div></div>`;
 // A white iOS status bar, for the camera screen (its own is dark on black).
 const STATUS = `<svg class="status" viewBox="0 0 1206 150" xmlns="http://www.w3.org/2000/svg">
-  <text x="196" y="112" fill="#fff" font-family="Inter, system-ui" font-weight="600" font-size="52" text-anchor="middle" letter-spacing="-1">9:41</text>
+  <text x="196" y="112" fill="#fff" font-family="-apple-system, system-ui" font-weight="600" font-size="52" text-anchor="middle" letter-spacing="-1">9:41</text>
   <g fill="#fff" transform="translate(830 74)">
     <rect x="0" y="22" width="12" height="16" rx="3"/><rect x="18" y="14" width="12" height="24" rx="3"/><rect x="36" y="6" width="12" height="32" rx="3"/><rect x="54" y="-2" width="12" height="40" rx="3"/>
     <path d="M118 38 l10 -11 a15 15 0 0 0 -20 0 z M101 20 a26 26 0 0 1 34 0 l7 -8 a37 37 0 0 0 -48 0 z M87 5 a47 47 0 0 1 62 0 l7 -8 a58 58 0 0 0 -76 0 z"/>
@@ -66,13 +70,13 @@ const STATUS = `<svg class="status" viewBox="0 0 1206 150" xmlns="http://www.w3.
 
 const SLIDES = {
   1: {
-    h: ['Just talk.', 'We do the cutting.'], sub: 'Retakes, ums and dead air, cut for you.',
+    h: ['Just talk.', 'We do the <em>cutting</em>.'], sub: 'Retakes, ums and dead air, cut for you.',
     body: () => phone(`<img src="src/hero.jpg"><canvas id="ui"></canvas>${STATUS}`) +
       chip('Retakes cut', 'left:70px; top:1360px') + chip('Ums removed', 'right:70px; top:1720px') + chip('Dead air gone', 'left:110px; top:2090px'),
     after: keyCamera,
   },
   2: {
-    h: ['Flubbed a line?', 'Just say it again.'], sub: 'Autocut keeps your best take and cuts the rest.',
+    h: ['Flubbed a line?', 'Just say it <em>again</em>.'], sub: 'Autocut keeps your best take and cuts the rest.',
     body: () => {
       const raw = [['f1', 'Retake'], ['f2', 'Retake'], ['f3', 'Retake'], ['f4'], ['f5'], ['f6']];
       return phone('<img src="src/ready.png">') + `<div class="card compact" style="top:1830px">
@@ -85,35 +89,35 @@ const SLIDES = {
     },
   },
   3: {
-    h: ['Captions on', 'every word.'], sub: 'Drag, resize and restyle them on the video.',
+    h: ['Captions on', '<em>every word</em>.'], sub: 'Drag, resize and restyle them on the video.',
     body: () => phone('<img src="src/editor.png">') + chip('Every word, timed', 'right:60px; top:2150px'),
   },
   4: {
-    h: ['Send it.', 'Keep filming.'], sub: 'Most videos are cut in about a minute. They wait for you in Cuts.',
+    h: ['Send it.', 'Keep <em>filming</em>.'], sub: 'Most videos are cut in about a minute. They wait for you in Cuts.',
     body: () => phone('<img src="src/cutting.png">') + chip('You’re free to go', 'left:60px; top:2150px'),
   },
   5: {
-    h: ['Edit 10 videos', 'at once.'], sub: 'Pick each video’s clips, then tap Edit all.',
+    h: ['Edit <em>10 videos</em>', 'at once.'], sub: 'Pick each video’s clips, then tap Edit all.',
     body: () => phone('<img src="src/batch.png">') + chip('Batch your week', 'right:60px; top:2200px'),
   },
   6: {
-    h: ['Your captions.', 'Your style.'], sub: 'Pick a look, a colour and capitals. Every caption changes at once.',
+    h: ['Your captions.', 'Your <em>style</em>.'], sub: 'Pick a look, a colour and capitals. Every caption changes at once.',
     body: () => phone('<img src="src/style.png">') + chip('Any colour', 'left:60px; top:1560px'),
   },
   7: {
-    h: ['Add text', 'in one tap.'], sub: 'Bold titles in the styles creators already use.',
-    body: () => phone('<img src="src/text-edit.png">') + chip('Styles built in', 'right:60px; top:2150px'),
+    h: ['Colour like', 'a <em>pro</em>.'], sub: 'Filters, tone, HSL and curves. Match one clip to another in a tap.',
+    body: () => phone('<img src="src/adjust.png">') + chip('12 filters', 'right:60px; top:2180px'),
   },
   8: {
-    h: ['Drop in photos', 'and clips.'], sub: 'Show the product while you talk about it.',
+    h: ['Drop in <em>photos</em>', 'and clips.'], sub: 'Show the product while you talk about it.',
     body: () => phone('<img src="src/overlay.png">') + chip('Show, don’t just tell', 'left:60px; top:2180px'),
   },
   9: {
-    h: ['Schedule', 'your edits.'], sub: 'Pick a time and it gets cut then, even with your phone off. On Pro and Ultimate.',
+    h: ['<em>Schedule</em>', 'your edits.'], sub: 'Pick a time and it gets cut then, even with your phone off. On Pro and Ultimate.',
     body: () => phone('<img src="src/schedule.png">') + chip('Phone can be off', 'right:60px; top:1140px'),
   },
   10: {
-    h: ['Post straight', 'to TikTok.'], sub: 'Saved to Photos in full quality, then one tap to TikTok or Instagram.',
+    h: ['Post straight', 'to <em>TikTok</em>.'], sub: 'Saved to Photos in full quality, then one tap to TikTok or Instagram.',
     body: () => phone('<img src="src/export.png">') + chip('Full quality', 'left:60px; top:1560px'),
   },
 };
