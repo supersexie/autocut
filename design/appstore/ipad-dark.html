@@ -119,7 +119,7 @@ async function screen(id, src, { under, keyBlack, soft } = {}) {
 const SLIDES = {
   1: { h: ['Just talk.', 'We do the <em>cutting</em>.'], sub: 'Retakes, ums and dead air, cut for you.',
     body: () => device('s') + chip('Retakes cut', 'left:110px; top:1500px') + chip('Ums removed', 'right:110px; top:1900px') + chip('Dead air gone', 'left:170px; top:2300px'),
-    draw: () => screen('s', 'ipad/camera.png', { under: 'ipad/hero.jpg', keyBlack: true }) },
+    draw: () => screen('s', 'ipad-dark/camera.png', { under: 'ipad-dark/hero.jpg', keyBlack: true }) },
   2: { h: ['Flubbed a line?', 'Just say it <em>again</em>.'], sub: 'Autocut keeps your best take and cuts the rest.',
     body: () => {
       const raw = [['f1', 'Retake'], ['f2', 'Retake'], ['f3', 'Retake'], ['f4'], ['f5'], ['f6']];
@@ -131,31 +131,31 @@ const SLIDES = {
         <div class="row kept">${['f4', 'f5', 'f6'].map((f) => `<div class="f"><img src="src/${f}.jpg"></div>`).join('')}</div>
       </div>`;
     },
-    draw: () => screen('s', 'ipad/ready.png') },
+    draw: () => screen('s', 'ipad-dark/ready.png') },
   3: { h: ['Captions on', '<em>every word</em>.'], sub: 'Drag, resize and restyle them on the video.',
     body: () => device('s') + chip('Every word, timed', 'right:110px; top:1880px'),
-    draw: () => screen('s', 'ipad/editor.png') },
+    draw: () => screen('s', 'ipad-dark/editor.png') },
   4: { h: ['Send it.', 'Keep <em>filming</em>.'], sub: 'Most videos are cut in about a minute. They wait for you in Cuts.',
     body: () => device('s') + chip('You’re free to go', 'left:110px; top:2050px'),
-    draw: () => screen('s', 'ipad/cutting.png') },
+    draw: () => screen('s', 'ipad-dark/cutting.png') },
   5: { h: ['Edit <em>10 videos</em>', 'at once.'], sub: 'Pick each video’s clips, then tap Edit all.',
     body: () => device('s') + chip('Batch your week', 'right:110px; top:2150px'),
-    draw: () => screen('s', 'ipad/batch.png') },
+    draw: () => screen('s', 'ipad-dark/batch.png') },
   6: { h: ['Your captions.', 'Your <em>style</em>.'], sub: 'Pick a look, a colour and capitals. Every caption changes at once.',
     body: () => device('s') + chip('Any colour', 'left:110px; top:2180px'),
-    draw: () => screen('s', 'ipad/style.png') },
+    draw: () => screen('s', 'ipad-dark/style.png') },
   7: { h: ['Colour like', 'a <em>pro</em>.'], sub: 'Filters, tone, HSL and curves. Match one clip to another in a tap.',
     body: () => device('s') + chip('12 filters', 'right:110px; top:1900px'),
-    draw: () => screen('s', 'ipad/adjust.png', { soft: true }) },
+    draw: () => screen('s', 'ipad-dark/adjust.png', { soft: true }) },
   8: { h: ['Drop in <em>photos</em>', 'and clips.'], sub: 'Show the product while you talk about it.',
     body: () => device('s') + chip('Show, don’t just tell', 'left:110px; top:1700px'),
-    draw: () => screen('s', 'ipad/overlay.png') },
+    draw: () => screen('s', 'ipad-dark/overlay.png') },
   9: { h: ['<em>Schedule</em>', 'your edits.'], sub: 'Pick a time and it gets cut then, even with your phone off. On Pro and Ultimate.',
     body: () => device('s') + chip('iPad can be off', 'right:110px; top:1300px'),
-    draw: () => screen('s', 'ipad/schedule.png') },
+    draw: () => screen('s', 'ipad-dark/schedule.png') },
   10: { h: ['Post straight', 'to <em>TikTok</em>.'], sub: 'Saved to Photos in full quality, then one tap to TikTok or Instagram.',
     body: () => device('s') + chip('Full quality', 'left:110px; top:1500px'),
-    draw: () => screen('s', 'ipad/export.png') },
+    draw: () => screen('s', 'ipad-dark/export.png') },
 };
 
 const n = new URLSearchParams(location.search).get('s') || '1';

@@ -102,7 +102,7 @@ const STATUS = `<svg class="status" viewBox="0 0 1206 150" xmlns="http://www.w3.
 const SLIDES = {
   1: {
     h: ['Just talk.', 'We do the <em>cutting</em>.'], sub: 'Retakes, ums and dead air, cut for you.',
-    body: () => phone(`<img src="src/hero.jpg"><canvas id="ui"></canvas>${STATUS}`) +
+    body: () => phone(`<img src="src-dark/hero.jpg"><canvas id="ui"></canvas>${STATUS}`) +
       chip('Retakes cut', 'left:70px; top:1360px') + chip('Ums removed', 'right:70px; top:1720px') + chip('Dead air gone', 'left:110px; top:2090px'),
     after: keyCamera,
   },
@@ -110,46 +110,46 @@ const SLIDES = {
     h: ['Flubbed a line?', 'Just say it <em>again</em>.'], sub: 'Autocut keeps your best take and cuts the rest.',
     body: () => {
       const raw = [['f1', 'Retake'], ['f2', 'Retake'], ['f3', 'Retake'], ['f4'], ['f5'], ['f6']];
-      return phone('<img src="src/ready.png">') + `<div class="card compact" style="top:1830px">
+      return phone('<img src="src-dark/ready.png">') + `<div class="card compact" style="top:1830px">
         <div class="label">Your raw take <span>0:30</span></div>
-        <div class="row">${raw.map(([f, tag]) => `<div class="f${tag ? ' cut' : ''}"><img src="src/${f}.jpg">${tag ? `<div class="x">${X}</div><div class="tag">${tag}</div>` : ''}</div>`).join('')}</div>
+        <div class="row">${raw.map(([f, tag]) => `<div class="f${tag ? ' cut' : ''}"><img src="src-dark/${f}.jpg">${tag ? `<div class="x">${X}</div><div class="tag">${tag}</div>` : ''}</div>`).join('')}</div>
         <div class="arrow"><svg width="90" height="110" viewBox="0 0 24 30" fill="none" stroke="#111114" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v23M4 18l8 8 8-8"/></svg></div>
         <div class="label">Your cut <span>0:26</span></div>
-        <div class="row kept">${['f4', 'f5', 'f6'].map((f) => `<div class="f"><img src="src/${f}.jpg"></div>`).join('')}</div>
+        <div class="row kept">${['f4', 'f5', 'f6'].map((f) => `<div class="f"><img src="src-dark/${f}.jpg"></div>`).join('')}</div>
       </div>`;
     },
   },
   3: {
     h: ['Captions on', '<em>every word</em>.'], sub: 'Drag, resize and restyle them on the video.',
-    body: () => phone('<img src="src/editor.png">') + chip('Every word, timed', 'right:60px; top:2150px'),
+    body: () => phone('<img src="src-dark/editor.png">') + chip('Every word, timed', 'right:60px; top:2150px'),
   },
   4: {
     h: ['Send it.', 'Keep <em>filming</em>.'], sub: 'Most videos are cut in about a minute. They wait for you in Cuts.',
-    body: () => phone('<img src="src/cutting.png">') + chip('You’re free to go', 'left:60px; top:2150px'),
+    body: () => phone('<img src="src-dark/cutting.png">') + chip('You’re free to go', 'left:60px; top:2150px'),
   },
   5: {
     h: ['Edit <em>10 videos</em>', 'at once.'], sub: 'Pick each video’s clips, then tap Edit all.',
-    body: () => phone('<img src="src/batch.png">') + chip('Batch your week', 'right:60px; top:2200px'),
+    body: () => phone('<img src="src-dark/batch.png">') + chip('Batch your week', 'right:60px; top:2200px'),
   },
   6: {
     h: ['Your captions.', 'Your <em>style</em>.'], sub: 'Pick a look, a colour and capitals. Every caption changes at once.',
-    body: () => phone('<img src="src/style.png">') + chip('Any colour', 'left:60px; top:1560px'),
+    body: () => phone('<img src="src-dark/style.png">') + chip('Any colour', 'left:60px; top:1560px'),
   },
   7: {
     h: ['Colour like', 'a <em>pro</em>.'], sub: 'Filters, tone, HSL and curves. Match one clip to another in a tap.',
-    body: () => phone('<img src="src/adjust.png">') + chip('12 filters', 'right:60px; top:2180px'),
+    body: () => phone('<img src="src-dark/adjust.png">') + chip('12 filters', 'right:60px; top:2180px'),
   },
   8: {
     h: ['Drop in <em>photos</em>', 'and clips.'], sub: 'Show the product while you talk about it.',
-    body: () => phone('<img src="src/overlay.png">') + chip('Show, don’t just tell', 'left:60px; top:2180px'),
+    body: () => phone('<img src="src-dark/overlay.png">') + chip('Show, don’t just tell', 'left:60px; top:2180px'),
   },
   9: {
     h: ['<em>Schedule</em>', 'your edits.'], sub: 'Pick a time and it gets cut then, even with your phone off. On Pro and Ultimate.',
-    body: () => phone('<img src="src/schedule.png">') + chip('Phone can be off', 'right:60px; top:1140px'),
+    body: () => phone('<img src="src-dark/schedule.png">') + chip('Phone can be off', 'right:60px; top:1140px'),
   },
   10: {
     h: ['Post straight', 'to <em>TikTok</em>.'], sub: 'Saved to Photos in full quality, then one tap to TikTok or Instagram.',
-    body: () => phone('<img src="src/export.png">') + chip('Full quality', 'left:60px; top:1560px'),
+    body: () => phone('<img src="src-dark/export.png">') + chip('Full quality', 'left:60px; top:1560px'),
   },
 };
 
@@ -170,7 +170,7 @@ function keyCamera() {
     g.putImageData(d, 0, 0);
     document.body.dataset.ready = '1';
   };
-  img.src = 'src/camera.png';
+  img.src = 'src-dark/camera.png';
 }
 
 const n = new URLSearchParams(location.search).get('s') || '1';
